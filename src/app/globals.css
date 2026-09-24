@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #080a0f;
+  --surface: #10131a;
+  --surface-raised: #161b24;
+  --surface-border: #232936;
+  --foreground: #f8fafc;
+  --muted: #94a3b8;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100dvh;
+  letter-spacing: -0.01em;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 197, 94, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 50% 120%, rgba(59, 130, 246, 0.05), transparent);
+}
+
+button, a, input {
+  touch-action: manipulation;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #232936;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* 3D Tactile Arcade Plunger Button */
+.btn-buzzer-3d {
+  background: radial-gradient(circle at 35% 30%, #ef4444, #dc2626 50%, #991b1b 95%);
+  box-shadow: 
+    0 10px 0 #7f1d1d,
+    0 14px 25px rgba(239, 68, 68, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.5);
+  transition: all 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-buzzer-3d:active {
+  transform: translateY(8px);
+  box-shadow: 
+    0 2px 0 #7f1d1d,
+    0 4px 10px rgba(239, 68, 68, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Floating Emoji Reaction Animation */
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-50px) scale(1.2) rotate(10deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-110px) scale(1) rotate(-10deg);
+  }
+}
+
+.animate-reaction {
+  animation: float-up 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Keyframe for subtle wave animation */
+@keyframes eq-bounce {
+  0%, 100% { height: 4px; }
+  50% { height: 22px; }
+}
+
+.animate-eq-1 { animation: eq-bounce 0.8s ease-in-out infinite; }
+.animate-eq-2 { animation: eq-bounce 0.8s ease-in-out 0.2s infinite; }
+.animate-eq-3 { animation: eq-bounce 0.8s ease-in-out 0.4s infinite; }
+.animate-eq-4 { animation: eq-bounce 0.8s ease-in-out 0.15s infinite; }
+.animate-eq-5 { animation: eq-bounce 0.8s ease-in-out 0.35s infinite; }
