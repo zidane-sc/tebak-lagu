@@ -12,16 +12,12 @@ const handle = app.getRequestHandler();
 // In-memory catalog cache for server-authoritative song picking
 let SONGS_CATALOG = [];
 try {
-  // Load local catalog from compiled data or read file
   const fs = require("fs");
   const path = require("path");
-  const songsTsPath = path.join(__dirname, "src/data/songs.ts");
-  if (fs.existsSync(songsTsPath)) {
-    const content = fs.readFileSync(songsTsPath, "utf-8");
-    const jsonMatch = content.match(/SONGS_CATALOG:\s*Song\[\]\s*=\s*(\[[\s\S]*?\]);\s*$/);
-    if (jsonMatch) {
-      SONGS_CATALOG = JSON.parse(jsonMatch[1]);
-    }
+  const songsJsonPath = path.join(__dirname, "src/data/songs.json");
+  if (fs.existsSync(songsJsonPath)) {
+    SONGS_CATALOG = JSON.parse(fs.readFileSync(songsJsonPath, "utf-8"));
+    console.log(`> Loaded massive catalog: ${SONGS_CATALOG.length} songs ready.`);
   }
 } catch (e) {
   console.log("Note: Songs catalog loaded via fallback.", e.message);
