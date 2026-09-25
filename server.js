@@ -70,6 +70,74 @@ async function resolvePreviewUrl(song) {
   return null;
 }
 
+// In-memory lyrics cache for fast resolution
+const lyricsCache = new Map();
+
+async function resolveLyrics(song) {
+  // If song already has rich curated lyrics that don't contain dummy text
+  if (
+    song.lyricsClues &&
+    song.lyricsClues.length > 0 &&
+    !song.lyricsClues[0].toLowerCase().includes("tebak judul lagu")
+  ) {
+    return song.lyricsClues;
+  }
+
+  const cacheKey = `${song.title.toLowerCase().trim()}::${song.artist.toLowerCase().trim()}`;
+  if (lyricsCache.has(cacheKey)) {
+    return lyricsCache.get(cacheKey);
+  }
+
+  try {
+    const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(
+      song.artist
+    )}&track_name=${encodeURIComponent(song.title)}`;
+    const res = await fetch(url, { headers: { "User-Agent": "TebakLagu/3.0" } });
+    if (res.ok) {
+      const data = await res.json();
+      const rawText = data.plainLyrics || data.syncedLyrics || "";
+      if (rawText) {
+        // Strip timestamps: [00:12.34]
+        const cleanLines = rawText
+          .split("\n")
+          .map((l) => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim())
+          .filter((l) => l.length > 5 && !l.startsWith("[") && !l.endsWith("]"));
+
+        // Filter out lines that give away the title or artist directly
+        const titleWords = song.title.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+        const nonRevealing = cleanLines.filter((l) => {
+          const lLow = l.toLowerCase();
+          return (
+            !titleWords.some((w) => lLow.includes(w)) &&
+            !lLow.includes(song.artist.toLowerCase())
+          );
+        });
+
+        const targetLines = nonRevealing.length >= 2 ? nonRevealing : cleanLines;
+
+        if (targetLines.length >= 2) {
+          const clues = [];
+          for (let i = 0; i < Math.min(6, targetLines.length); i += 2) {
+            if (targetLines[i + 1]) {
+              clues.push(`${targetLines[i]}\n${targetLines[i + 1]}`);
+            } else {
+              clues.push(targetLines[i]);
+            }
+          }
+          if (clues.length > 0) {
+            lyricsCache.set(cacheKey, clues);
+            return clues;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log("LRCLIB fetch error:", e.message);
+  }
+
+  return null;
+}
+
 function getSanitizedRoom(room) {
   return {
     code: room.code,
@@ -134,7 +202,27 @@ async function startRound(room) {
       ? SONGS_CATALOG.filter((s) => s.category === room.category)
       : SONGS_CATALOG;
   const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
-  const chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
+  let chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
+
+  // For TTS mode, ensure chosen song has REAL lyrics (never dummy "tebak judul")!
+  if (room.mode === "tts") {
+    let lyrics = await resolveLyrics(chosenSong);
+    let attempts = 0;
+    while (!lyrics && attempts < 5) {
+      chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
+      lyrics = await resolveLyrics(chosenSong);
+      attempts++;
+    }
+    if (lyrics && lyrics.length > 0) {
+      chosenSong.lyricsClues = lyrics;
+    } else {
+      // Fallback poetic verse if all attempts exhausted
+      chosenSong.lyricsClues = [
+        "Mendengar alunan nada yang syahdu\nKuingat kenangan saat bersamamu",
+        "Rindu ini kian membara di dalam dada\nMenanti hadirmu kembali di sisiku"
+      ];
+    }
+  }
 
   // Resolve preview URL in background or cache
   const preview = await resolvePreviewUrl(chosenSong);
