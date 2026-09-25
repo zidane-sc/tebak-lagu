@@ -7,6 +7,7 @@ import { SoundBars } from "@/components/SoundBars";
 interface TtsModePlayerProps {
   clues: string[];
   activeClueCount: number;
+  initialVoiceType?: RobotVoiceType;
 }
 
 type RobotVoiceType = "normal" | "deep" | "fast";
@@ -14,10 +15,11 @@ type RobotVoiceType = "normal" | "deep" | "fast";
 export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
   clues,
   activeClueCount,
+  initialVoiceType = "normal",
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [voiceType, setVoiceType] = useState<RobotVoiceType>("normal");
+  const [voiceType, setVoiceType] = useState<RobotVoiceType>(initialVoiceType);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Take the active couplets up to activeClueCount

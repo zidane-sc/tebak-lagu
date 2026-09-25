@@ -1,0 +1,12 @@
+{
+  "buzzerTimerSeconds": 20,
+  "playerLivesPerRound": 3,
+  "clueExtensionIntervalSeconds": 30,
+  "finalStageSeconds": 90,
+  "disconnectGracePeriodSeconds": 45,
+  "defaultRounds": 5,
+  "defaultDifficulty": "easy",
+  "defaultAudioProfile": "normal",
+  "allowMidGameJoin": true,
+  "consensusVoteSkip": true
+}

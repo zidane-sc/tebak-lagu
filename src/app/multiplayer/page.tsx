@@ -55,6 +55,7 @@ export default function MultiplayerPage() {
   const [selectedMode, setSelectedMode] = useState("heardle");
   const [selectedCategory, setSelectedCategory] = useState("Semua Genre");
   const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
+  const [selectedAudioProfile, setSelectedAudioProfile] = useState("normal");
   const [maxRounds, setMaxRounds] = useState(5);
 
   // Live Room State
@@ -93,6 +94,18 @@ export default function MultiplayerPage() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     sfx.enabled = next;
+  };
+
+  const stopAndResetAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.removeAttribute("src");
+    }
+    if (synthRef.current) {
+      synthRef.current.stop();
+    }
+    setIsPlayingAudio(false);
   };
 
   // Session storage key
@@ -173,12 +186,13 @@ export default function MultiplayerPage() {
             setRoom(data.room);
           } else if (data.type === "round_started") {
             sfx.playGong();
+            stopAndResetAudio();
             setRoom(data.room);
             setView("game");
-            setIsPlayingAudio(false);
             setBuzzCountdown(0);
           } else if (data.type === "player_buzzed") {
             sfx.playBuzzer();
+            stopAndResetAudio();
             setScreenFlash("buzz");
             setTimeout(() => setScreenFlash(null), 300);
 
@@ -233,6 +247,7 @@ export default function MultiplayerPage() {
               setTimeout(() => setScreenFlash(null), 350);
             }
           } else if (data.type === "round_revealed") {
+            stopAndResetAudio();
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
@@ -242,12 +257,11 @@ export default function MultiplayerPage() {
             } catch {}
             setRoom(null);
             setView("menu");
-            setIsPlayingAudio(false);
+            stopAndResetAudio();
             setBuzzCountdown(0);
-            if (audioRef.current) audioRef.current.pause();
-            if (synthRef.current) synthRef.current.stop();
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
           } else if (data.type === "game_over") {
+            stopAndResetAudio();
             sfx.playCorrect();
             setRoom(data.room);
             sessionStorage.removeItem(SESSION_KEY);
@@ -325,6 +339,7 @@ export default function MultiplayerPage() {
         mode: selectedMode,
         category: selectedCategory,
         difficulty: selectedDifficulty,
+        audioProfile: selectedAudioProfile,
         maxRounds,
       })
     );
@@ -393,6 +408,7 @@ export default function MultiplayerPage() {
   const handleNextRound = () => {
     if (!ws || !room) return;
     sfx.playClick();
+    stopAndResetAudio();
     ws.send(JSON.stringify({ type: "next_round" }));
   };
 
@@ -452,13 +468,23 @@ export default function MultiplayerPage() {
       setIsPlayingAudio(false);
     } else {
       sfx.playClick();
+      const profile = room?.audioProfile || "normal";
       if (room?.mode === "tts") {
         const clues = room.currentSongClue?.lyricsClues || [];
         const fullLyrics = clues.join(". \n");
-        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}`;
+        const speedParam = profile === "fast" ? "1.25" : profile === "bass" ? "0.8" : "1";
+        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}&speed=${speedParam}`;
       } else {
         audioRef.current.src = room?.currentSongClue?.previewUrl || "";
         audioRef.current.currentTime = room?.currentSongClue?.startSecond || 0;
+      }
+
+      if (profile === "fast") {
+        audioRef.current.playbackRate = 1.3;
+      } else if (profile === "bass") {
+        audioRef.current.playbackRate = 0.85;
+      } else {
+        audioRef.current.playbackRate = 1.0;
       }
 
       audioRef.current
@@ -765,6 +791,43 @@ export default function MultiplayerPage() {
               </div>
             </div>
 
+            {/* Tipe Suara / Audio Profile */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
+                <span>TIPE SUARA / AUDIO PROFILE</span>
+                <span className="text-accent font-bold">
+                  {selectedAudioProfile === "normal"
+                    ? "Datar / Robotik 🤖"
+                    : selectedAudioProfile === "bass"
+                    ? "Bass Booster 🔊"
+                    : "Cepat / Chipmunk ⚡"}
+                </span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "normal", label: "Datar 🤖", desc: "Monotone" },
+                  { id: "bass", label: "Bass 🔊", desc: "Berat & Low" },
+                  { id: "fast", label: "Cepat ⚡", desc: "Chipmunk" },
+                ].map((ap) => (
+                  <button
+                    key={ap.id}
+                    onClick={() => {
+                      sfx.playClick();
+                      setSelectedAudioProfile(ap.id);
+                    }}
+                    className={`py-2 px-2 rounded-xl text-center transition flex flex-col items-center ${
+                      selectedAudioProfile === ap.id
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{ap.label}</span>
+                    <span className="text-[9px] opacity-75 font-mono">{ap.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Rounds count */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono text-mutedDark font-semibold">
@@ -896,6 +959,14 @@ export default function MultiplayerPage() {
                     : "🔀 Campur"}
                 </span>
                 <span>•</span>
+                <span className="text-cyan-400 font-semibold">
+                  {room.audioProfile === "fast"
+                    ? "⚡ Cepat"
+                    : room.audioProfile === "bass"
+                    ? "🔊 Bass"
+                    : "🤖 Datar"}
+                </span>
+                <span>•</span>
                 <span>{room.maxRounds} Ronde</span>
               </div>
             </div>
@@ -988,7 +1059,13 @@ export default function MultiplayerPage() {
                   ? "🟡 Sedang"
                   : room.difficulty === "hard"
                   ? "🔴 Sulit"
-                  : "🔀 Campur"}
+                  : "🔀 Campur"}{" "}
+                ·{" "}
+                {room.audioProfile === "fast"
+                  ? "⚡ Cepat"
+                  : room.audioProfile === "bass"
+                  ? "🔊 Bass"
+                  : "🤖 Datar"}
               </span>
             </div>
 
@@ -1075,18 +1152,6 @@ export default function MultiplayerPage() {
                 </>
               )}
             </button>
-
-            {/* Lyrics display for Robot Speech */}
-            {room.mode === "tts" && room.currentSongClue?.lyricsClues && (
-              <div className="w-full mt-2 bg-surfaceRaised/60 border border-surfaceBorder rounded-xl p-3 text-xs text-zinc-300 italic font-medium max-h-28 overflow-y-auto text-left flex flex-col gap-1">
-                {room.currentSongClue.lyricsClues.map((clueText: string, i: number) => (
-                  <div key={i} className="text-zinc-200">
-                    <span className="text-[10px] font-mono text-accent not-italic font-bold mr-1.5">[Bait {i + 1}]</span>
-                    <span>"{clueText}"</span>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Hidden native audio element */}
             <audio ref={audioRef} onEnded={() => setIsPlayingAudio(false)} preload="auto" />
@@ -1200,19 +1265,6 @@ export default function MultiplayerPage() {
                 {room.revealedSong?.title}
               </h3>
               <p className="text-xs text-muted font-medium">{room.revealedSong?.artist}</p>
-
-              {isHost && (
-                <button
-                  onClick={handleNextRound}
-                  className="w-full mt-2 bg-zinc-100 hover:bg-white text-zinc-950 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md cursor-pointer"
-                >
-                  <span>
-                    {room.currentRound >= room.maxRounds
-                      ? "Lihat Podium Juara 🏆"
-                      : "Ronde Berikutnya ➔"}
-                  </span>
-                </button>
-              )}
             </div>
           )}
 

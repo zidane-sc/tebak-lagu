@@ -11,17 +11,27 @@ const handle = app.getRequestHandler();
 
 // In-memory catalog cache for server-authoritative song picking
 let SONGS_CATALOG = [];
-try {
-  const fs = require("fs");
-  const path = require("path");
-  const songsJsonPath = path.join(__dirname, "src/data/songs.json");
-  if (fs.existsSync(songsJsonPath)) {
-    SONGS_CATALOG = JSON.parse(fs.readFileSync(songsJsonPath, "utf-8"));
-    console.log(`> Loaded massive catalog: ${SONGS_CATALOG.length} songs ready.`);
+let lastMtime = 0;
+const fs = require("fs");
+const path = require("path");
+const songsJsonPath = path.join(__dirname, "src/data/songs.json");
+
+function getActiveCatalog() {
+  try {
+    if (fs.existsSync(songsJsonPath)) {
+      const stat = fs.statSync(songsJsonPath);
+      if (stat.mtimeMs > lastMtime || SONGS_CATALOG.length === 0) {
+        SONGS_CATALOG = JSON.parse(fs.readFileSync(songsJsonPath, "utf-8"));
+        lastMtime = stat.mtimeMs;
+        console.log(`> Loaded massive catalog: ${SONGS_CATALOG.length} songs ready.`);
+      }
+    }
+  } catch (e) {
+    console.log("Note: Songs catalog load notice:", e.message);
   }
-} catch (e) {
-  console.log("Note: Songs catalog loaded via fallback.", e.message);
+  return SONGS_CATALOG;
 }
+getActiveCatalog();
 
 // -------------------------------------------------------------
 // MULTIPLAYER ROOM STATE MANAGER
@@ -145,6 +155,7 @@ function getSanitizedRoom(room) {
     mode: room.mode,
     category: room.category,
     difficulty: room.difficulty || "easy",
+    audioProfile: room.audioProfile || "normal",
     maxRounds: room.maxRounds,
     currentRound: room.currentRound,
     status: room.status,
@@ -264,7 +275,8 @@ async function startRound(room) {
   }, 1000);
 
   // Pick song matching category and difficulty
-  let pool = SONGS_CATALOG;
+  const catalog = getActiveCatalog();
+  let pool = catalog;
   if (room.category && room.category !== "Semua Genre") {
     pool = pool.filter((s) => s.category === room.category);
   }
@@ -272,7 +284,7 @@ async function startRound(room) {
     const diffFiltered = pool.filter((s) => s.difficulty === room.difficulty);
     if (diffFiltered.length > 0) pool = diffFiltered;
   }
-  const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
+  const activePool = pool.length > 0 ? pool : catalog;
   let chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
 
   // For TTS mode, ensure chosen song has REAL lyrics (never dummy "tebak judul")!
@@ -415,6 +427,7 @@ app.prepare().then(() => {
             mode: data.mode || "heardle",
             category: data.category || "Semua Genre",
             difficulty: data.difficulty || "easy",
+            audioProfile: data.audioProfile || "normal",
             maxRounds: data.maxRounds || 5,
             currentRound: 0,
             status: "lobby",

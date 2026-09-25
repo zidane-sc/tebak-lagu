@@ -46,6 +46,8 @@ export default function PlayArenaPage() {
 
   const modeKey = (params?.mode as string) || "tts";
   const categoryFilter = searchParams.get("category");
+  const difficultyFilter = searchParams.get("difficulty");
+  const audioProfile = searchParams.get("audioProfile") || "normal";
   const config = MODE_CONFIG[modeKey] || MODE_CONFIG.tts;
 
   const [song, setSong] = useState<Song | null>(null);
@@ -86,9 +88,14 @@ export default function PlayArenaPage() {
     setUnlockedHeardleLevel(0);
     setScoreGained(0);
 
-    const pool = categoryFilter
-      ? SONGS_CATALOG.filter((s) => s.category === categoryFilter)
-      : SONGS_CATALOG;
+    let pool = SONGS_CATALOG;
+    if (categoryFilter && categoryFilter !== "Semua Genre") {
+      pool = pool.filter((s) => s.category === categoryFilter);
+    }
+    if (difficultyFilter && difficultyFilter !== "all") {
+      const diffFiltered = pool.filter((s) => s.difficulty === difficultyFilter);
+      if (diffFiltered.length > 0) pool = diffFiltered;
+    }
     const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
 
     const randomSong = activePool[Math.floor(Math.random() * activePool.length)];
@@ -108,7 +115,7 @@ export default function PlayArenaPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [categoryFilter]);
+  }, [categoryFilter, difficultyFilter]);
 
   useEffect(() => {
     loadNewSong();
@@ -245,6 +252,7 @@ export default function PlayArenaPage() {
           <TtsModePlayer
             clues={song.lyricsClues}
             activeClueCount={activeClueCount}
+            initialVoiceType={audioProfile === "fast" ? "fast" : audioProfile === "bass" ? "deep" : "normal"}
           />
         )}
 
