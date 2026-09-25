@@ -17,6 +17,7 @@ export interface Song {
   previewResolved?: string;
   difficulty?: "easy" | "medium" | "hard";
   popularity?: number;
+  lang?: "id" | "en";
 }
 
 export const CATEGORIES = [

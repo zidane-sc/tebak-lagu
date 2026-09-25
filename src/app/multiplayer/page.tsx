@@ -20,6 +20,7 @@ import {
   VolumeX,
   Radio,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
@@ -65,6 +66,7 @@ export default function MultiplayerPage() {
 
   // In-Game Playback State
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isAudioBuffering, setIsAudioBuffering] = useState(false);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(20);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
@@ -105,10 +107,10 @@ export default function MultiplayerPage() {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.removeAttribute("src");
     }
     if (synthRef.current) synthRef.current.stop();
     setIsPlayingAudio(false);
+    setIsAudioBuffering(false);
   };
 
   // Session storage key
@@ -196,6 +198,24 @@ export default function MultiplayerPage() {
             setRoom(data.room);
             setView("game");
             setBuzzCountdown(0);
+
+            // Preload audio immediately in background so first click plays with 0ms lag!
+            setTimeout(() => {
+              if (audioRef.current && data.room) {
+                const r = data.room;
+                if (r.mode === "tts") {
+                  const clues = r.currentSongClue?.allLyricsClues || r.currentSongClue?.lyricsClues || [];
+                  const fullLyrics = clues.join(". \n");
+                  const speedParam = r.audioProfile === "fast" ? "1.25" : r.audioProfile === "bass" ? "0.8" : "1";
+                  const langParam = r.currentSongClue?.lang || "id";
+                  audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik")}&speed=${speedParam}&lang=${langParam}`;
+                } else {
+                  audioRef.current.src = r.currentSongClue?.previewUrl || "";
+                }
+                audioRef.current.preload = "auto";
+                audioRef.current.load();
+              }
+            }, 100);
           } else if (data.type === "player_buzzed") {
             sfx.playBuzzer();
             stopAndResetAudio();
@@ -517,10 +537,18 @@ export default function MultiplayerPage() {
         audioRef.current.playbackRate = 1.0;
       }
 
+      setIsAudioBuffering(true);
       audioRef.current
         .play()
-        .then(() => setIsPlayingAudio(true))
-        .catch(() => setIsPlayingAudio(false));
+        .then(() => {
+          setIsAudioBuffering(false);
+          setIsPlayingAudio(true);
+        })
+        .catch((err) => {
+          console.warn("Audio play notice:", err);
+          setIsAudioBuffering(false);
+          setIsPlayingAudio(false);
+        });
     }
   };
 
@@ -1189,9 +1217,17 @@ export default function MultiplayerPage() {
             {/* Clue Prompt */}
             <button
               onClick={toggleAudioPlay}
-              className="mt-1 flex items-center gap-2 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
+              disabled={isAudioBuffering}
+              className={`mt-1 flex items-center gap-2 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
+                isAudioBuffering ? "opacity-75 cursor-wait" : ""
+              }`}
             >
-              {isPlayingAudio ? (
+              {isAudioBuffering ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-accent animate-spin" />
+                  <span>Menyiapkan Audio...</span>
+                </>
+              ) : isPlayingAudio ? (
                 <>
                   <Volume2 className="w-4 h-4 text-accent animate-pulse" />
                   <span>
@@ -1210,8 +1246,28 @@ export default function MultiplayerPage() {
               )}
             </button>
 
-            {/* Hidden native audio element */}
-            <audio ref={audioRef} onEnded={() => setIsPlayingAudio(false)} preload="auto" />
+            {/* Hidden native audio element with proactive buffering event listeners */}
+            <audio
+              ref={audioRef}
+              preload="auto"
+              onWaiting={() => setIsAudioBuffering(true)}
+              onPlaying={() => {
+                setIsAudioBuffering(false);
+                setIsPlayingAudio(true);
+              }}
+              onPause={() => {
+                setIsPlayingAudio(false);
+                setIsAudioBuffering(false);
+              }}
+              onEnded={() => {
+                setIsPlayingAudio(false);
+                setIsAudioBuffering(false);
+              }}
+              onError={() => {
+                setIsPlayingAudio(false);
+                setIsAudioBuffering(false);
+              }}
+            />
           </div>
 
           {/* ======================================================== */}

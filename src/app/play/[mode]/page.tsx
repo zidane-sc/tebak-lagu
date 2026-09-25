@@ -6,34 +6,23 @@ import { ScoreHeader } from "@/components/ScoreHeader";
 import { GuessInput } from "@/components/GuessInput";
 import { GameOverModal } from "@/components/GameOverModal";
 import { TtsModePlayer } from "@/components/modes/TtsModePlayer";
-import { HummingModePlayer } from "@/components/modes/HummingModePlayer";
-import { InstrumentalModePlayer } from "@/components/modes/InstrumentalModePlayer";
 import { HeardleModePlayer } from "@/components/modes/HeardleModePlayer";
-import { Song, SONGS_CATALOG } from "@/data/songs";
+import { Song } from "@/data/songs";
 import { sfx } from "@/lib/sound-fx";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import confetti from "canvas-confetti";
 
 const MODE_CONFIG: Record<
   string,
   { title: string; icon: string; maxGuesses: number }
 > = {
   tts: {
-    title: "Dinyanyiin Robot TTS",
+    title: "Robot Speech (TTS)",
     icon: "🤖",
     maxGuesses: 5,
   },
-  humming: {
-    title: "Humming & Melodi",
-    icon: "🎵",
-    maxGuesses: 5,
-  },
-  instrumental: {
-    title: "Musiknya Doang",
-    icon: "🎸",
-    maxGuesses: 5,
-  },
   heardle: {
-    title: "Detik Bertahap (Heardle)",
+    title: "Time Slice (Heardle)",
     icon: "⏱️",
     maxGuesses: 6,
   },
@@ -44,11 +33,16 @@ export default function PlayArenaPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const modeKey = (params?.mode as string) || "tts";
-  const categoryFilter = searchParams.get("category");
-  const difficultyFilter = searchParams.get("difficulty");
-  const audioProfile = searchParams.get("audioProfile") || "normal";
-  const config = MODE_CONFIG[modeKey] || MODE_CONFIG.tts;
+  const modeKey = (params?.mode as string) || "heardle";
+  const config = MODE_CONFIG[modeKey] || MODE_CONFIG.heardle;
+
+  // Single player config from sessionStorage (clean URL without query params)
+  const [gameConfig, setGameConfig] = useState({
+    category: "Semua Genre",
+    difficulty: "easy",
+    audioProfile: "normal",
+    maxRounds: 5,
+  });
 
   const [song, setSong] = useState<Song | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -61,24 +55,47 @@ export default function PlayArenaPage() {
   const [activeClueCount, setActiveClueCount] = useState(1);
   const [unlockedHeardleLevel, setUnlockedHeardleLevel] = useState(0);
 
-  // Score & Streak
-  const [streak, setStreak] = useState(0);
+  // Score & Round Stats
   const [score, setScore] = useState(0);
   const [scoreGained, setScoreGained] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
 
-  // Round Over State
+  // Round Over State & Match Completed State
   const [isGameOver, setIsGameOver] = useState(false);
   const [isWon, setIsWon] = useState(false);
+  const [isMatchFinished, setIsMatchFinished] = useState(false);
 
-  // Load Saved Stats
+  // Load Config from sessionStorage or fallback to URL query
   useEffect(() => {
     try {
-      setStreak(parseInt(localStorage.getItem("tebak_lagu_streak") || "0", 10));
+      const saved = sessionStorage.getItem("tebak_lagu_single_config");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setGameConfig({
+          category: parsed.category || "Semua Genre",
+          difficulty: parsed.difficulty || "easy",
+          audioProfile: parsed.audioProfile || "normal",
+          maxRounds: parsed.maxRounds || 5,
+        });
+      } else {
+        setGameConfig({
+          category: searchParams.get("category") || "Semua Genre",
+          difficulty: searchParams.get("difficulty") || "easy",
+          audioProfile: searchParams.get("audioProfile") || "normal",
+          maxRounds: parseInt(searchParams.get("rounds") || "5", 10),
+        });
+      }
+    } catch {}
+  }, [searchParams]);
+
+  // Load Saved Lifetime Score
+  useEffect(() => {
+    try {
       setScore(parseInt(localStorage.getItem("tebak_lagu_score") || "0", 10));
     } catch {}
   }, []);
 
-  // Pick Random Song and Preload Preview
+  // Fetch song from server database (with guaranteed LRCLIB lyrics & Apple preview)
   const loadNewSong = useCallback(() => {
     setIsLoading(true);
     setIsGameOver(false);
@@ -88,34 +105,29 @@ export default function PlayArenaPage() {
     setUnlockedHeardleLevel(0);
     setScoreGained(0);
 
-    let pool = SONGS_CATALOG;
-    if (categoryFilter && categoryFilter !== "Semua Genre") {
-      pool = pool.filter((s) => s.category === categoryFilter);
-    }
-    if (difficultyFilter && difficultyFilter !== "all") {
-      const diffFiltered = pool.filter((s) => s.difficulty === difficultyFilter);
-      if (diffFiltered.length > 0) pool = diffFiltered;
-    }
-    const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
+    const q = new URLSearchParams({
+      mode: modeKey,
+      category: gameConfig.category,
+      difficulty: gameConfig.difficulty,
+    });
 
-    const randomSong = activePool[Math.floor(Math.random() * activePool.length)];
-    setSong(randomSong);
-
-    fetch(`/api/preview?q=${encodeURIComponent(randomSong.searchQuery)}`)
+    fetch(`/api/songs/random?${q.toString()}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.previewUrl) setPreviewUrl(data.previewUrl);
-        else setPreviewUrl(randomSong.previewFallback);
-
-        if (data.albumCover) setAlbumCover(data.albumCover);
+        if (data.song) {
+          const s = data.song;
+          setSong(s);
+          setPreviewUrl(s.previewResolved || s.previewUrl);
+          setAlbumCover(s.albumCover);
+        }
       })
-      .catch(() => {
-        setPreviewUrl(randomSong.previewFallback);
+      .catch((err) => {
+        console.error("Failed to load song from API:", err);
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, [categoryFilter, difficultyFilter]);
+  }, [modeKey, gameConfig.category, gameConfig.difficulty]);
 
   useEffect(() => {
     loadNewSong();
@@ -142,11 +154,9 @@ export default function PlayArenaPage() {
       targetTitle.includes(inputTitle);
 
     if (isMatch) {
-      // Sound FX
       sfx.playCorrect();
 
       const points = (config.maxGuesses - guesses.length) * 100;
-      const newStreak = streak + 1;
       const newScore = score + points;
 
       setGuesses((prev) => [
@@ -156,15 +166,13 @@ export default function PlayArenaPage() {
       setScoreGained(points);
       setIsWon(true);
       setIsGameOver(true);
-      setStreak(newStreak);
       setScore(newScore);
+      setCorrectCount((c) => c + 1);
 
       try {
-        localStorage.setItem("tebak_lagu_streak", newStreak.toString());
         localStorage.setItem("tebak_lagu_score", newScore.toString());
       } catch {}
     } else {
-      // Sound FX
       sfx.playWrong();
 
       const newGuesses = [
@@ -173,16 +181,13 @@ export default function PlayArenaPage() {
       ];
       setGuesses(newGuesses);
 
-      setActiveClueCount((prev) => Math.min(song.lyricsClues.length, prev + 1));
+      const cluesTotal = song.lyricsClues?.length || 4;
+      setActiveClueCount((prev) => Math.min(cluesTotal, prev + 1));
       setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
 
       if (newGuesses.length >= config.maxGuesses) {
         setIsWon(false);
         setIsGameOver(true);
-        setStreak(0);
-        try {
-          localStorage.setItem("tebak_lagu_streak", "0");
-        } catch {}
       }
     }
   };
@@ -199,30 +204,46 @@ export default function PlayArenaPage() {
     ];
     setGuesses(newGuesses);
 
-    setActiveClueCount((prev) => Math.min(song.lyricsClues.length, prev + 1));
+    const cluesTotal = song.lyricsClues?.length || 4;
+    setActiveClueCount((prev) => Math.min(cluesTotal, prev + 1));
     setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
 
     if (newGuesses.length >= config.maxGuesses) {
       setIsWon(false);
       setIsGameOver(true);
-      setStreak(0);
-      try {
-        localStorage.setItem("tebak_lagu_streak", "0");
-      } catch {}
     }
   };
 
   const handleNextRound = () => {
+    if (roundNumber >= gameConfig.maxRounds) {
+      setIsGameOver(false);
+      setIsMatchFinished(true);
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#22c55e", "#eab308", "#38bdf8"],
+      });
+      return;
+    }
+
     setRoundNumber((r) => r + 1);
+    loadNewSong();
+  };
+
+  const handlePlayAgain = () => {
+    setIsMatchFinished(false);
+    setRoundNumber(1);
+    setCorrectCount(0);
     loadNewSong();
   };
 
   if (isLoading || !song) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-white">
-        <Loader2 className="w-10 h-10 text-brandCyan animate-spin mb-3" />
+        <Loader2 className="w-10 h-10 text-accent animate-spin mb-3" />
         <p className="text-sm font-mono text-gray-400">
-          Menyiapkan lagu misteri ({categoryFilter || "Semua Genre"})...
+          Menyiapkan lagu misteri ({gameConfig.category})...
         </p>
       </div>
     );
@@ -232,38 +253,40 @@ export default function PlayArenaPage() {
     <div className="min-h-screen bg-background flex flex-col justify-between">
       {/* Top Header */}
       <ScoreHeader
-        title={`${config.title} #${roundNumber}`}
-        icon={config.icon}
-        streak={streak}
+        title={config.title}
+        roundInfo={`Ronde ${roundNumber}/${gameConfig.maxRounds}`}
         score={score}
       />
 
       {/* Main Arena Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto flex flex-col justify-center items-center p-4 gap-6 my-auto">
-        {/* Genre Pill Tag */}
-        {categoryFilter && (
-          <div className="bg-surfaceLight/90 border border-gray-800 px-3 py-1 rounded-full text-xs font-mono text-brandCyan">
-            Genre: {categoryFilter}
-          </div>
-        )}
+      <main className="flex-1 w-full max-w-2xl mx-auto flex flex-col justify-center items-center p-4 gap-5 my-auto">
+        {/* Genre & Difficulty Tags */}
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-accent">
+            🎯 {gameConfig.category}
+          </span>
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-zinc-300">
+            {gameConfig.difficulty === "easy"
+              ? "🟢 Mudah"
+              : gameConfig.difficulty === "medium"
+              ? "🟡 Sedang"
+              : "🔴 Sulit"}
+          </span>
+        </div>
 
         {/* Render Active Mode Component */}
         {modeKey === "tts" && (
           <TtsModePlayer
             clues={song.lyricsClues}
             activeClueCount={activeClueCount}
-            initialVoiceType={audioProfile === "fast" ? "fast" : audioProfile === "bass" ? "deep" : "normal"}
-          />
-        )}
-
-        {modeKey === "humming" && (
-          <HummingModePlayer melody={song.hummingMelody} />
-        )}
-
-        {modeKey === "instrumental" && (
-          <InstrumentalModePlayer
-            previewUrl={previewUrl}
-            searchQuery={song.searchQuery}
+            initialVoiceType={
+              gameConfig.audioProfile === "fast"
+                ? "fast"
+                : gameConfig.audioProfile === "bass"
+                ? "deep"
+                : "normal"
+            }
+            lang={song.lang || (song.category === "Western Hits" ? "en" : "id")}
           />
         )}
 
@@ -287,12 +310,12 @@ export default function PlayArenaPage() {
       </main>
 
       {/* Footer hint */}
-      <footer className="w-full text-center py-3 text-xs text-gray-600 font-mono">
-        Tebak Lagu · Endless Arcade · Lagu #{roundNumber}
+      <footer className="w-full text-center py-3 text-xs text-mutedDark font-mono">
+        Tebak Lagu · Ronde {roundNumber} dari {gameConfig.maxRounds}
       </footer>
 
-      {/* Game Over Modal with Confetti & Share */}
-      {isGameOver && (
+      {/* Round Over Modal (Per-Round) */}
+      {isGameOver && !isMatchFinished && (
         <GameOverModal
           isWon={isWon}
           song={song}
@@ -305,7 +328,65 @@ export default function PlayArenaPage() {
           onExit={() => router.push("/")}
           albumCover={albumCover}
           previewUrl={previewUrl}
+          isLastRound={roundNumber >= gameConfig.maxRounds}
         />
+      )}
+
+      {/* Match Completed Summary (Final Result) */}
+      {isMatchFinished && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-surface border border-surfaceBorder rounded-3xl p-6 sm:p-7 max-w-sm w-full flex flex-col items-center text-center gap-4 shadow-2xl relative">
+            <div className="w-16 h-16 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent shadow-lg shadow-accent/20">
+              <Trophy className="w-8 h-8" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-black text-white">Pertandingan Selesai!</h2>
+              <p className="text-xs text-muted mt-0.5">
+                {gameConfig.maxRounds} Ronde telah tuntas kamu mainkan
+              </p>
+            </div>
+
+            <div className="w-full bg-surfaceRaised/80 border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-muted">Tebakan Benar:</span>
+                <span className="text-emerald-400 font-bold">
+                  {correctCount} / {gameConfig.maxRounds} Lagu
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-muted">Akurasi:</span>
+                <span className="text-accent font-bold">
+                  {Math.round((correctCount / Math.max(1, gameConfig.maxRounds)) * 100)}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-mono pt-2 border-t border-surfaceBorder">
+                <span className="text-muted">Total Skor:</span>
+                <span className="text-white font-bold text-sm">
+                  {score} Pts
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full flex flex-col gap-2 pt-1">
+              <button
+                onClick={handlePlayAgain}
+                className="w-full bg-accent hover:bg-green-500 text-zinc-950 font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm transition active:scale-95 cursor-pointer shadow-md"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Main Lagi</span>
+              </button>
+
+              <button
+                onClick={() => router.push("/")}
+                className="w-full bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs border border-surfaceBorder transition"
+              >
+                <Home className="w-4 h-4" />
+                <span>Kembali ke Menu Utama</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

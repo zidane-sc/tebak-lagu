@@ -54,24 +54,29 @@ export default function HomePage() {
   const [modalCategory, setModalCategory] = useState("Semua Genre");
   const [modalDifficulty, setModalDifficulty] = useState("easy");
   const [modalAudioProfile, setModalAudioProfile] = useState("normal");
+  const [modalRounds, setModalRounds] = useState(5);
 
   useEffect(() => {
     try {
-      const s = parseInt(localStorage.getItem("tebak_lagu_streak") || "0", 10);
       const sc = parseInt(localStorage.getItem("tebak_lagu_score") || "0", 10);
-      setStreak(s);
       setScore(sc);
     } catch {}
   }, []);
 
   const handleStartGame = () => {
     if (!configModalMode) return;
-    const query = new URLSearchParams({
-      category: modalCategory,
-      difficulty: modalDifficulty,
-      audioProfile: modalAudioProfile,
-    });
-    router.push(`/play/${configModalMode.id}?${query.toString()}`);
+    try {
+      sessionStorage.setItem(
+        "tebak_lagu_single_config",
+        JSON.stringify({
+          category: modalCategory,
+          difficulty: modalDifficulty,
+          audioProfile: modalAudioProfile,
+          maxRounds: modalRounds,
+        })
+      );
+    } catch {}
+    router.push(`/play/${configModalMode.id}`);
   };
 
   return (
@@ -98,18 +103,10 @@ export default function HomePage() {
         {/* Global Player Stats (Monospace Minimalism) */}
         <div className="flex items-center gap-2 font-mono text-xs">
           <div
-            className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1.5 rounded-lg text-amber-400 font-semibold"
-            title="Winning Streak"
-          >
-            <Flame className="w-3.5 h-3.5 fill-amber-400" />
-            <span>{streak} Streak</span>
-          </div>
-
-          <div
             className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1.5 rounded-lg text-zinc-200 font-semibold"
             title="Total Score"
           >
-            <Trophy className="w-3.5 h-3.5 text-zinc-400" />
+            <Trophy className="w-3.5 h-3.5 text-accent" />
             <span>{score} Pts</span>
           </div>
         </div>
@@ -365,6 +362,30 @@ export default function HomePage() {
                   >
                     <span className="text-xs font-semibold">{ap.label}</span>
                     <span className="text-[9px] opacity-75 font-mono">{ap.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. Jumlah Ronde */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
+                <span>4. JUMLAH RONDE</span>
+                <span className="text-accent font-bold">{modalRounds} Ronde</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {[3, 5, 10, 15].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setModalRounds(r)}
+                    className={`py-2 px-2 rounded-xl text-center transition text-xs font-semibold ${
+                      modalRounds === r
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                    }`}
+                  >
+                    {r} Ronde
                   </button>
                 ))}
               </div>

@@ -25,6 +25,7 @@ interface GameOverModalProps {
   onExit: () => void;
   albumCover?: string;
   previewUrl?: string;
+  isLastRound?: boolean;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -39,6 +40,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onExit,
   albumCover,
   previewUrl,
+  isLastRound = false,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -177,7 +179,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
             onClick={onNext}
             className="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow transition transform active:scale-95 text-xs sm:text-sm"
           >
-            <span>Lagu Berikutnya</span>
+            <span>{isLastRound ? "Selesai & Lihat Skor" : "Lagu Berikutnya"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 

@@ -5,28 +5,38 @@ import { Volume2, VolumeX, AudioWaveform, Loader2, Ear, Sparkles } from "lucide-
 import { SoundBars } from "@/components/SoundBars";
 
 interface TtsModePlayerProps {
-  clues: string[];
+  clues?: string[];
   activeClueCount: number;
   initialVoiceType?: RobotVoiceType;
+  lang?: "id" | "en";
 }
 
 type RobotVoiceType = "normal" | "deep" | "fast";
 
 export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
-  clues,
+  clues = [],
   activeClueCount,
   initialVoiceType = "normal",
+  lang = "id",
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [voiceType, setVoiceType] = useState<RobotVoiceType>(initialVoiceType);
+  const [voiceType] = useState<RobotVoiceType>(initialVoiceType);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const safeClues =
+    clues && clues.length > 0
+      ? clues
+      : [
+          "Dengarkan pembacaan lirik lagu ini dengan seksama",
+          "Tebak judul lagu dan nama penyanyinya sekarang",
+        ];
+
   // Take the active couplets up to activeClueCount
-  const currentLines = clues.slice(0, activeClueCount).join(". ");
-  const cleanText = currentLines.replace(/['"“”]/g, "").trim();
-  const speedParam = voiceType === "fast" ? "1.2" : voiceType === "deep" ? "0.8" : "1";
-  const ttsAudioUrl = `/api/tts?text=${encodeURIComponent(cleanText)}&speed=${speedParam}`;
+  const currentLines = safeClues.slice(0, Math.max(1, activeClueCount)).join(". ");
+  const cleanText = currentLines.replace(/['"“”]/g, "").trim() || "Dengarkan lirik lagu ini";
+  const speedParam = voiceType === "fast" ? "1.25" : voiceType === "deep" ? "0.8" : "1";
+  const ttsAudioUrl = `/api/tts?text=${encodeURIComponent(cleanText)}&speed=${speedParam}&lang=${lang}`;
 
   useEffect(() => {
     if (audioRef.current) {
@@ -84,31 +94,9 @@ export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
           <span>Blind Audio · Uji Pendengaran</span>
         </div>
 
-        {/* Minimalist Segmented Voice Controller */}
-        <div className="flex items-center bg-surfaceRaised p-0.5 rounded-lg border border-surfaceBorder text-[11px] font-medium">
-          {(
-            [
-              { id: "normal", label: "Datar" },
-              { id: "deep", label: "Bass" },
-              { id: "fast", label: "Cepat" },
-            ] as const
-          ).map((v) => (
-            <button
-              key={v.id}
-              onClick={() => {
-                setVoiceType(v.id);
-                if (isPlaying) handleStop();
-              }}
-              className={`px-2.5 py-1 rounded-md transition-all ${
-                voiceType === v.id
-                  ? "bg-zinc-700 text-white font-semibold shadow-sm"
-                  : "text-muted hover:text-zinc-200"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surfaceRaised border border-surfaceBorder text-muted">
+          Suara: {voiceType === "fast" ? "Cepat ⚡" : voiceType === "deep" ? "Bass 🔊" : "Datar 🤖"}
+        </span>
       </div>
 
       {/* Tactile Play Button with Sound visualizer */}
@@ -139,7 +127,7 @@ export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
         <div className="flex items-center gap-2 text-xs font-mono">
           <span className="text-mutedDark">AUDIO CLUE:</span>
           <span className="text-zinc-200 font-semibold">
-            Bait {activeClueCount} dari {clues.length} Terbuka
+            Bait {Math.min(activeClueCount, safeClues.length)} dari {safeClues.length} Terbuka
           </span>
         </div>
 
