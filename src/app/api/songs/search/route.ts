@@ -21,11 +21,30 @@ export async function GET(request: Request) {
 
   try {
     await initDb();
-    // 1. Instant local DB matches
-    const term = `%${queryLower}%`;
+    // 1. Instant local DB matches ranked by relevance and popularity
+    const starts = `${queryLower}%`;
+    const word = `% ${queryLower}%`;
+    const contains = `%${queryLower}%`;
+
+    const sql = `
+      SELECT *,
+        CASE 
+          WHEN LOWER(title) = ? THEN 1000
+          WHEN LOWER(title) LIKE ? THEN 500
+          WHEN LOWER(title) LIKE ? THEN 300
+          WHEN LOWER(artist) = ? THEN 200
+          WHEN LOWER(artist) LIKE ? THEN 100
+          ELSE 10
+        END as relevance
+      FROM songs
+      WHERE title LIKE ? OR artist LIKE ?
+      ORDER BY relevance DESC, popularity DESC, deezer_rank DESC
+      LIMIT 10;
+    `;
+
     const localRes = await db.execute({
-      sql: "SELECT * FROM songs WHERE title LIKE ? OR artist LIKE ? LIMIT 6;",
-      args: [term, term],
+      sql,
+      args: [queryLower, starts, word, queryLower, starts, contains, contains],
     });
 
     const localMatches = localRes.rows.map(rowToSong);

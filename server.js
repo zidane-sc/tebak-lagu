@@ -10,7 +10,7 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 // Database connection (LibSQL / SQLite persistent engine)
-const { initDb, getRandomSong, getCatalogStats } = require("./src/lib/db-server.js");
+const { initDb, getRandomSong, getMatchSongsQueue, getCatalogStats } = require("./src/lib/db-server.js");
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -149,6 +149,7 @@ function getSanitizedRoom(room) {
     clueStage: room.clueStage || 1,
     clueSecondsLeft: room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30,
     skipVotes: room.skipVotes ? Array.from(room.skipVotes) : [],
+    clueVotes: room.clueVotes ? Array.from(room.clueVotes) : [],
     playerLives: room.buzzState ? (room.buzzState.playerLives || {}) : {},
     players: room.players.map((p) => ({
       id: p.id,
@@ -173,11 +174,11 @@ function getSanitizedRoom(room) {
       ? {
           category: room.currentSong.category,
           year: room.currentSong.year,
+          lang: room.currentSong.lang || (room.currentSong.category === "Western Hits" ? "en" : "id"),
           lyricsClues: (room.currentSong.lyricsClues || []).slice(0, room.clueStage || 1),
           allLyricsClues: room.currentSong.lyricsClues,
           clueStage: room.clueStage || 1,
-          hummingMelody: room.currentSong.hummingMelody,
-          previewUrl: room.currentSong.previewResolved || room.currentSong.previewFallback,
+          previewUrl: room.currentSong.previewResolved || room.currentSong.previewUrl,
           searchQuery: room.currentSong.searchQuery,
           startSecond: room.currentSong.startSecond || 0,
         }
@@ -249,6 +250,7 @@ async function startRound(room) {
   room.currentRound += 1;
   room.status = "playing";
   room.skipVotes = new Set();
+  room.clueVotes = new Set();
   room.nextRoundVotes = new Set();
   room.nextRoundCountdown = null;
   room.clueStage = 1;
@@ -284,26 +286,29 @@ async function startRound(room) {
         if (room.clueStage === 1) {
           room.clueStage = 2;
           room.clueSecondsLeft = 30;
+          room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 2,
             secondsLeft: 30,
-            message: "⏰ 30 detik berlalu! Clue lirik diperpanjang...",
+            message: "⏰ 30 detik berlalu! Clue diperpanjang...",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 2) {
           room.clueStage = 3;
           room.clueSecondsLeft = 30;
+          room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 3,
             secondsLeft: 30,
-            message: "⏰ 60 detik berlalu! Clue lirik diperpanjang lagi...",
+            message: "⏰ 60 detik berlalu! Clue diperpanjang lagi...",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 3) {
           room.clueStage = 4;
           room.clueSecondsLeft = 90; // Tahap terakhir 90 detik!
+          room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 4,
@@ -322,32 +327,27 @@ async function startRound(room) {
     }
   }, 1000);
 
-  // Pick song matching category and difficulty directly from persistent SQLite DB
-  let chosenSong = await getRandomSong(room.category, room.difficulty);
+  // Pick next song from pre-rolled match queue (zero lag, 100% distinct, zero duplicates!)
+  let chosenSong = null;
+  if (room.matchQueue && room.matchQueue[room.currentRound - 1]) {
+    chosenSong = room.matchQueue[room.currentRound - 1];
+  } else {
+    chosenSong = await getRandomSong(room.category, room.difficulty);
+  }
 
-  // For TTS mode, ensure chosen song has REAL lyrics (never dummy "tebak judul")!
-  if (room.mode === "tts") {
+  // Ensure TTS has valid real lyrics (never dummy text)
+  if (room.mode === "tts" && (!chosenSong.lyricsClues || chosenSong.lyricsClues.length < 2)) {
     let lyrics = await resolveLyrics(chosenSong);
-    let attempts = 0;
-    while (!lyrics && attempts < 5) {
-      chosenSong = await getRandomSong(room.category, room.difficulty);
-      lyrics = await resolveLyrics(chosenSong);
-      attempts++;
-    }
     if (lyrics && lyrics.length > 0) {
       chosenSong.lyricsClues = lyrics;
-    } else {
-      // Fallback poetic verse if all attempts exhausted
-      chosenSong.lyricsClues = [
-        "Mendengar alunan nada yang syahdu\nKuingat kenangan saat bersamamu",
-        "Rindu ini kian membara di dalam dada\nMenanti hadirmu kembali di sisiku"
-      ];
     }
   }
 
+  chosenSong.lang = chosenSong.category === "Western Hits" ? "en" : "id";
+
   // Resolve preview URL in background or cache
   const preview = await resolvePreviewUrl(chosenSong);
-  chosenSong.previewResolved = preview;
+  chosenSong.previewResolved = preview || chosenSong.previewUrl;
 
   room.currentSong = chosenSong;
 
@@ -440,7 +440,7 @@ app.prepare().then(() => {
     const playerId = "p_" + Math.random().toString(36).substring(2, 9);
     clientMeta.set(ws, { id: playerId, roomCode: null, name: "" });
 
-    ws.on("message", (raw) => {
+    ws.on("message", async (raw) => {
       try {
         const data = JSON.parse(raw.toString());
         const meta = clientMeta.get(ws);
@@ -587,6 +587,25 @@ app.prepare().then(() => {
           room.currentRound = 0;
           for (const p of room.players) {
             p.score = 0;
+          }
+
+          // Pre-roll distinct songs queue for the entire match (100% unique, zero duplicates!)
+          try {
+            const queue = await getMatchSongsQueue(room.category, room.difficulty, room.maxRounds || 5);
+            room.matchQueue = queue;
+
+            // Pre-resolve lyrics for TTS mode in background
+            if (room.mode === "tts") {
+              for (let i = 0; i < room.matchQueue.length; i++) {
+                const s = room.matchQueue[i];
+                let lyrics = await resolveLyrics(s);
+                if (lyrics && lyrics.length >= 2) {
+                  s.lyricsClues = lyrics;
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error pre-rolling match songs:", e);
           }
 
           startRound(room);
@@ -792,6 +811,46 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || room.status !== "buzzed" || room.buzzState.buzzedPlayerId !== playerId) return;
           handleBuzzTimeout(room);
+        }
+
+        // 10b. VOTE ADVANCE CLUE (Buka clue selanjutnya tanpa nunggu 30 detik!)
+        else if (data.type === "vote_advance_clue" || data.type === "advance_clue") {
+          const room = rooms.get(meta.roomCode);
+          if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
+          if (room.clueStage >= 4) return; // Sudah tahap maksimal
+
+          if (!room.clueVotes) room.clueVotes = new Set();
+          if (room.clueVotes.has(playerId)) {
+            room.clueVotes.delete(playerId);
+          } else {
+            room.clueVotes.add(playerId);
+          }
+
+          const activePlayers = room.players.filter((p) => !p.isDisconnected);
+          const totalRequired = Math.max(1, activePlayers.length);
+          const isHost = room.hostId === playerId;
+
+          if (isHost || room.clueVotes.size >= totalRequired) {
+            room.clueVotes = new Set();
+            room.clueStage += 1;
+            room.clueSecondsLeft = room.clueStage === 4 ? 90 : 30;
+
+            broadcast(room, {
+              type: "clue_extended",
+              stage: room.clueStage,
+              secondsLeft: room.clueSecondsLeft,
+              message: `💡 Clue tahap ${room.clueStage}/4 dibuka!`,
+              room: getSanitizedRoom(room),
+            });
+          } else {
+            broadcast(room, {
+              type: "clue_vote_updated",
+              votesCount: room.clueVotes.size,
+              totalRequired,
+              message: `${meta.name} vote buka clue (${room.clueVotes.size}/${totalRequired})`,
+              room: getSanitizedRoom(room),
+            });
+          }
         }
 
         // 11. RECONNECT SESSION (Saat HP unlock / switch tab kembali)

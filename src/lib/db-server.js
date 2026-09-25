@@ -58,6 +58,7 @@ function rowToSong(row) {
     hummingMelody,
     searchQuery: row.search_query || `${row.title} ${row.artist}`,
     startSecond: 0,
+    lang: row.category === "Western Hits" ? "en" : "id",
     timesPlayed: row.times_played || 0,
     timesGuessed: row.times_guessed || 0,
     timesFailed: row.times_failed || 0,
@@ -219,10 +220,46 @@ async function getCatalogStats() {
   return { total, byDifficulty, byCategory };
 }
 
+async function getMatchSongsQueue(category, difficulty, count = 5) {
+  let sql = "SELECT * FROM songs WHERE 1=1";
+  const args = [];
+
+  if (category && category !== "all" && category !== "Semua Genre") {
+    sql += " AND category = ?";
+    args.push(category);
+  }
+
+  if (difficulty && difficulty !== "all") {
+    sql += " AND difficulty = ?";
+    args.push(difficulty);
+  }
+
+  // Fetch a larger sample pool to guarantee unique selections
+  sql += " ORDER BY RANDOM() LIMIT ?;";
+  args.push(Math.max(count * 3, 25));
+
+  const res = await db.execute({ sql, args });
+  const pool = res.rows.map(rowToSong);
+
+  // Guarantee 100% distinct song IDs
+  const uniqueSongs = [];
+  const seenIds = new Set();
+  for (const s of pool) {
+    if (!seenIds.has(s.id)) {
+      seenIds.add(s.id);
+      uniqueSongs.push(s);
+      if (uniqueSongs.length >= count) break;
+    }
+  }
+
+  return uniqueSongs;
+}
+
 module.exports = {
   db,
   initDb,
   rowToSong,
   getRandomSong,
+  getMatchSongsQueue,
   getCatalogStats,
 };

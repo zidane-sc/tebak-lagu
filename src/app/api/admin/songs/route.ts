@@ -49,16 +49,52 @@ export async function POST(request: Request) {
       .replace(/^-+|-+$/g, "");
     const songId = `${cleanId}-${Date.now().toString(36)}`;
 
-    const lyricsClues = body.lyricsClues && body.lyricsClues.length > 0 ? body.lyricsClues : [
-      `Lagu populer dari ${artist.trim()}`,
-      `Rilis tahun ${year || 2024}`,
-    ];
+    // Validate and fetch lyrics from LRCLIB
+    let lyricsClues: string[] = body.lyricsClues && body.lyricsClues.length > 0 ? body.lyricsClues : [];
 
-    const hummingMelody = [
-      { note: 330, duration: 0.4 },
-      { note: 370, duration: 0.4 },
-      { note: 392, duration: 0.5 },
-    ];
+    if (lyricsClues.length === 0) {
+      try {
+        const lrclibUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(
+          artist.trim()
+        )}&track_name=${encodeURIComponent(title.trim())}`;
+        const res = await fetch(lrclibUrl, { headers: { "User-Agent": "TebakLagu/3.0" } });
+        if (res.ok) {
+          const lData = await res.json();
+          const rawText = lData.plainLyrics || lData.syncedLyrics || "";
+          if (rawText) {
+            const cleanLines = rawText
+              .split("\n")
+              .map((l: string) => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim())
+              .filter((l: string) => l.length > 5 && !l.startsWith("[") && !l.endsWith("]"));
+
+            if (cleanLines.length >= 2) {
+              const clues = [];
+              for (let i = 0; i < Math.min(6, cleanLines.length); i += 2) {
+                if (cleanLines[i + 1]) {
+                  clues.push(`${cleanLines[i]}\n${cleanLines[i + 1]}`);
+                } else {
+                  clues.push(cleanLines[i]);
+                }
+              }
+              if (clues.length > 0) {
+                lyricsClues = clues;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!lyricsClues || lyricsClues.length === 0) {
+      return NextResponse.json(
+        {
+          error: `Validasi gagal: Lirik untuk "${title}" - ${artist} tidak ditemukan di database LRCLIB! Robot TTS memerlukan lirik asli agar dapat dimainkan.`,
+        },
+        { status: 422 }
+      );
+    }
+
+    const hummingMelody = [];
 
     const searchQuery = `${title.trim()} ${artist.trim()}`;
     const popularity = body.popularity || (difficulty === "easy" ? 90 : difficulty === "medium" ? 75 : 50);

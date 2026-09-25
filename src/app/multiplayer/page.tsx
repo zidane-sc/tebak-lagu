@@ -72,6 +72,7 @@ export default function MultiplayerPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sliceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const synthRef = useRef<HummingSynth | null>(null);
 
   useEffect(() => {
@@ -97,14 +98,16 @@ export default function MultiplayerPage() {
   };
 
   const stopAndResetAudio = () => {
+    if (sliceTimerRef.current) {
+      clearTimeout(sliceTimerRef.current);
+      sliceTimerRef.current = null;
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current.removeAttribute("src");
     }
-    if (synthRef.current) {
-      synthRef.current.stop();
-    }
+    if (synthRef.current) synthRef.current.stop();
     setIsPlayingAudio(false);
   };
 
@@ -421,6 +424,16 @@ export default function MultiplayerPage() {
     ws.send(JSON.stringify({ type: "skip_round" }));
   };
 
+  const handleAdvanceClue = () => {
+    if (!ws || !room) return;
+    sfx.playClick();
+    if (isHost) {
+      ws.send(JSON.stringify({ type: "advance_clue" }));
+    } else {
+      ws.send(JSON.stringify({ type: "vote_advance_clue" }));
+    }
+  };
+
   const handleForfeitBuzz = () => {
     if (!ws || !room) return;
     sfx.playWrong();
@@ -464,9 +477,10 @@ export default function MultiplayerPage() {
       return;
     }
 
-    // 2. Audio file playback (TTS / Heardle / Instrumental)
+    // 2. Audio file playback (TTS / Heardle)
     if (!audioRef.current) return;
     if (isPlayingAudio) {
+      if (sliceTimerRef.current) clearTimeout(sliceTimerRef.current);
       audioRef.current.pause();
       setIsPlayingAudio(false);
     } else {
@@ -476,10 +490,23 @@ export default function MultiplayerPage() {
         const clues = room.currentSongClue?.lyricsClues || [];
         const fullLyrics = clues.join(". \n");
         const speedParam = profile === "fast" ? "1.25" : profile === "bass" ? "0.8" : "1";
-        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}&speed=${speedParam}`;
+        const langParam = room.currentSongClue?.lang || "id";
+        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}&speed=${speedParam}&lang=${langParam}`;
       } else {
+        // Time Slice (Heardle): 5s (tahap 1), 9s (tahap 2), 18s (tahap 3), 30s penuh (tahap 4)
+        const stageLimits = [5, 5, 9, 18, 30];
+        const maxDuration = stageLimits[room?.clueStage || 1] || 5;
+
         audioRef.current.src = room?.currentSongClue?.previewUrl || "";
-        audioRef.current.currentTime = room?.currentSongClue?.startSecond || 0;
+        audioRef.current.currentTime = 0;
+
+        if (sliceTimerRef.current) clearTimeout(sliceTimerRef.current);
+        sliceTimerRef.current = setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlayingAudio(false);
+          }
+        }, maxDuration * 1000);
       }
 
       if (profile === "fast") {
@@ -698,10 +725,8 @@ export default function MultiplayerPage() {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: "heardle", label: "Time Slice ⏱️" },
-                  { id: "tts", label: "Robot Speech 🤖" },
-                  { id: "humming", label: "Melody Synth 🎵" },
-                  { id: "instrumental", label: "Minus-One 🎸" },
+                  { id: "heardle", label: "Time Slice (Heardle) ⏱️" },
+                  { id: "tts", label: "Robot Speech (TTS) 🤖" },
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -1109,22 +1134,45 @@ export default function MultiplayerPage() {
                 </span>
               </div>
 
-              {/* Vote Skip Button */}
-              <button
-                onClick={handleSkipRound}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                  room.skipVotes?.includes(myPlayerId)
-                    ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
-                    : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
-                }`}
-              >
-                <span>🏳️</span>
-                <span>
-                  {room.skipVotes?.includes(myPlayerId) ? "Batal Nyerah" : "Vote Nyerah"}{" "}
-                  ({room.skipVotes?.length || 0}/
-                  {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
-                </span>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Advance Clue Button (Consensus or Host Fast-Track) */}
+                {room.clueStage < 4 && (
+                  <button
+                    onClick={handleAdvanceClue}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                      room.clueVotes?.includes(myPlayerId)
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
+                        : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                    }`}
+                  >
+                    <span>💡</span>
+                    <span>
+                      {isHost
+                        ? "Buka Clue ➔"
+                        : `Buka Clue (${room.clueVotes?.length || 0}/${
+                            room.players?.filter((p: any) => !p.isDisconnected).length || 1
+                          })`}
+                    </span>
+                  </button>
+                )}
+
+                {/* Vote Skip Button */}
+                <button
+                  onClick={handleSkipRound}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                    room.skipVotes?.includes(myPlayerId)
+                      ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
+                      : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
+                  }`}
+                >
+                  <span>🏳️</span>
+                  <span>
+                    {room.skipVotes?.includes(myPlayerId) ? "Batal Nyerah" : "Vote Nyerah"}{" "}
+                    ({room.skipVotes?.length || 0}/
+                    {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -1146,12 +1194,18 @@ export default function MultiplayerPage() {
               {isPlayingAudio ? (
                 <>
                   <Volume2 className="w-4 h-4 text-accent animate-pulse" />
-                  <span>Hentikan Audio</span>
+                  <span>
+                    Hentikan ({room.mode === "heardle" ? `${[5, 5, 9, 18, 30][room.clueStage || 1]}s` : "Audio"})
+                  </span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-current text-accent" />
-                  <span>Dengarkan Clue ({room.mode.toUpperCase()})</span>
+                  <span>
+                    {room.mode === "heardle"
+                      ? `Putar Cuplikan (${[5, 5, 9, 18, 30][room.clueStage || 1]} Detik) ⏱️`
+                      : "Dengarkan Robot Bacakan Lirik 🤖"}
+                  </span>
                 </>
               )}
             </button>

@@ -38,12 +38,45 @@ export const GuessInput: React.FC<GuessInputProps> = ({
     }
 
     const q = trimmed.toLowerCase();
-    // 0ms instant local match
-    const localMatches = SONGS_CATALOG.filter(
+    // Instant ranked match: Exact title > starts with title > word in title > artist match > popularity
+    const ranked = SONGS_CATALOG.filter(
       (s) =>
         s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
-    ).slice(0, 6);
+    );
 
+    ranked.sort((a, b) => {
+      const aTitle = a.title.toLowerCase();
+      const bTitle = b.title.toLowerCase();
+      const aRel =
+        aTitle === q
+          ? 1000
+          : aTitle.startsWith(q)
+          ? 500
+          : aTitle.includes(" " + q)
+          ? 300
+          : a.artist.toLowerCase() === q
+          ? 200
+          : a.artist.toLowerCase().startsWith(q)
+          ? 100
+          : 10;
+      const bRel =
+        bTitle === q
+          ? 1000
+          : bTitle.startsWith(q)
+          ? 500
+          : bTitle.includes(" " + q)
+          ? 300
+          : b.artist.toLowerCase() === q
+          ? 200
+          : b.artist.toLowerCase().startsWith(q)
+          ? 100
+          : 10;
+
+      if (bRel !== aRel) return bRel - aRel;
+      return (b.popularity || 50) - (a.popularity || 50);
+    });
+
+    const localMatches = ranked.slice(0, 8);
     setSuggestions(localMatches);
     setIsOpen(localMatches.length > 0);
 
@@ -62,7 +95,7 @@ export const GuessInput: React.FC<GuessInputProps> = ({
         })
         .catch(() => {})
         .finally(() => setIsSearching(false));
-    }, 200);
+    }, 150);
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);

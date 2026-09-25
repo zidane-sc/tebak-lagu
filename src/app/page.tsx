@@ -22,44 +22,24 @@ import { CATEGORIES } from "@/data/songs";
 
 const GAME_MODES = [
   {
-    id: "tts",
+    id: "heardle",
     index: "01",
-    title: "Robot Speech",
-    tagline: "Lirik Datar Tanpa Nada",
+    title: "Time Slice (Heardle)",
+    tagline: "Detik Bertahap 5s ➔ 30s",
     description:
-      "Tebak lagu dari penggalan lirik yang dibacakan kaku tanpa melodi. Menguji kepekaan terhadap susunan kata.",
+      "Tebak lagu dari cuplikan audio bertahap: 5 detik, 9 detik, 18 detik, hingga 30 detik penuh. Uji kecepatan pendengaranmu!",
+    icon: Timer,
+    badge: "Audio Attack",
+  },
+  {
+    id: "tts",
+    index: "02",
+    title: "Robot Speech (TTS)",
+    tagline: "Blind Lirik Puisi Datar",
+    description:
+      "Tebak lagu dari penggalan bait lirik yang dibacakan kaku oleh robot pintar (Indo & English). Tanpa melodi, murni kata-kata!",
     icon: Volume2,
     badge: "TTS Engine",
-  },
-  {
-    id: "humming",
-    index: "02",
-    title: "Vocal Melody",
-    tagline: "Alunan Nada Sintetis",
-    description:
-      "Hanya ada notasi melodi vokal yang disintesis tanpa vokal penyanyi asli. Menguji kepekaan telinga musikal.",
-    icon: Mic,
-    badge: "Synthesizer",
-  },
-  {
-    id: "instrumental",
-    index: "03",
-    title: "Minus-One",
-    tagline: "Instrumen & Aransemen",
-    description:
-      "Aransemen musik asli tanpa vokal penyanyi. Rasakan tebakan melodi murni ala kuis trivia berpacu musik.",
-    icon: Music,
-    badge: "Backing Track",
-  },
-  {
-    id: "heardle",
-    index: "04",
-    title: "Time Slice",
-    tagline: "Detik Bertahap (Heardle)",
-    description:
-      "Dengarkan 0.5 detik cuplikan audio acak. Durasi terbuka bertahap (1.5s, 3s, 6s) tiap kali salah menebak.",
-    icon: Timer,
-    badge: "Time Attack",
   },
 ];
 

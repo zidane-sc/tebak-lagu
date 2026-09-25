@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const text = searchParams.get("text")?.trim();
   const speed = searchParams.get("speed") || "1"; // "0.8", "1", "1.2"
+  const lang = searchParams.get("lang") === "en" ? "en" : "id";
 
   if (!text) {
     return new NextResponse("Missing text parameter", { status: 400 });
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
     .slice(0, 200)
     .trim();
 
-  const cacheKey = `${cleanText}::${speed}`;
+  const cacheKey = `${cleanText}::${speed}::${lang}`;
   if (ttsCache.has(cacheKey)) {
     const cached = ttsCache.get(cacheKey)!;
     return new Response(new Uint8Array(cached.buffer), {
@@ -31,8 +32,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Google Translate TTS (ultra-reliable, monotone robotic Indonesian voice)
-    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=id&client=tw-ob&q=${encodeURIComponent(
+    // Google Translate TTS (monotone robotic voice with proper accent: tl=id for Indo, tl=en for Western)
+    const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encodeURIComponent(
       cleanText
     )}`;
 

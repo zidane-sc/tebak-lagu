@@ -63,6 +63,7 @@ export function rowToSong(row: any) {
     hummingMelody,
     searchQuery: row.search_query || `${row.title} ${row.artist}`,
     startSecond: 0,
+    lang: row.category === "Western Hits" ? "en" : "id",
     timesPlayed: row.times_played || 0,
     timesGuessed: row.times_guessed || 0,
     timesFailed: row.times_failed || 0,
@@ -208,6 +209,40 @@ export async function getRandomSong(category?: string | null, difficulty?: strin
   }
 
   return rowToSong(res.rows[0]);
+}
+
+// Pre-roll a queue of distinct songs for a match
+export async function getMatchSongsQueue(category?: string | null, difficulty?: string | null, count: number = 5) {
+  let sql = "SELECT * FROM songs WHERE 1=1";
+  const args: any[] = [];
+
+  if (category && category !== "all" && category !== "Semua Genre") {
+    sql += " AND category = ?";
+    args.push(category);
+  }
+
+  if (difficulty && difficulty !== "all") {
+    sql += " AND difficulty = ?";
+    args.push(difficulty);
+  }
+
+  sql += " ORDER BY RANDOM() LIMIT ?;";
+  args.push(Math.max(count * 3, 25));
+
+  const res = await db.execute({ sql, args });
+  const pool = res.rows.map(rowToSong);
+
+  const uniqueSongs: any[] = [];
+  const seenIds = new Set<string>();
+  for (const s of pool) {
+    if (s && !seenIds.has(s.id)) {
+      seenIds.add(s.id);
+      uniqueSongs.push(s);
+      if (uniqueSongs.length >= count) break;
+    }
+  }
+
+  return uniqueSongs;
 }
 
 // Compute catalog stats
