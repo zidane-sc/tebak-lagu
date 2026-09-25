@@ -177,9 +177,12 @@ export default function MultiplayerPage() {
             data.type === "player_joined" ||
             data.type === "player_left" ||
             data.type === "player_connection_change" ||
-            data.type === "skip_vote_updated"
+            data.type === "skip_vote_updated" ||
+            data.type === "next_round_vote_updated"
           ) {
             sfx.playClick();
+            setRoom(data.room);
+          } else if (data.type === "next_round_tick") {
             setRoom(data.room);
           } else if (data.type === "clue_extended") {
             sfx.playGong();
@@ -1257,7 +1260,7 @@ export default function MultiplayerPage() {
           {/* REVEALED / ROUND OVER */}
           {/* ======================================================== */}
           {room.status === "revealed" && (
-            <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 flex flex-col items-center gap-3 text-center shadow-sm animate-fade-in">
+            <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 flex flex-col items-center gap-3 text-center shadow-sm animate-fade-in relative overflow-hidden">
               <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 RONDE SELESAI
               </span>
@@ -1265,6 +1268,29 @@ export default function MultiplayerPage() {
                 {room.revealedSong?.title}
               </h3>
               <p className="text-xs text-muted font-medium">{room.revealedSong?.artist}</p>
+
+              {/* 5-Second Auto Advance Countdown Indicator */}
+              <div className="w-full mt-2 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5 font-mono text-xs">
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span className="flex items-center gap-1.5 text-[11px]">
+                    <Timer className="w-3.5 h-3.5 text-accent animate-pulse" />
+                    <span>Lanjut otomatis dalam:</span>
+                  </span>
+                  <span className="text-accent font-bold text-sm">
+                    {room.nextRoundCountdown !== null && room.nextRoundCountdown !== undefined
+                      ? `${room.nextRoundCountdown}s`
+                      : "5s"}
+                  </span>
+                </div>
+                <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-accent h-full transition-all duration-1000"
+                    style={{
+                      width: `${Math.max(0, Math.min(100, ((room.nextRoundCountdown ?? 5) / 5) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -1372,17 +1398,29 @@ export default function MultiplayerPage() {
         </main>
       )}
 
-      {/* FIXED STICKY ACTION BAR FOR HOST (SAMSUNG S23 & MOBILE VIEWPORT FIX) */}
-      {view === "game" && room?.status === "revealed" && isHost && (
+      {/* FIXED STICKY ACTION BAR FOR ALL PLAYERS (AUTO COUNTDOWN & MANUAL FAST-FORWARD) */}
+      {view === "game" && room?.status === "revealed" && (
         <div className="fixed bottom-3 left-4 right-4 max-w-lg mx-auto z-50">
           <button
             onClick={handleNextRound}
-            className="w-full bg-accent hover:bg-green-500 text-zinc-950 font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-base shadow-2xl shadow-accent/50 cursor-pointer border border-green-400/40"
+            className={`w-full font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-base shadow-2xl cursor-pointer border ${
+              isHost
+                ? "bg-accent hover:bg-green-500 text-zinc-950 border-green-400/40 shadow-accent/50"
+                : room.nextRoundVotes?.includes(myPlayerId)
+                ? "bg-surfaceRaised border-accent/40 text-accent font-bold"
+                : "bg-accent hover:bg-green-500 text-zinc-950 border-green-400/40 shadow-accent/50"
+            }`}
           >
             <span>
               {room.currentRound >= room.maxRounds
                 ? "Lihat Podium Juara 🏆"
-                : "Ronde Berikutnya ➔"}
+                : isHost
+                ? `Lanjut Langsung (${room.nextRoundCountdown ?? 5}s) ➔`
+                : room.nextRoundVotes?.includes(myPlayerId)
+                ? `✓ Menunggu Pemain (${room.nextRoundVotes?.length || 0}/${
+                    room.players?.filter((p: any) => !p.isDisconnected).length || 1
+                  }) · ${room.nextRoundCountdown ?? 5}s`
+                : `Siap Lanjut (${room.nextRoundCountdown ?? 5}s) ➔`}
             </span>
           </button>
         </div>

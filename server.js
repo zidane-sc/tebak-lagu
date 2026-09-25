@@ -159,6 +159,8 @@ function getSanitizedRoom(room) {
     maxRounds: room.maxRounds,
     currentRound: room.currentRound,
     status: room.status,
+    nextRoundCountdown: room.nextRoundCountdown !== undefined ? room.nextRoundCountdown : null,
+    nextRoundVotes: room.nextRoundVotes ? Array.from(room.nextRoundVotes) : [],
     clueStage: room.clueStage || 1,
     clueSecondsLeft: room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30,
     skipVotes: room.skipVotes ? Array.from(room.skipVotes) : [],
@@ -199,13 +201,78 @@ function getSanitizedRoom(room) {
   };
 }
 
+function advanceToNextRound(room) {
+  if (room.autoNextTimer) {
+    clearInterval(room.autoNextTimer);
+    room.autoNextTimer = null;
+  }
+  room.nextRoundCountdown = null;
+  room.nextRoundVotes = new Set();
+
+  if (room.currentRound >= room.maxRounds) {
+    room.status = "game_over";
+    broadcast(room, {
+      type: "game_over",
+      room: getSanitizedRoom(room),
+    });
+  } else {
+    startRound(room);
+  }
+}
+
+function triggerRoundRevealed(room, initialPayload) {
+  room.status = "revealed";
+  if (room.stageTimer) {
+    clearInterval(room.stageTimer);
+    room.stageTimer = null;
+  }
+  if (room.buzzState?.buzzTimer) {
+    clearTimeout(room.buzzState.buzzTimer);
+    room.buzzState.buzzTimer = null;
+  }
+  if (room.autoNextTimer) {
+    clearInterval(room.autoNextTimer);
+    room.autoNextTimer = null;
+  }
+
+  room.nextRoundCountdown = 5;
+  room.nextRoundVotes = new Set();
+
+  broadcast(room, {
+    ...initialPayload,
+    room: getSanitizedRoom(room),
+  });
+
+  // 5-second auto countdown to advance
+  room.autoNextTimer = setInterval(() => {
+    room.nextRoundCountdown = (room.nextRoundCountdown !== undefined ? room.nextRoundCountdown : 5) - 1;
+    if (room.nextRoundCountdown <= 0) {
+      clearInterval(room.autoNextTimer);
+      room.autoNextTimer = null;
+      advanceToNextRound(room);
+    } else {
+      broadcast(room, {
+        type: "next_round_tick",
+        countdown: room.nextRoundCountdown,
+        room: getSanitizedRoom(room),
+      });
+    }
+  }, 1000);
+}
+
 async function startRound(room) {
   room.currentRound += 1;
   room.status = "playing";
   room.skipVotes = new Set();
+  room.nextRoundVotes = new Set();
+  room.nextRoundCountdown = null;
   room.clueStage = 1;
   room.clueSecondsLeft = 30;
 
+  if (room.autoNextTimer) {
+    clearInterval(room.autoNextTimer);
+    room.autoNextTimer = null;
+  }
   if (room.stageTimer) {
     clearInterval(room.stageTimer);
     room.stageTimer = null;
@@ -261,13 +328,9 @@ async function startRound(room) {
           });
         } else if (room.clueStage === 4) {
           // 90 detik terakhir habis -> Ronde Hangus!
-          if (room.stageTimer) clearInterval(room.stageTimer);
-          room.stageTimer = null;
-          room.status = "revealed";
-          broadcast(room, {
+          triggerRoundRevealed(room, {
             type: "round_revealed",
             message: `Waktu ronde habis (180 detik)! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-            room: getSanitizedRoom(room),
           });
         }
       }
@@ -351,11 +414,9 @@ function handleBuzzTimeout(room) {
 
   if (allOut) {
     // Round over, reveal song (Hangus!)
-    room.status = "revealed";
-    broadcast(room, {
+    triggerRoundRevealed(room, {
       type: "round_revealed",
       message: `Semua pemain kehabisan nyawa! Ronde ini hangus. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-      room: getSanitizedRoom(room),
     });
   } else {
     // Resume buzzer for anyone who still has lives!
@@ -625,18 +686,11 @@ app.prepare().then(() => {
           if (isMatch) {
             // Correct Guess! +100 Points
             player.score += 100;
-            room.status = "revealed";
-            if (room.stageTimer) {
-              clearInterval(room.stageTimer);
-              room.stageTimer = null;
-            }
-
-            broadcast(room, {
+            triggerRoundRevealed(room, {
               type: "guess_result",
               isCorrect: true,
               guesserName: player.name,
               pointsGained: 100,
-              room: getSanitizedRoom(room),
             });
           } else {
             // Wrong Guess! Deduct 1 life
@@ -662,17 +716,11 @@ app.prepare().then(() => {
 
             if (allOut) {
               // Hangus!
-              if (room.stageTimer) {
-                clearInterval(room.stageTimer);
-                room.stageTimer = null;
-              }
-              room.status = "revealed";
-              broadcast(room, {
+              triggerRoundRevealed(room, {
                 type: "guess_result",
                 isCorrect: false,
                 guesserName: player.name,
                 message: `Tebakan ${player.name} salah dan semua pemain kehabisan nyawa! Ronde ini hangus. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-                room: getSanitizedRoom(room),
               });
             } else {
               // Reopen buzzer!
@@ -692,24 +740,27 @@ app.prepare().then(() => {
           }
         }
 
-        // 7. NEXT ROUND (Host Only)
+        // 7. NEXT ROUND (Vote or Host fast-forward)
         else if (data.type === "next_round") {
           const room = rooms.get(meta.roomCode);
-          if (!room || room.hostId !== playerId) return;
+          if (!room || room.status !== "revealed") return;
 
-          if (room.stageTimer) {
-            clearInterval(room.stageTimer);
-            room.stageTimer = null;
-          }
+          if (!room.nextRoundVotes) room.nextRoundVotes = new Set();
+          room.nextRoundVotes.add(playerId);
 
-          if (room.currentRound >= room.maxRounds) {
-            room.status = "game_over";
+          const activePlayers = room.players.filter((p) => !p.isDisconnected);
+          const totalRequired = Math.max(1, activePlayers.length);
+
+          // If Host clicks OR all active players voted, advance immediately!
+          if (room.hostId === playerId || room.nextRoundVotes.size >= totalRequired) {
+            advanceToNextRound(room);
+          } else {
             broadcast(room, {
-              type: "game_over",
+              type: "next_round_vote_updated",
+              votesCount: room.nextRoundVotes.size,
+              totalRequired,
               room: getSanitizedRoom(room),
             });
-          } else {
-            startRound(room);
           }
         }
 
@@ -745,20 +796,9 @@ app.prepare().then(() => {
 
           if (currentVotes >= totalRequired) {
             // Semua player setuju skip!
-            if (room.buzzState?.buzzTimer) {
-              clearTimeout(room.buzzState.buzzTimer);
-              room.buzzState.buzzTimer = null;
-            }
-            if (room.stageTimer) {
-              clearInterval(room.stageTimer);
-              room.stageTimer = null;
-            }
-
-            room.status = "revealed";
-            broadcast(room, {
+            triggerRoundRevealed(room, {
               type: "round_revealed",
               message: `Semua pemain (${currentVotes}/${totalRequired}) setuju skip! Ronde dilewati. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-              room: getSanitizedRoom(room),
             });
           } else {
             broadcast(room, {
@@ -853,6 +893,7 @@ app.prepare().then(() => {
             if (room.players.length === 0) {
               if (room.buzzState?.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
               if (room.stageTimer) clearInterval(room.stageTimer);
+              if (room.autoNextTimer) clearInterval(room.autoNextTimer);
               rooms.delete(roomCode);
             } else {
               if (room.hostId === playerId) {
@@ -907,6 +948,7 @@ app.prepare().then(() => {
                 if (room.players.length === 0) {
                   if (room.buzzState?.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
                   if (room.stageTimer) clearInterval(room.stageTimer);
+                  if (room.autoNextTimer) clearInterval(room.autoNextTimer);
                   rooms.delete(meta.roomCode);
                 } else {
                   if (room.hostId === playerId) {
