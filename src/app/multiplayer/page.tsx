@@ -92,134 +92,203 @@ export default function MultiplayerPage() {
     sfx.enabled = next;
   };
 
-  // Initialize WebSocket connection
+  // Session storage key
+  const SESSION_KEY = "tebak_lagu_multi_session";
+
+  // Initialize WebSocket connection with Auto-Reconnect & Session Recovery
   useEffect(() => {
-    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host;
-    const socket = new WebSocket(`${proto}//${host}/ws`);
+    let socket: WebSocket | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let isUnmounted = false;
 
-    socket.onopen = () => {
-      setIsConnected(true);
-      setErrorMsg(null);
-    };
+    function connect() {
+      if (isUnmounted) return;
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host;
+      socket = new WebSocket(`${proto}//${host}/ws`);
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      socket.onopen = () => {
+        setIsConnected(true);
+        setErrorMsg(null);
 
-        if (data.type === "room_created" || data.type === "room_joined") {
-          sfx.playClick();
-          setMyPlayerId(data.playerId);
-          setRoom(data.room);
-          if (data.room.status === "lobby") {
-            setView("room");
-          } else {
+        // Attempt session recovery
+        try {
+          const raw = sessionStorage.getItem(SESSION_KEY);
+          if (raw) {
+            const sess = JSON.parse(raw);
+            if (sess.roomCode && sess.playerId) {
+              socket?.send(
+                JSON.stringify({
+                  type: "reconnect",
+                  roomCode: sess.roomCode,
+                  playerId: sess.playerId,
+                  playerName: sess.playerName,
+                })
+              );
+            }
+          }
+        } catch {}
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "room_created" || data.type === "room_joined" || data.type === "reconnected") {
+            sfx.playClick();
+            setMyPlayerId(data.playerId);
+            setRoom(data.room);
+            try {
+              sessionStorage.setItem(
+                SESSION_KEY,
+                JSON.stringify({
+                  roomCode: data.roomCode,
+                  playerId: data.playerId,
+                  playerName: playerName,
+                  avatar: avatar,
+                })
+              );
+            } catch {}
+            if (data.room.status === "lobby") {
+              setView("room");
+            } else {
+              setView("game");
+            }
+          } else if (data.type === "reconnect_failed") {
+            sessionStorage.removeItem(SESSION_KEY);
+          } else if (
+            data.type === "room_updated" ||
+            data.type === "player_joined" ||
+            data.type === "player_left" ||
+            data.type === "player_connection_change" ||
+            data.type === "skip_vote_updated"
+          ) {
+            sfx.playClick();
+            setRoom(data.room);
+          } else if (data.type === "clue_extended") {
+            sfx.playGong();
+            setRoom(data.room);
+          } else if (data.type === "round_started") {
+            sfx.playGong();
+            setRoom(data.room);
             setView("game");
-          }
-        } else if (data.type === "room_updated" || data.type === "player_joined" || data.type === "player_left") {
-          sfx.playClick();
-          setRoom(data.room);
-        } else if (data.type === "round_started") {
-          sfx.playGong();
-          setRoom(data.room);
-          setView("game");
-          setIsPlayingAudio(false);
-          setBuzzCountdown(0);
-        } else if (data.type === "player_buzzed") {
-          sfx.playBuzzer();
-          setScreenFlash("buzz");
-          setTimeout(() => setScreenFlash(null), 300);
+            setIsPlayingAudio(false);
+            setBuzzCountdown(0);
+          } else if (data.type === "player_buzzed") {
+            sfx.playBuzzer();
+            setScreenFlash("buzz");
+            setTimeout(() => setScreenFlash(null), 300);
 
-          setRoom(data.room);
-          const allowed = data.secondsAllowed || 20;
-          setMaxAllowedSeconds(allowed);
-          setBuzzCountdown(allowed);
+            setRoom(data.room);
+            const allowed = data.secondsAllowed || 20;
+            setMaxAllowedSeconds(allowed);
+            setBuzzCountdown(allowed);
 
-          // Audio & Synth stops on buzz
-          if (audioRef.current) audioRef.current.pause();
-          if (synthRef.current) synthRef.current.stop();
-          setIsPlayingAudio(false);
+            // Audio & Synth stops on buzz
+            if (audioRef.current) audioRef.current.pause();
+            if (synthRef.current) synthRef.current.stop();
+            setIsPlayingAudio(false);
 
-          if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
-          buzzTimerRef.current = setInterval(() => {
-            setBuzzCountdown((prev) => {
-              if (prev <= 1) {
-                if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
-                return 0;
-              }
-              if (prev <= 4) {
-                sfx.playTick(true);
-              } else {
-                sfx.playTick(false);
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        } else if (data.type === "buzz_resumed") {
-          setRoom(data.room);
-          setBuzzCountdown(0);
-          if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
-        } else if (data.type === "guess_result") {
-          setRoom(data.room);
-          setBuzzCountdown(0);
-          if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+            if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+            buzzTimerRef.current = setInterval(() => {
+              setBuzzCountdown((prev) => {
+                if (prev <= 1) {
+                  if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+                  return 0;
+                }
+                if (prev <= 4) {
+                  sfx.playTick(true);
+                } else {
+                  sfx.playTick(false);
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          } else if (data.type === "buzz_resumed") {
+            setRoom(data.room);
+            setBuzzCountdown(0);
+            if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+          } else if (data.type === "guess_result") {
+            setRoom(data.room);
+            setBuzzCountdown(0);
+            if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
 
-          if (data.isCorrect) {
+            if (data.isCorrect) {
+              sfx.playCorrect();
+              setScreenFlash("correct");
+              setTimeout(() => setScreenFlash(null), 400);
+
+              confetti({
+                particleCount: 65,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ["#22c55e", "#eab308", "#38bdf8", "#fafafa"],
+              });
+            } else {
+              sfx.playWrong();
+              setScreenFlash("wrong");
+              setTimeout(() => setScreenFlash(null), 350);
+            }
+          } else if (data.type === "round_revealed") {
+            setRoom(data.room);
+            setBuzzCountdown(0);
+            if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+          } else if (data.type === "game_over") {
             sfx.playCorrect();
-            setScreenFlash("correct");
-            setTimeout(() => setScreenFlash(null), 400);
-
+            setRoom(data.room);
+            sessionStorage.removeItem(SESSION_KEY);
             confetti({
-              particleCount: 65,
-              spread: 70,
-              origin: { y: 0.6 },
-              colors: ["#22c55e", "#eab308", "#38bdf8", "#fafafa"],
+              particleCount: 120,
+              spread: 90,
+              origin: { y: 0.5 },
             });
-          } else {
+          } else if (data.type === "player_reaction") {
+            sfx.playPop();
+            const reactionId = Math.random().toString(36).substring(2, 9);
+            const xPos = Math.floor(Math.random() * 60) + 20; // 20% to 80% width
+            setFloatingReactions((prev) => [
+              ...prev,
+              { id: reactionId, emoji: data.emoji, playerName: data.playerName, x: xPos },
+            ]);
+            setTimeout(() => {
+              setFloatingReactions((prev) => prev.filter((r) => r.id !== reactionId));
+            }, 1800);
+          } else if (data.type === "error") {
             sfx.playWrong();
-            setScreenFlash("wrong");
-            setTimeout(() => setScreenFlash(null), 350);
+            setErrorMsg(data.message);
           }
-        } else if (data.type === "round_revealed") {
-          setRoom(data.room);
-          setBuzzCountdown(0);
-          if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
-        } else if (data.type === "game_over") {
-          sfx.playCorrect();
-          setRoom(data.room);
-          confetti({
-            particleCount: 120,
-            spread: 90,
-            origin: { y: 0.5 },
-          });
-        } else if (data.type === "player_reaction") {
-          sfx.playPop();
-          const reactionId = Math.random().toString(36).substring(2, 9);
-          const xPos = Math.floor(Math.random() * 60) + 20; // 20% to 80% width
-          setFloatingReactions((prev) => [
-            ...prev,
-            { id: reactionId, emoji: data.emoji, playerName: data.playerName, x: xPos },
-          ]);
-          setTimeout(() => {
-            setFloatingReactions((prev) => prev.filter((r) => r.id !== reactionId));
-          }, 1800);
-        } else if (data.type === "error") {
-          sfx.playWrong();
-          setErrorMsg(data.message);
+        } catch (err) {
+          console.error("WS Message Error:", err);
         }
-      } catch (err) {
-        console.error("WS Message Error:", err);
+      };
+
+      socket.onclose = () => {
+        setIsConnected(false);
+        if (!isUnmounted) {
+          reconnectTimeout = setTimeout(connect, 1500);
+        }
+      };
+
+      setWs(socket);
+    }
+
+    connect();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          connect();
+        }
       }
     };
 
-    socket.onclose = () => {
-      setIsConnected(false);
-    };
-
-    setWs(socket);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      socket.close();
+      isUnmounted = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (socket) socket.close();
     };
   }, []);
 
@@ -351,8 +420,9 @@ export default function MultiplayerPage() {
     } else {
       sfx.playClick();
       if (room?.mode === "tts") {
-        const firstClue = room.currentSongClue?.lyricsClues?.[0] || "";
-        audioRef.current.src = `/api/tts?text=${encodeURIComponent(firstClue)}`;
+        const clues = room.currentSongClue?.lyricsClues || [];
+        const fullLyrics = clues.join(". \n");
+        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}`;
       } else {
         audioRef.current.src = room?.currentSongClue?.previewUrl || "";
         audioRef.current.currentTime = room?.currentSongClue?.startSecond || 0;
@@ -374,13 +444,13 @@ export default function MultiplayerPage() {
 
   return (
     <div
-      className={`min-h-[100dvh] bg-background text-zinc-100 flex flex-col justify-between p-4 max-w-lg mx-auto select-none relative transition-colors duration-200 ${
+      className={`min-h-[100dvh] overflow-y-auto pb-28 bg-background text-zinc-100 flex flex-col justify-between p-4 max-w-lg mx-auto select-none relative transition-colors duration-200 ${
         screenFlash === "buzz"
-          ? "ring-8 ring-amber-500/50 bg-amber-950/20"
+          ? "ring-4 ring-amber-500 bg-amber-950/20"
           : screenFlash === "correct"
-          ? "ring-8 ring-emerald-500/50 bg-emerald-950/20"
+          ? "ring-4 ring-emerald-500 bg-emerald-950/20"
           : screenFlash === "wrong"
-          ? "ring-8 ring-red-500/50 bg-red-950/20"
+          ? "ring-4 ring-rose-500 bg-rose-950/20"
           : ""
       }`}
     >
@@ -841,6 +911,40 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
+          {/* Clue Stage & Vote Skip Bar */}
+          {(room.status === "playing" || room.status === "buzzed") && (
+            <div className="flex items-center justify-between w-full bg-surfaceRaised/90 border border-surfaceBorder rounded-xl p-2.5 px-3 text-xs font-mono shadow-sm">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Timer className="w-3.5 h-3.5 text-accent animate-pulse" />
+                <span className="text-zinc-200">
+                  Tahap Clue:{" "}
+                  <strong className="text-accent">{room.clueStage || 1}/4</strong>
+                </span>
+                <span className="text-zinc-500">•</span>
+                <span className="text-amber-400 font-bold">
+                  {room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30}s
+                </span>
+              </div>
+
+              {/* Vote Skip Button */}
+              <button
+                onClick={handleSkipRound}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                  room.skipVotes?.includes(myPlayerId)
+                    ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
+                    : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
+                }`}
+              >
+                <span>🏳️</span>
+                <span>
+                  {room.skipVotes?.includes(myPlayerId) ? "Batal Nyerah" : "Vote Nyerah"}{" "}
+                  ({room.skipVotes?.length || 0}/
+                  {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Central Vinyl Player & Clue Card */}
           <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col items-center gap-2 text-center shadow-sm relative overflow-hidden">
             {/* Spinning Vinyl Record Deck */}
@@ -868,6 +972,18 @@ export default function MultiplayerPage() {
                 </>
               )}
             </button>
+
+            {/* Lyrics display for Robot Speech */}
+            {room.mode === "tts" && room.currentSongClue?.lyricsClues && (
+              <div className="w-full mt-2 bg-surfaceRaised/60 border border-surfaceBorder rounded-xl p-3 text-xs text-zinc-300 italic font-medium max-h-28 overflow-y-auto text-left flex flex-col gap-1">
+                {room.currentSongClue.lyricsClues.map((clueText: string, i: number) => (
+                  <div key={i} className="text-zinc-200">
+                    <span className="text-[10px] font-mono text-accent not-italic font-bold mr-1.5">[Bait {i + 1}]</span>
+                    <span>"{clueText}"</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Hidden native audio element */}
             <audio ref={audioRef} onEnded={() => setIsPlayingAudio(false)} preload="auto" />
@@ -966,19 +1082,6 @@ export default function MultiplayerPage() {
                   </p>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Quick Skip Round Button (Jika Buntu / Nyerah) */}
-          {(room.status === "playing" || room.status === "buzzed") && (
-            <div className="flex justify-center mt-1">
-              <button
-                onClick={handleSkipRound}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold bg-surfaceRaised/90 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-red-400 transition active:scale-95 cursor-pointer shadow-sm"
-              >
-                <span>⏭️</span>
-                <span>{isHost ? "Lewati Ronde (Nyerah)" : "Vote Lewati Ronde"}</span>
-              </button>
             </div>
           )}
 
@@ -1104,6 +1207,22 @@ export default function MultiplayerPage() {
             ))}
           </div>
         </main>
+      )}
+
+      {/* FIXED STICKY ACTION BAR FOR HOST (SAMSUNG S23 & MOBILE VIEWPORT FIX) */}
+      {view === "game" && room?.status === "revealed" && isHost && (
+        <div className="fixed bottom-3 left-4 right-4 max-w-lg mx-auto z-50">
+          <button
+            onClick={handleNextRound}
+            className="w-full bg-accent hover:bg-green-500 text-zinc-950 font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-base shadow-2xl shadow-accent/50 cursor-pointer border border-green-400/40"
+          >
+            <span>
+              {room.currentRound >= room.maxRounds
+                ? "Lihat Podium Juara 🏆"
+                : "Ronde Berikutnya ➔"}
+            </span>
+          </button>
+        </div>
       )}
 
       {/* Footer */}

@@ -147,6 +147,9 @@ function getSanitizedRoom(room) {
     maxRounds: room.maxRounds,
     currentRound: room.currentRound,
     status: room.status,
+    clueStage: room.clueStage || 1,
+    clueSecondsLeft: room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30,
+    skipVotes: room.skipVotes ? Array.from(room.skipVotes) : [],
     playerLives: room.buzzState ? (room.buzzState.playerLives || {}) : {},
     players: room.players.map((p) => ({
       id: p.id,
@@ -155,12 +158,13 @@ function getSanitizedRoom(room) {
       score: p.score,
       isReady: p.isReady,
       isHost: p.id === room.hostId,
+      isDisconnected: !!p.isDisconnected,
       lives:
         room.buzzState && room.buzzState.playerLives && room.buzzState.playerLives[p.id] !== undefined
           ? room.buzzState.playerLives[p.id]
           : 3,
     })),
-    buzzedPlayer: room.buzzState.buzzedPlayerId
+    buzzedPlayer: room.buzzState?.buzzedPlayerId
       ? {
           id: room.buzzState.buzzedPlayerId,
           name: room.buzzState.buzzedPlayerName,
@@ -170,7 +174,9 @@ function getSanitizedRoom(room) {
       ? {
           category: room.currentSong.category,
           year: room.currentSong.year,
-          lyricsClues: room.currentSong.lyricsClues,
+          lyricsClues: (room.currentSong.lyricsClues || []).slice(0, room.clueStage || 1),
+          allLyricsClues: room.currentSong.lyricsClues,
+          clueStage: room.clueStage || 1,
           hummingMelody: room.currentSong.hummingMelody,
           previewUrl: room.currentSong.previewResolved || room.currentSong.previewFallback,
           searchQuery: room.currentSong.searchQuery,
@@ -184,6 +190,15 @@ function getSanitizedRoom(room) {
 async function startRound(room) {
   room.currentRound += 1;
   room.status = "playing";
+  room.skipVotes = new Set();
+  room.clueStage = 1;
+  room.clueSecondsLeft = 30;
+
+  if (room.stageTimer) {
+    clearInterval(room.stageTimer);
+    room.stageTimer = null;
+  }
+
   const playerLives = {};
   for (const p of room.players) {
     playerLives[p.id] = 3; // 3 lives per round per player
@@ -195,6 +210,57 @@ async function startRound(room) {
     lockedOutPlayerIds: [],
     playerLives,
   };
+
+  // Stage timer: 30s (Tahap 1) -> 30s (Tahap 2) -> 30s (Tahap 3) -> 90s (Tahap 4) -> Hangus!
+  room.stageTimer = setInterval(() => {
+    if (room.status === "playing") {
+      room.clueSecondsLeft -= 1;
+
+      if (room.clueSecondsLeft <= 0) {
+        if (room.clueStage === 1) {
+          room.clueStage = 2;
+          room.clueSecondsLeft = 30;
+          broadcast(room, {
+            type: "clue_extended",
+            stage: 2,
+            secondsLeft: 30,
+            message: "⏰ 30 detik berlalu! Clue lirik diperpanjang...",
+            room: getSanitizedRoom(room),
+          });
+        } else if (room.clueStage === 2) {
+          room.clueStage = 3;
+          room.clueSecondsLeft = 30;
+          broadcast(room, {
+            type: "clue_extended",
+            stage: 3,
+            secondsLeft: 30,
+            message: "⏰ 60 detik berlalu! Clue lirik diperpanjang lagi...",
+            room: getSanitizedRoom(room),
+          });
+        } else if (room.clueStage === 3) {
+          room.clueStage = 4;
+          room.clueSecondsLeft = 90; // Tahap terakhir 90 detik!
+          broadcast(room, {
+            type: "clue_extended",
+            stage: 4,
+            secondsLeft: 90,
+            message: "🚨 Tahap Terakhir (90 detik)! Jika tidak ada yang menjawab, ronde hangus!",
+            room: getSanitizedRoom(room),
+          });
+        } else if (room.clueStage === 4) {
+          // 90 detik terakhir habis -> Ronde Hangus!
+          if (room.stageTimer) clearInterval(room.stageTimer);
+          room.stageTimer = null;
+          room.status = "revealed";
+          broadcast(room, {
+            type: "round_revealed",
+            message: `Waktu ronde habis (180 detik)! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+            room: getSanitizedRoom(room),
+          });
+        }
+      }
+    }
+  }, 1000);
 
   // Pick song matching category
   const pool =
@@ -541,6 +607,10 @@ app.prepare().then(() => {
             // Correct Guess! +100 Points
             player.score += 100;
             room.status = "revealed";
+            if (room.stageTimer) {
+              clearInterval(room.stageTimer);
+              room.stageTimer = null;
+            }
 
             broadcast(room, {
               type: "guess_result",
@@ -573,6 +643,10 @@ app.prepare().then(() => {
 
             if (allOut) {
               // Hangus!
+              if (room.stageTimer) {
+                clearInterval(room.stageTimer);
+                room.stageTimer = null;
+              }
               room.status = "revealed";
               broadcast(room, {
                 type: "guess_result",
@@ -604,6 +678,11 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || room.hostId !== playerId) return;
 
+          if (room.stageTimer) {
+            clearInterval(room.stageTimer);
+            room.stageTimer = null;
+          }
+
           if (room.currentRound >= room.maxRounds) {
             room.status = "game_over";
             broadcast(room, {
@@ -627,23 +706,51 @@ app.prepare().then(() => {
           });
         }
 
-        // 9. SKIP ROUND (Lewati ronde jika buntu / nyerah)
-        else if (data.type === "skip_round") {
+        // 9. VOTE SKIP ROUND (Seluruh player harus vote skip agar ronde diskip)
+        else if (data.type === "skip_round" || data.type === "vote_skip") {
           const room = rooms.get(meta.roomCode);
           if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
 
-          // Clear any active countdown timer
-          if (room.buzzState.buzzTimer) {
-            clearTimeout(room.buzzState.buzzTimer);
-            room.buzzState.buzzTimer = null;
+          if (!room.skipVotes) room.skipVotes = new Set();
+
+          // Toggle vote
+          if (room.skipVotes.has(playerId)) {
+            room.skipVotes.delete(playerId);
+          } else {
+            room.skipVotes.add(playerId);
           }
 
-          room.status = "revealed";
-          broadcast(room, {
-            type: "round_revealed",
-            message: `Ronde dilewati! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-            room: getSanitizedRoom(room),
-          });
+          const activePlayers = room.players.filter((p) => !p.isDisconnected);
+          const totalRequired = Math.max(1, activePlayers.length);
+          const currentVotes = room.skipVotes.size;
+
+          if (currentVotes >= totalRequired) {
+            // Semua player setuju skip!
+            if (room.buzzState?.buzzTimer) {
+              clearTimeout(room.buzzState.buzzTimer);
+              room.buzzState.buzzTimer = null;
+            }
+            if (room.stageTimer) {
+              clearInterval(room.stageTimer);
+              room.stageTimer = null;
+            }
+
+            room.status = "revealed";
+            broadcast(room, {
+              type: "round_revealed",
+              message: `Semua pemain (${currentVotes}/${totalRequired}) setuju skip! Ronde dilewati. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+              room: getSanitizedRoom(room),
+            });
+          } else {
+            broadcast(room, {
+              type: "skip_vote_updated",
+              votesCount: currentVotes,
+              totalRequired,
+              voters: Array.from(room.skipVotes),
+              message: `${meta.name} vote lewati ronde (${currentVotes}/${totalRequired} setuju)`,
+              room: getSanitizedRoom(room),
+            });
+          }
         }
 
         // 10. FORFEIT BUZZ (Pemain yang buzz klik 'Nyerah' tanpa nunggu 20s)
@@ -651,6 +758,51 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || room.status !== "buzzed" || room.buzzState.buzzedPlayerId !== playerId) return;
           handleBuzzTimeout(room);
+        }
+
+        // 11. RECONNECT SESSION (Saat HP unlock / switch tab kembali)
+        else if (data.type === "reconnect") {
+          const code = (data.roomCode || "").toUpperCase().trim();
+          const room = rooms.get(code);
+
+          if (room) {
+            const player = room.players.find((p) => p.id === data.playerId);
+            if (player) {
+              if (player.disconnectTimeout) {
+                clearTimeout(player.disconnectTimeout);
+                player.disconnectTimeout = null;
+              }
+              player.isDisconnected = false;
+              player.ws = ws;
+              meta.roomCode = code;
+              meta.name = player.name;
+
+              ws.send(
+                JSON.stringify({
+                  type: "reconnected",
+                  roomCode: code,
+                  playerId: player.id,
+                  room: getSanitizedRoom(room),
+                })
+              );
+
+              broadcast(
+                room,
+                {
+                  type: "player_connection_change",
+                  playerId: player.id,
+                  playerName: player.name,
+                  isConnected: true,
+                  message: `${player.name} kembali online! ⚡`,
+                  room: getSanitizedRoom(room),
+                },
+                ws
+              );
+              return;
+            }
+          }
+
+          ws.send(JSON.stringify({ type: "reconnect_failed" }));
         }
       } catch (err) {
         console.error("WS Parse Error:", err);
@@ -662,19 +814,46 @@ app.prepare().then(() => {
       if (meta && meta.roomCode) {
         const room = rooms.get(meta.roomCode);
         if (room) {
-          room.players = room.players.filter((p) => p.id !== playerId);
-          if (room.players.length === 0) {
-            if (room.buzzState.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
-            rooms.delete(meta.roomCode);
-          } else {
-            if (room.hostId === playerId) {
-              room.hostId = room.players[0].id; // Reassign host
-            }
+          const player = room.players.find((p) => p.id === playerId);
+          if (player) {
+            player.isDisconnected = true;
+            player.ws = null;
+
             broadcast(room, {
-              type: "player_left",
-              playerName: meta.name,
+              type: "player_connection_change",
+              playerId,
+              playerName: player.name,
+              isConnected: false,
               room: getSanitizedRoom(room),
             });
+
+            // 45-second grace period for mobile app-switching / screen-locking
+            player.disconnectTimeout = setTimeout(() => {
+              if (player.isDisconnected) {
+                room.players = room.players.filter((p) => p.id !== playerId);
+                if (room.buzzState?.playerLives) {
+                  delete room.buzzState.playerLives[playerId];
+                }
+                if (room.skipVotes) {
+                  room.skipVotes.delete(playerId);
+                }
+
+                if (room.players.length === 0) {
+                  if (room.buzzState?.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
+                  if (room.stageTimer) clearInterval(room.stageTimer);
+                  rooms.delete(meta.roomCode);
+                } else {
+                  if (room.hostId === playerId) {
+                    room.hostId = room.players[0].id;
+                  }
+                  broadcast(room, {
+                    type: "player_left",
+                    playerName: meta.name,
+                    room: getSanitizedRoom(room),
+                  });
+                }
+              }
+            }, 45000);
           }
         }
       }
