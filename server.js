@@ -83,6 +83,7 @@ function getSanitizedRoom(room) {
     maxRounds: room.maxRounds,
     currentRound: room.currentRound,
     status: room.status,
+    playerLives: room.buzzState ? (room.buzzState.playerLives || {}) : {},
     players: room.players.map((p) => ({
       id: p.id,
       name: p.name,
@@ -90,6 +91,10 @@ function getSanitizedRoom(room) {
       score: p.score,
       isReady: p.isReady,
       isHost: p.id === room.hostId,
+      lives:
+        room.buzzState && room.buzzState.playerLives && room.buzzState.playerLives[p.id] !== undefined
+          ? room.buzzState.playerLives[p.id]
+          : 3,
     })),
     buzzedPlayer: room.buzzState.buzzedPlayerId
       ? {
@@ -115,11 +120,16 @@ function getSanitizedRoom(room) {
 async function startRound(room) {
   room.currentRound += 1;
   room.status = "playing";
+  const playerLives = {};
+  for (const p of room.players) {
+    playerLives[p.id] = 3; // 3 lives per round per player
+  }
   room.buzzState = {
     buzzedPlayerId: null,
     buzzedPlayerName: null,
     buzzTimer: null,
     lockedOutPlayerIds: [],
+    playerLives,
   };
 
   // Pick song matching category
@@ -145,8 +155,21 @@ async function startRound(room) {
 function handleBuzzTimeout(room) {
   if (!room.buzzState.buzzedPlayerId) return;
 
+  const penaltyPlayerId = room.buzzState.buzzedPlayerId;
   const penaltyPlayerName = room.buzzState.buzzedPlayerName;
-  room.buzzState.lockedOutPlayerIds.push(room.buzzState.buzzedPlayerId);
+
+  if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+  const currentLives =
+    room.buzzState.playerLives[penaltyPlayerId] !== undefined
+      ? room.buzzState.playerLives[penaltyPlayerId]
+      : 3;
+  const newLives = Math.max(0, currentLives - 1);
+  room.buzzState.playerLives[penaltyPlayerId] = newLives;
+
+  if (newLives <= 0 && !room.buzzState.lockedOutPlayerIds.includes(penaltyPlayerId)) {
+    room.buzzState.lockedOutPlayerIds.push(penaltyPlayerId);
+  }
+
   room.buzzState.buzzedPlayerId = null;
   room.buzzState.buzzedPlayerName = null;
   if (room.buzzState.buzzTimer) {
@@ -154,21 +177,29 @@ function handleBuzzTimeout(room) {
     room.buzzState.buzzTimer = null;
   }
 
-  // Check if all players are locked out
-  if (room.buzzState.lockedOutPlayerIds.length >= room.players.length) {
-    // Round over, reveal song
+  // Check if ALL active players have exhausted all 3 lives
+  const allOut =
+    room.players.length > 0 &&
+    room.players.every((p) => (room.buzzState.playerLives[p.id] || 0) <= 0);
+
+  if (allOut) {
+    // Round over, reveal song (Hangus!)
     room.status = "revealed";
     broadcast(room, {
       type: "round_revealed",
-      message: `Waktu menebak habis untuk semua pemain!`,
+      message: `Semua pemain kehabisan nyawa! Ronde ini hangus. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
       room: getSanitizedRoom(room),
     });
   } else {
-    // Resume buzzer for other players
+    // Resume buzzer for anyone who still has lives!
     room.status = "playing";
+    const msg =
+      newLives > 0
+        ? `Waktu ${penaltyPlayerName} habis! Sisa nyawa ${penaltyPlayerName}: ${newLives}/3. Buzzer terbuka kembali!`
+        : `Waktu ${penaltyPlayerName} habis dan nyawanya habis (0/3)! Pemain lain silakan memencet Buzzer!`;
     broadcast(room, {
       type: "buzz_resumed",
-      message: `Waktu ${penaltyPlayerName} habis! Pemain lain bisa memencet Buzzer sekarang!`,
+      message: msg,
       room: getSanitizedRoom(room),
     });
   }
@@ -360,12 +391,17 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || room.status !== "playing") return;
 
-          // Check if this player is locked out
-          if (room.buzzState.lockedOutPlayerIds.includes(playerId)) {
+          // Check if this player has lives remaining in this round
+          if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+          if (room.buzzState.playerLives[playerId] === undefined) {
+            room.buzzState.playerLives[playerId] = 3;
+          }
+
+          if (room.buzzState.playerLives[playerId] <= 0) {
             ws.send(
               JSON.stringify({
                 type: "buzz_rejected",
-                message: "Kamu sudah salah menebak di ronde ini!",
+                message: "Nyawa tebakanmu sudah habis di ronde ini (0/3)!",
               })
             );
             return;
@@ -379,17 +415,17 @@ app.prepare().then(() => {
           room.buzzState.buzzedPlayerId = playerId;
           room.buzzState.buzzedPlayerName = player.name;
 
-          // Start 7-second guess countdown
+          // Start 20-second guess countdown (20 DETIK)
           if (room.buzzState.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
           room.buzzState.buzzTimer = setTimeout(() => {
             handleBuzzTimeout(room);
-          }, 7000);
+          }, 20000);
 
           broadcast(room, {
             type: "player_buzzed",
             buzzedPlayerId: playerId,
             buzzedPlayerName: player.name,
-            secondsAllowed: 7,
+            secondsAllowed: 20,
             room: getSanitizedRoom(room),
           });
         }
@@ -429,27 +465,49 @@ app.prepare().then(() => {
               room: getSanitizedRoom(room),
             });
           } else {
-            // Wrong Guess! Lockout this player
-            room.buzzState.lockedOutPlayerIds.push(playerId);
+            // Wrong Guess! Deduct 1 life
+            if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+            const currentLives =
+              room.buzzState.playerLives[playerId] !== undefined
+                ? room.buzzState.playerLives[playerId]
+                : 3;
+            const newLives = Math.max(0, currentLives - 1);
+            room.buzzState.playerLives[playerId] = newLives;
+
+            if (newLives <= 0 && !room.buzzState.lockedOutPlayerIds.includes(playerId)) {
+              room.buzzState.lockedOutPlayerIds.push(playerId);
+            }
+
             room.buzzState.buzzedPlayerId = null;
             room.buzzState.buzzedPlayerName = null;
 
-            if (room.buzzState.lockedOutPlayerIds.length >= room.players.length) {
+            // Check if all players have exhausted all 3 lives
+            const allOut =
+              room.players.length > 0 &&
+              room.players.every((p) => (room.buzzState.playerLives[p.id] || 0) <= 0);
+
+            if (allOut) {
+              // Hangus!
               room.status = "revealed";
               broadcast(room, {
                 type: "guess_result",
                 isCorrect: false,
                 guesserName: player.name,
-                message: `Tebakan salah! Semua pemain terkunci. Jawaban diungkapkan!`,
+                message: `Tebakan ${player.name} salah dan semua pemain kehabisan nyawa! Ronde ini hangus. Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
                 room: getSanitizedRoom(room),
               });
             } else {
+              // Reopen buzzer!
               room.status = "playing";
+              const msg =
+                newLives > 0
+                  ? `Tebakan ${player.name} belum tepat! Sisa nyawa ${player.name}: ${newLives}/3. Buzzer terbuka kembali!`
+                  : `Tebakan ${player.name} belum tepat dan nyawanya habis (0/3)! Pemain lain silakan Buzzer!`;
               broadcast(room, {
                 type: "guess_result",
                 isCorrect: false,
                 guesserName: player.name,
-                message: `Tebakan ${player.name} belum tepat! Pemain lain silakan Buzzer!`,
+                message: msg,
                 room: getSanitizedRoom(room),
               });
             }

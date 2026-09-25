@@ -1837,7 +1837,7 @@ export const SONGS_CATALOG: Song[] = [
     "startSecond": 50,
     "lyricsClues": [
       "Los dol ndang lanjut le dolanan WhatsApp-an\nNglirik hpne sing muni terus",
-      "Kowe lewih milih de\u2019e sing lagi wae kenal\nTinimbang aku sing wis suwe ngancani",
+      "Kowe lewih milih de’e sing lagi wae kenal\nTinimbang aku sing wis suwe ngancani",
       "Tak pasrahke kabeh marang Gusti Kang Akaryo Jagad\nIki dalan takdir sing kudu tak lakoni"
     ],
     "hummingMelody": [
@@ -2387,5 +2387,1509 @@ export const SONGS_CATALOG: Song[] = [
       }
     ],
     "searchQuery": "green day wake me up when september ends"
+  },
+  {
+    "id": "mahalini-mati-matian",
+    "title": "Mati-Matian",
+    "artist": "Mahalini",
+    "year": 2024,
+    "category": "Galau Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Mati-matian ku membelamu di depan mereka\nWalau ku tahu engkau tak sebaik itu",
+      "Habis-habisan ku pertahankan cinta kita\nNamun dirimu dengan mudahnya mendua"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 330,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "mahalini mati matian"
+  },
+  {
+    "id": "nadin-sorai",
+    "title": "Sorai",
+    "artist": "Nadin Amizah",
+    "year": 2019,
+    "category": "Galau Hits",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Langit dan laut saling membantu\nMempertemukan kita berdua",
+      "Kau dan aku saling mendoakan\nWalau tak lagi saling memiliki"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "nadin amizah sorai"
+  },
+  {
+    "id": "yura-tutur-batin",
+    "title": "Tutur Batin",
+    "artist": "Yura Yunita",
+    "year": 2021,
+    "category": "Galau Hits",
+    "startSecond": 55,
+    "lyricsClues": [
+      "Bagaimanapun ku kan melangkah\nMeski kau patahkan sayapku",
+      "Tutur batinku takkan salah\nKarna ku tahu diriku berharga"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 523,
+        "duration": 0.6
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "yura yunita tutur batin"
+  },
+  {
+    "id": "yura-dunia-tipu-tipu",
+    "title": "Dunia Tipu-Tipu",
+    "artist": "Yura Yunita",
+    "year": 2021,
+    "category": "Galau Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Di dunia tipu-tipu kamu temanku\nYang paling jujur apa adanya",
+      "Lelahmu lelahku juga\nBahagiamu bahagiaku sama"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "yura yunita dunia tipu tipu"
+  },
+  {
+    "id": "feby-putri-runtuh",
+    "title": "Runtuh",
+    "artist": "Feby Putri ft. Fiersa Besari",
+    "year": 2021,
+    "category": "Galau Hits",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Ku terbangun lagi di antara sepi\nMelihat bayangku yang mulai rapuh",
+      "Ketika semua yang ku genggam runtuh\nTak ada lagi yang bisa ku percaya"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.6
+      },
+      {
+        "note": 262,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "feby putri fiersa besari runtuh"
+  },
+  {
+    "id": "fabio-asher-rumah-singgah",
+    "title": "Rumah Singgah",
+    "artist": "Fabio Asher",
+    "year": 2022,
+    "category": "Galau Hits",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Mengapa hatimu tak pernah untukku\nSetelah semua yang ku korbankan",
+      "Hanya sebatas rumah singgah\nSaat kau lelah dan terluka"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "fabio asher rumah singgah"
+  },
+  {
+    "id": "raim-laode-komang",
+    "title": "Komang",
+    "artist": "Raim Laode",
+    "year": 2022,
+    "category": "Galau Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Sebab kau terlalu indah dari sekadar kata\nDunia berhenti sejenak menatapmu",
+      "Dan bila hatiku jatuh sejatuh-jatuhnya\nPasti kepadamu Komang terkasih"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "raim laode komang"
+  },
+  {
+    "id": "lyodra-tak-dianggap",
+    "title": "Tak Dianggap",
+    "artist": "Lyodra",
+    "year": 2023,
+    "category": "Galau Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Aku yang selalu ada di setiap langkahmu\nNamun mengapa ku merasa tak dianggap",
+      "Bila memang tak ada lagi rasa\nLepaskan aku jangan buat tersiksa"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 523,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "lyodra tak dianggap"
+  },
+  {
+    "id": "tiara-janji-setia",
+    "title": "Janji Setia",
+    "artist": "Tiara Andini",
+    "year": 2021,
+    "category": "Galau Hits",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Tahukah dirimu betapa ku merindukanmu\nMenanti kepulanganmu di pelukanku",
+      "Karna janji setiamu kan ku jaga selalu\nHingga akhir hayat memisahkan kita"
+    ],
+    "hummingMelody": [
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "tiara andini janji setia"
+  },
+  {
+    "id": "idgitaf-satu-satu",
+    "title": "Satu Satu",
+    "artist": "Idgitaf",
+    "year": 2022,
+    "category": "Galau Hits",
+    "startSecond": 35,
+    "lyricsClues": [
+      "Satu-satu ku sembuhkan lukaku\nTanpa perlu kau tahu cerita duka",
+      "Aku memaafkan semua yang lalu\nKini ku siap melangkah maju"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "idgitaf satu satu"
+  },
+  {
+    "id": "tulus-diri",
+    "title": "Diri",
+    "artist": "Tulus",
+    "year": 2022,
+    "category": "Galau Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Hari ini kau berdamai dengan dirimu sendiri\nKau maafkan semua salah yang tlah lalu",
+      "Katakan pada diri jangan bersedih lagi\nKau sudah berjuang sehebat ini"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "tulus diri"
+  },
+  {
+    "id": "sheila-sebuah-kisah-klasik",
+    "title": "Sebuah Kisah Klasik",
+    "artist": "Sheila On 7",
+    "year": 2000,
+    "category": "Nostalgia 2000s",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Jabat tanganku mungkin untuk yang terakhir kali\nKita kan berpisah untuk waktu yang lama",
+      "Sampai jumpa kawanku semoga kita selalu\nMenjadi sebuah kisah klasik untuk masa depan"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 440,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "sheila on 7 sebuah kisah klasik"
+  },
+  {
+    "id": "sheila-lapang-dada",
+    "title": "Lapang Dada",
+    "artist": "Sheila On 7",
+    "year": 2014,
+    "category": "Nostalgia 2000s",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Kau harus bisa bisa berlapang dada\nKau harus bisa bisa mengambil hikmah",
+      "Karena semua semua tak lagi sama\nWalau kau tahu dia tlah pergi"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 523,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "sheila on 7 lapang dada"
+  },
+  {
+    "id": "peterpan-bintang-di-surga",
+    "title": "Bintang Di Surga",
+    "artist": "Peterpan",
+    "year": 2004,
+    "category": "Nostalgia 2000s",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Masih ku merasa angkuh\nTerbang tinggi di awan",
+      "Bagaikan bintang di surga\nDan jiwaku terhempas dalam luka"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 330,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "peterpan bintang di surga"
+  },
+  {
+    "id": "ungu-kekasih-gelapku",
+    "title": "Kekasih Gelapku",
+    "artist": "Ungu",
+    "year": 2007,
+    "category": "Nostalgia 2000s",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Kuharap kau mengerti keadaan ini\nKu tak bisa tinggalkan dia untukmu",
+      "Jadilah kekasih gelapku malam ini\nTemani sepi yang mendalam di jiwa"
+    ],
+    "hummingMelody": [
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "ungu kekasih gelapku"
+  },
+  {
+    "id": "radja-jujur",
+    "title": "Jujur",
+    "artist": "Radja",
+    "year": 2004,
+    "category": "Nostalgia 2000s",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Jujurlah padaku bila kau tak lagi cinta\nJangan buat diriku tersiksa begini",
+      "Katakan sejujurnya apa yang kau rasa\nSebelum terlambat dan saling menyakiti"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 523,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "radja jujur"
+  },
+  {
+    "id": "radja-cinderella",
+    "title": "Cinderella",
+    "artist": "Radja",
+    "year": 2004,
+    "category": "Nostalgia 2000s",
+    "startSecond": 35,
+    "lyricsClues": [
+      "Ada sebuah kisah tentang dara jelita\nHidup bersama ibu tiri yang kejam",
+      "Cinderella pun bergembira menari bersama pangeran\nSepatu kaca tertinggal di tangga istana"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "radja cinderella"
+  },
+  {
+    "id": "dmasiv-jangan-menyerah",
+    "title": "Jangan Menyerah",
+    "artist": "D'Masiv",
+    "year": 2009,
+    "category": "Nostalgia 2000s",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Tak ada manusia yang terlahir sempurna\nJangan kau sesali segalanya yang telah terjadi",
+      "Syukuri apa yang ada hidup adalah anugerah\nTetap jalani hidup ini melakukan yang terbaik"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "dmasiv jangan menyerah"
+  },
+  {
+    "id": "padi-semua-tak-sama",
+    "title": "Semua Tak Sama",
+    "artist": "Padi",
+    "year": 2001,
+    "category": "Nostalgia 2000s",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Dalam benakku lama tertanam sejuta bayangan\nTentang dirimu yang tlah pergi menjauh",
+      "Semua tak sama tak pernah sama\nSaat kau tinggalkan aku sendiri di sini"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "padi semua tak sama"
+  },
+  {
+    "id": "st12-saat-terakhir",
+    "title": "Saat Terakhir",
+    "artist": "ST12",
+    "year": 2008,
+    "category": "Nostalgia 2000s",
+    "startSecond": 55,
+    "lyricsClues": [
+      "Satu jam saja kutelah bisa mencintaimu\nDi saat terakhir nafasmu berhembus",
+      "Putihnya kain kafan membalut tubuhmu\nSelamat jalan kekasih pujaan hatiku"
+    ],
+    "hummingMelody": [
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "st12 saat terakhir"
+  },
+  {
+    "id": "st12-puspa",
+    "title": "P.U.S.P.A",
+    "artist": "ST12",
+    "year": 2008,
+    "category": "Nostalgia 2000s",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Kau gadisku yang cantik coba lihat aku di sini\nDi sini ada cinta yang tulus untukmu",
+      "Jangan kau putuskan cintaku yang membara\nKarna ku tak bisa hidup tanpamu"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 523,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "st12 puspa"
+  },
+  {
+    "id": "wali-cari-jodoh",
+    "title": "Cari Jodoh",
+    "artist": "Wali",
+    "year": 2009,
+    "category": "Nostalgia 2000s",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Ibu-ibu bapak-bapak siapa yang punya anak\nBilang aku aku yang tengah mencari jodoh",
+      "Lihatlah diriku yang tampan dan rupawan\nSiap membina rumah tangga bahagia"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "wali cari jodoh"
+  },
+  {
+    "id": "kangen-band-tentang-aku",
+    "title": "Tentang Aku Kau dan Dia",
+    "artist": "Kangen Band",
+    "year": 2007,
+    "category": "Nostalgia 2000s",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Selayaknya engkau tahu betapa ku mencintaimu\nKau buat aku hancur berkeping-keping",
+      "Tentang aku kau dan dia di antara cinta segitiga\nYang tak pernah kusangka kan terjadi"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "kangen band tentang aku kau dan dia"
+  },
+  {
+    "id": "slank-i-miss-you",
+    "title": "I Miss You But I Hate You",
+    "artist": "Slank",
+    "year": 2001,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Waktu aku lagi tinggi\nHilangkan rasa sepi",
+      "Kamu datang bikin kacau lagi\nI miss you but I hate you, my girl"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "slank i miss you but i hate you"
+  },
+  {
+    "id": "slank-balikin",
+    "title": "Balikin",
+    "artist": "Slank",
+    "year": 1997,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Balikin balikin oh oh balikin\nHati gue yang pernah lu culik",
+      "Balikin balikin oh oh balikin\nKebebasan gue yang lu rampas"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "slank balikin"
+  },
+  {
+    "id": "jamrud-pelangi-di-matamu",
+    "title": "Pelangi Di Matamu",
+    "artist": "Jamrud",
+    "year": 2000,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 55,
+    "lyricsClues": [
+      "Ada yang lain di senyummu\nYang membuat lidahku gugup tak bergerak",
+      "Mungkin butuh kursus merangkai kata\nUntuk bicara dan beri pelangi di matamu"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 440,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "jamrud pelangi di matamu"
+  },
+  {
+    "id": "payung-teduh-akad",
+    "title": "Akad",
+    "artist": "Payung Teduh",
+    "year": 2017,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 65,
+    "lyricsClues": [
+      "Bila nanti saatnya tlah tiba\nKuingin kau menjadi istriku",
+      "Berjalan bersamamu dalam terik dan hujan\nBerlarian ke sana-kemari dan tertawa"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 523,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "payung teduh akad"
+  },
+  {
+    "id": "payung-teduh-menuju-senja",
+    "title": "Menuju Senja",
+    "artist": "Payung Teduh",
+    "year": 2012,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Bersama menyusuri lorong berdebu\nKita berjalan tanpa ragu",
+      "Harum mawar di taman senja\nMenemani kita yang terlena"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 262,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "payung teduh menuju senja"
+  },
+  {
+    "id": "fourtwnty-zona-nyaman",
+    "title": "Zona Nyaman",
+    "artist": "Fourtwnty",
+    "year": 2017,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Pagi ke pagi ku terjebak di dalam ambisi\nSeperti orang-orang berdasi",
+      "Keluarlah dari zona nyamanmu\nSembilu yang dulu biarlah berlalu"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "fourtwnty zona nyaman"
+  },
+  {
+    "id": "fourtwnty-fana-merah-jambu",
+    "title": "Fana Merah Jambu",
+    "artist": "Fourtwnty",
+    "year": 2015,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 35,
+    "lyricsClues": [
+      "Di depan teras rumahmu\nSecangkir kopi hangat menanti",
+      "Berdansa dalam fana merah jambu\nMenari bersama bayanganmu"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "fourtwnty fana merah jambu"
+  },
+  {
+    "id": "the-changcuters-racun-dunia",
+    "title": "Racun Dunia",
+    "artist": "The Changcuters",
+    "year": 2008,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 35,
+    "lyricsClues": [
+      "Wanita racun dunia\nApa daya bila ku terkena bisanya",
+      "Bikin mabuk kepayang\nSiang malam terbayang-bayang"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.25
+      },
+      {
+        "note": 392,
+        "duration": 0.25
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "the changcuters racun dunia"
+  },
+  {
+    "id": "the-changcuters-i-love-u-bibeh",
+    "title": "I Love U Bibeh",
+    "artist": "The Changcuters",
+    "year": 2008,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Biar kata orang kau ini jelek\nBiar kata orang kau ini cerewet",
+      "Ku tetap cinta kepadamu\nI love you bibeh!"
+    ],
+    "hummingMelody": [
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "the changcuters i love u bibeh"
+  },
+  {
+    "id": "efek-rumah-kaca-desember",
+    "title": "Desember",
+    "artist": "Efek Rumah Kaca",
+    "year": 2007,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Sampai nanti ketika hujan mereda\nKita basah kuyup bersama",
+      "Dan angin kan berhembus pelan\nMembawa cerita tentang Desember"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      },
+      {
+        "note": 262,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "efek rumah kaca desember"
+  },
+  {
+    "id": "shaggydog-sayidan",
+    "title": "Di Sayidan",
+    "artist": "Shaggydog",
+    "year": 2003,
+    "category": "Anthem Tongkrongan",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Di Sayidan di jalanan\nAngkat sekali lagi gelasmu kawan",
+      "Jangan kau pikirkan masalah hidup ini\nKita bernyanyi bersama sampai pagi"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "shaggydog di sayidan"
+  },
+  {
+    "id": "denny-cundamani",
+    "title": "Cundamani",
+    "artist": "Denny Caknan",
+    "year": 2023,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Matur nuwun gusti sampun maringi\nSeng paling ayu neng atiku",
+      "Kowe cundamani seng tak tresnani\nSeng bakal tak jaga sak lawase"
+    ],
+    "hummingMelody": [
+      {
+        "note": 294,
+        "duration": 0.3
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "denny caknan cundamani"
+  },
+  {
+    "id": "denny-wirang",
+    "title": "Wirang",
+    "artist": "Denny Caknan",
+    "year": 2023,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 60,
+    "lyricsClues": [
+      "Sah jam siji bengi\nAku iseh nang kene ngenteni",
+      "Yen pancen kowe wes ora sudi\nAku wirang neng ngarepe kanca-kancaku"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "denny caknan wirang"
+  },
+  {
+    "id": "denny-kalih-welasku",
+    "title": "Kalih Welasku",
+    "artist": "Denny Caknan",
+    "year": 2022,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Anane mung tresno kalih welasku\nAnane mung pasrah neng njero atiku",
+      "Nanging kowe ora tau ngerti\nSepiro jero tresnoku iki"
+    ],
+    "hummingMelody": [
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "denny caknan kalih welasku"
+  },
+  {
+    "id": "guyon-waton-perlahan",
+    "title": "Perlahan",
+    "artist": "Guyon Waton",
+    "year": 2020,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Memang salahku terlalu mencintaimu\nTanpa berpikir kau kan pergi",
+      "Perlahan engkau pun menjauh dari hidupku\nMeninggalkan luka di dada"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "guyon waton perlahan"
+  },
+  {
+    "id": "guyon-waton-sanes",
+    "title": "Sanes",
+    "artist": "Guyon Waton ft. Denny Caknan",
+    "year": 2023,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 55,
+    "lyricsClues": [
+      "Ngancani nanging ora iso nduweni\nNgenteni nanging kowe milih liyane",
+      "Yen pancen aku dudu jodhomu\nAku lilo senadyan atiku kelaran"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 370,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "guyon waton denny caknan sanes"
+  },
+  {
+    "id": "gilga-nemen",
+    "title": "Nemen",
+    "artist": "Gildcoustic (Gilga Sahid)",
+    "year": 2023,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Kudune kowe ngerti\nKabeh perjuanganku iki",
+      "Nanging kowe malah milih dolanan ati\nNemen tenan lehmu nglarani aku"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "gildcoustic nemen gilga sahid"
+  },
+  {
+    "id": "gilga-ginio",
+    "title": "Ginio",
+    "artist": "Gildcoustic (Gilga Sahid)",
+    "year": 2023,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Aku wes berjuang mati-matian\nNanging kowe malah ninggal kenangan",
+      "Ginio kowe tego ngapusi aku\nOpo salah lan kekuranganku"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "gildcoustic ginio gilga sahid"
+  },
+  {
+    "id": "didi-kempot-banyu-langit",
+    "title": "Banyu Langit",
+    "artist": "Didi Kempot",
+    "year": 2016,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Sworo angin angin sing ngreridu ati\nNgelingake sliramu sing tak tresnani",
+      "Banyu langit sing ono nglanggeran iki\nTandane tresnoku ora bakal mati"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "didi kempot banyu langit"
+  },
+  {
+    "id": "didi-kempot-stasiun-balapan",
+    "title": "Stasiun Balapan",
+    "artist": "Didi Kempot",
+    "year": 1999,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 35,
+    "lyricsClues": [
+      "Ning Stasiun Balapan kuto Solo sing dadi kenangan\nKowe pamit lungo ora kerso bali",
+      "Lir handoyo teko nggowo roso tresno\nNgenteni kowe kok ora teko-teko"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.3
+      },
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      },
+      {
+        "note": 294,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "didi kempot stasiun balapan"
+  },
+  {
+    "id": "ndx-aka-ditinggal-rabi",
+    "title": "Ditinggal Rabi",
+    "artist": "NDX AKA",
+    "year": 2017,
+    "category": "Pop Jawa & Koplo",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Atiku rasane loro nyawang kowe rabi karo wong liyo\nNangis getih eluhku getun ra nemoni",
+      "Kowe tego ninggalake aku sing tresno\nDitinggal rabi pas lagi sayang-sayange"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "ndx aka ditinggal rabi"
+  },
+  {
+    "id": "coldplay-the-scientist",
+    "title": "The Scientist",
+    "artist": "Coldplay",
+    "year": 2002,
+    "category": "Western Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Come up to meet you, tell you I'm sorry\nYou don't know how lovely you are",
+      "Nobody said it was easy, it's such a shame for us to part\nNobody said it was easy, no one ever said it would be this hard"
+    ],
+    "hummingMelody": [
+      {
+        "note": 262,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      },
+      {
+        "note": 262,
+        "duration": 0.8
+      }
+    ],
+    "searchQuery": "coldplay the scientist"
+  },
+  {
+    "id": "maroon-5-payphone",
+    "title": "Payphone",
+    "artist": "Maroon 5",
+    "year": 2012,
+    "category": "Western Hits",
+    "startSecond": 35,
+    "lyricsClues": [
+      "I'm at a payphone trying to call home\nAll of my change I spent on you",
+      "Where have the times gone, baby it's all wrong\nWe're at the place where we made a vow"
+    ],
+    "hummingMelody": [
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "maroon 5 payphone"
+  },
+  {
+    "id": "maroon-5-memories",
+    "title": "Memories",
+    "artist": "Maroon 5",
+    "year": 2019,
+    "category": "Western Hits",
+    "startSecond": 30,
+    "lyricsClues": [
+      "Here's to the ones that we got\nCheers to the wish you were here, but you're not",
+      "Cause the drinks bring back all the memories\nOf everything we've been through"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.4
+      },
+      {
+        "note": 294,
+        "duration": 0.4
+      },
+      {
+        "note": 262,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "maroon 5 memories"
+  },
+  {
+    "id": "bruno-mars-thats-what-i-like",
+    "title": "That's What I Like",
+    "artist": "Bruno Mars",
+    "year": 2016,
+    "category": "Western Hits",
+    "startSecond": 40,
+    "lyricsClues": [
+      "Gold jewelry shining so bright\nStrawberry champagne on ice",
+      "Lucky for you that's what I like, that's what I like\nSex by the fire at night"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "bruno mars thats what i like"
+  },
+  {
+    "id": "taylor-swift-love-story",
+    "title": "Love Story",
+    "artist": "Taylor Swift",
+    "year": 2008,
+    "category": "Western Hits",
+    "startSecond": 50,
+    "lyricsClues": [
+      "Romeo, take me somewhere we can be alone\nI'll be waiting, all there's left to do is run",
+      "You'll be the prince and I'll be the princess\nIt's a love story, baby, just say yes"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.6
+      }
+    ],
+    "searchQuery": "taylor swift love story"
+  },
+  {
+    "id": "adele-someone-like-you",
+    "title": "Someone Like You",
+    "artist": "Adele",
+    "year": 2011,
+    "category": "Western Hits",
+    "startSecond": 55,
+    "lyricsClues": [
+      "Never mind, I'll find someone like you\nI wish nothing but the best for you too",
+      "Don't forget me, I beg, I remember you said\nSometimes it lasts in love, but sometimes it hurts instead"
+    ],
+    "hummingMelody": [
+      {
+        "note": 440,
+        "duration": 0.4
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      },
+      {
+        "note": 330,
+        "duration": 0.5
+      },
+      {
+        "note": 262,
+        "duration": 0.7
+      }
+    ],
+    "searchQuery": "adele someone like you"
+  },
+  {
+    "id": "chainsmokers-closer",
+    "title": "Closer",
+    "artist": "The Chainsmokers ft. Halsey",
+    "year": 2016,
+    "category": "Western Hits",
+    "startSecond": 40,
+    "lyricsClues": [
+      "So baby pull me closer in the backseat of your Rover\nThat I know you can't afford",
+      "Bite that tattoo on your shoulder\nPull the sheets right off the corner"
+    ],
+    "hummingMelody": [
+      {
+        "note": 330,
+        "duration": 0.3
+      },
+      {
+        "note": 370,
+        "duration": 0.3
+      },
+      {
+        "note": 392,
+        "duration": 0.4
+      }
+    ],
+    "searchQuery": "chainsmokers closer"
+  },
+  {
+    "id": "avicii-wake-me-up",
+    "title": "Wake Me Up",
+    "artist": "Avicii",
+    "year": 2013,
+    "category": "Western Hits",
+    "startSecond": 45,
+    "lyricsClues": [
+      "Feeling my way through the darkness\nGuided by a beating heart",
+      "So wake me up when it's all over\nWhen I'm wiser and I'm older"
+    ],
+    "hummingMelody": [
+      {
+        "note": 392,
+        "duration": 0.3
+      },
+      {
+        "note": 440,
+        "duration": 0.3
+      },
+      {
+        "note": 494,
+        "duration": 0.5
+      },
+      {
+        "note": 392,
+        "duration": 0.5
+      }
+    ],
+    "searchQuery": "avicii wake me up"
   }
 ];

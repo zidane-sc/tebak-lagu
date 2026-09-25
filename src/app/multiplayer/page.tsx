@@ -62,6 +62,7 @@ export default function MultiplayerPage() {
   // In-Game Playback State
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
+  const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(20);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
 
@@ -126,7 +127,8 @@ export default function MultiplayerPage() {
           setTimeout(() => setScreenFlash(null), 300);
 
           setRoom(data.room);
-          const allowed = data.secondsAllowed || 7;
+          const allowed = data.secondsAllowed || 20;
+          setMaxAllowedSeconds(allowed);
           setBuzzCountdown(allowed);
 
           // Audio & Synth stops on buzz
@@ -558,6 +560,39 @@ export default function MultiplayerPage() {
               </div>
             </div>
 
+            {/* Genre / Kategori Picker */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
+                <span>PILIH GENRE / KATEGORI</span>
+                <span className="text-accent">{selectedCategory}</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "Semua Genre", label: "Semua Genre 🔀" },
+                  { id: "Galau Hits", label: "Galau Hits 💔" },
+                  { id: "Nostalgia 2000s", label: "Nostalgia 2000s 🎸" },
+                  { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
+                  { id: "Pop Jawa & Koplo", label: "Jawa & Koplo 💃" },
+                  { id: "Western Hits", label: "Western Hits 🌎" },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      sfx.playClick();
+                      setSelectedCategory(c.id);
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition ${
+                      selectedCategory === c.id
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Rounds count */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono text-mutedDark font-semibold">
@@ -676,7 +711,11 @@ export default function MultiplayerPage() {
           <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex items-center justify-between text-[11px] font-mono text-mutedDark font-semibold">
               <span>PEMAIN TERGABUNG ({room.players.length}/8)</span>
-              <span>{room.maxRounds} Ronde</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-accent font-semibold">🎯 {room.category || "Semua Genre"}</span>
+                <span>•</span>
+                <span>{room.maxRounds} Ronde</span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -755,16 +794,21 @@ export default function MultiplayerPage() {
         <main className="my-auto flex flex-col gap-4 py-2 w-full">
           {/* Round Header & Leaderboard Bar */}
           <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-3 flex items-center justify-between text-xs shadow-sm">
-            <span className="font-mono text-muted font-bold">
-              Ronde {room.currentRound} / {room.maxRounds}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-muted font-bold">
+                Ronde {room.currentRound} / {room.maxRounds}
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-surfaceBorder text-accent font-semibold">
+                🎯 {room.category || "Semua Genre"}
+              </span>
+            </div>
 
-            {/* Score Strip with Rank badges */}
+            {/* Score Strip with Rank badges and Lives */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {sortedPlayers.map((p: any, idx: number) => (
                 <div
                   key={p.id}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-[11px] border transition ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[11px] border transition ${
                     p.id === myPlayerId
                       ? "bg-zinc-800 border-accent/40 text-white font-bold"
                       : "bg-surface border-surfaceBorder text-muted"
@@ -773,6 +817,9 @@ export default function MultiplayerPage() {
                   {idx === 0 && <Crown className="w-3 h-3 text-amber-400" />}
                   <span>{p.avatar}</span>
                   <span className="font-semibold text-zinc-200">{p.score}</span>
+                  <span className="text-[10px] text-red-400 ml-0.5">
+                    {p.lives !== undefined ? (p.lives > 0 ? "❤️".repeat(p.lives) : "💀") : "❤️❤️❤️"}
+                  </span>
                 </div>
               ))}
             </div>
@@ -814,18 +861,34 @@ export default function MultiplayerPage() {
           {/* THE GIANT 3D ARCADE BUZZER (Playing State) */}
           {/* ======================================================== */}
           {room.status === "playing" && (
-            <div className="flex flex-col items-center justify-center py-5 gap-3">
+            <div className="flex flex-col items-center justify-center py-4 gap-3">
+              {/* My Lives Indicator */}
+              <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-3.5 py-1.5 rounded-full text-xs font-mono font-bold shadow-sm">
+                <span className="text-muted">Sisa Nyawa Ronde Ini:</span>
+                <span className="text-red-400 font-bold">
+                  {(myPlayer?.lives ?? 3) > 0 ? "❤️".repeat(myPlayer?.lives ?? 3) : "💀"}
+                </span>
+                <span className="text-zinc-400">({myPlayer?.lives ?? 3}/3)</span>
+              </div>
+
               <button
                 onClick={handleBuzz}
-                className="w-44 h-44 rounded-full btn-buzzer-3d text-white font-black text-3xl tracking-wider flex flex-col items-center justify-center cursor-pointer select-none"
+                disabled={(myPlayer?.lives ?? 3) <= 0}
+                className={`w-44 h-44 rounded-full text-white font-black text-3xl tracking-wider flex flex-col items-center justify-center select-none transition-all ${
+                  (myPlayer?.lives ?? 3) > 0
+                    ? "btn-buzzer-3d cursor-pointer active:scale-95"
+                    : "bg-zinc-800 border-4 border-zinc-700 opacity-40 cursor-not-allowed text-zinc-500 shadow-none"
+                }`}
               >
-                <span>BUZZ!</span>
+                <span>{(myPlayer?.lives ?? 3) > 0 ? "BUZZ!" : "HABIS!"}</span>
                 <span className="text-[10px] font-mono font-bold tracking-widest uppercase opacity-90 mt-1">
-                  TEKAN JIKA TAHU
+                  {(myPlayer?.lives ?? 3) > 0 ? "TEKAN JIKA TAHU" : "NYAWA (0/3)"}
                 </span>
               </button>
               <p className="text-xs text-muted font-mono text-center mt-1">
-                Pencet tombol buzzer di atas begitu kamu tahu lagunya!
+                {(myPlayer?.lives ?? 3) > 0
+                  ? "Pencet tombol buzzer di atas begitu kamu tahu lagunya! (Maks 3x salah per ronde)"
+                  : "Nyawamu di ronde ini sudah habis! Menunggu ronde selanjutnya..."}
               </p>
             </div>
           )}
@@ -848,8 +911,8 @@ export default function MultiplayerPage() {
                       : `⏳ ${room.buzzedPlayer?.name} mengunci Buzzer...`}
                   </span>
                   <span
-                    className={`px-2 py-0.5 rounded ${
-                      buzzCountdown <= 3 ? "bg-red-500/20 text-red-400" : "bg-zinc-800 text-zinc-300"
+                    className={`px-2 py-0.5 rounded font-mono ${
+                      buzzCountdown <= 5 ? "bg-red-500/20 text-red-400 animate-pulse" : "bg-zinc-800 text-zinc-300"
                     }`}
                   >
                     {buzzCountdown}s
@@ -860,9 +923,9 @@ export default function MultiplayerPage() {
                 <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-1000 ${
-                      buzzCountdown <= 3 ? "bg-red-500" : "bg-amber-400"
+                      buzzCountdown <= 5 ? "bg-red-500" : "bg-amber-400"
                     }`}
-                    style={{ width: `${(buzzCountdown / 7) * 100}%` }}
+                    style={{ width: `${(buzzCountdown / (maxAllowedSeconds || 20)) * 100}%` }}
                   />
                 </div>
               </div>
