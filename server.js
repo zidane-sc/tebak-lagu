@@ -144,6 +144,7 @@ function getSanitizedRoom(room) {
     hostId: room.hostId,
     mode: room.mode,
     category: room.category,
+    difficulty: room.difficulty || "easy",
     maxRounds: room.maxRounds,
     currentRound: room.currentRound,
     status: room.status,
@@ -262,11 +263,15 @@ async function startRound(room) {
     }
   }, 1000);
 
-  // Pick song matching category
-  const pool =
-    room.category && room.category !== "Semua Genre"
-      ? SONGS_CATALOG.filter((s) => s.category === room.category)
-      : SONGS_CATALOG;
+  // Pick song matching category and difficulty
+  let pool = SONGS_CATALOG;
+  if (room.category && room.category !== "Semua Genre") {
+    pool = pool.filter((s) => s.category === room.category);
+  }
+  if (room.difficulty && room.difficulty !== "all") {
+    const diffFiltered = pool.filter((s) => s.difficulty === room.difficulty);
+    if (diffFiltered.length > 0) pool = diffFiltered;
+  }
   const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
   let chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
 
@@ -409,6 +414,7 @@ app.prepare().then(() => {
             hostId: playerId,
             mode: data.mode || "heardle",
             category: data.category || "Semua Genre",
+            difficulty: data.difficulty || "easy",
             maxRounds: data.maxRounds || 5,
             currentRound: 0,
             status: "lobby",

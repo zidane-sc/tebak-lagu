@@ -4,13 +4,18 @@ import { SONGS_CATALOG } from "../../../../data/songs";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
+  const difficulty = searchParams.get("difficulty");
   const mode = searchParams.get("mode");
 
-  // Filter local pool
-  const pool =
-    category && category !== "Semua Genre"
-      ? SONGS_CATALOG.filter((s) => s.category === category)
-      : SONGS_CATALOG;
+  // Filter local pool by category and difficulty
+  let pool = SONGS_CATALOG;
+  if (category && category !== "Semua Genre") {
+    pool = pool.filter((s) => s.category === category);
+  }
+  if (difficulty && difficulty !== "all") {
+    const diffFiltered = pool.filter((s) => s.difficulty === difficulty);
+    if (diffFiltered.length > 0) pool = diffFiltered;
+  }
   const activePool = pool.length > 0 ? pool : SONGS_CATALOG;
 
   // Pick random song

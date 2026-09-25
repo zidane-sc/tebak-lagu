@@ -52,6 +52,7 @@ export default function MultiplayerPage() {
   // Room config (Create)
   const [selectedMode, setSelectedMode] = useState("heardle");
   const [selectedCategory, setSelectedCategory] = useState("Semua Genre");
+  const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
   const [maxRounds, setMaxRounds] = useState(5);
 
   // Live Room State
@@ -310,6 +311,7 @@ export default function MultiplayerPage() {
         avatar,
         mode: selectedMode,
         category: selectedCategory,
+        difficulty: selectedDifficulty,
         maxRounds,
       })
     );
@@ -679,6 +681,46 @@ export default function MultiplayerPage() {
               </div>
             </div>
 
+            {/* Tingkat Kesulitan / Popularitas */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
+                <span>TINGKAT KESULITAN</span>
+                <span className="text-accent font-bold">
+                  {selectedDifficulty === "easy"
+                    ? "Mudah (Mega Hits) 🟢"
+                    : selectedDifficulty === "medium"
+                    ? "Sedang (Populer) 🟡"
+                    : selectedDifficulty === "hard"
+                    ? "Sulit (Sepuh) 🔴"
+                    : "Campur (Semua) 🔀"}
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "easy", label: "Mudah (Mega Hits) 🟢", desc: "Lagu viral & hits sejuta umat" },
+                  { id: "medium", label: "Sedang (Populer) 🟡", desc: "Hits radio & single album" },
+                  { id: "hard", label: "Sulit (Sepuh) 🔴", desc: "Deep cuts & b-side buat sepuh" },
+                  { id: "all", label: "Campur (Semua) 🔀", desc: "Koleksi lengkap acak" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => {
+                      sfx.playClick();
+                      setSelectedDifficulty(d.id);
+                    }}
+                    className={`py-2 px-3 rounded-xl text-left transition flex flex-col ${
+                      selectedDifficulty === d.id
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                    }`}
+                  >
+                    <span className="text-xs font-semibold">{d.label}</span>
+                    <span className="text-[10px] opacity-75 font-mono">{d.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Rounds count */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono text-mutedDark font-semibold">
@@ -797,8 +839,18 @@ export default function MultiplayerPage() {
           <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex items-center justify-between text-[11px] font-mono text-mutedDark font-semibold">
               <span>PEMAIN TERGABUNG ({room.players.length}/8)</span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 <span className="text-accent font-semibold">🎯 {room.category || "Semua Genre"}</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-semibold">
+                  {room.difficulty === "easy"
+                    ? "🟢 Mudah"
+                    : room.difficulty === "medium"
+                    ? "🟡 Sedang"
+                    : room.difficulty === "hard"
+                    ? "🔴 Sulit"
+                    : "🔀 Campur"}
+                </span>
                 <span>•</span>
                 <span>{room.maxRounds} Ronde</span>
               </div>
@@ -885,7 +937,14 @@ export default function MultiplayerPage() {
                 Ronde {room.currentRound} / {room.maxRounds}
               </span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-surfaceBorder text-accent font-semibold">
-                🎯 {room.category || "Semua Genre"}
+                🎯 {room.category || "Semua Genre"} ·{" "}
+                {room.difficulty === "easy"
+                  ? "🟢 Mudah"
+                  : room.difficulty === "medium"
+                  ? "🟡 Sedang"
+                  : room.difficulty === "hard"
+                  ? "🔴 Sulit"
+                  : "🔀 Campur"}
               </span>
             </div>
 
