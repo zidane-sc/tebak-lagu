@@ -407,7 +407,7 @@ export default function HomePage() {
             <span>Studio Admin</span>
           </Link>
           <span>•</span>
-          <p>Built for Zidane Sc</p>
+          <p>Komunitas Pecinta Musik 🎧</p>
         </div>
       </footer>
     </div>

@@ -124,7 +124,7 @@ export default function AdminDashboardPage() {
       setIsUnlocked(true);
       localStorage.setItem("tebak_lagu_admin_auth", "unlocked");
       setPinError(false);
-      showToast("Selamat datang di Studio Admin, Zidane! 👑");
+      showToast("Selamat datang di Studio Admin! 👑");
     } else {
       setPinError(true);
     }

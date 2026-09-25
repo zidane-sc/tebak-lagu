@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { LogOut, Trophy, Award, Gamepad2, X, Check, Loader2, Sparkles } from "lucide-react";
+import { LogOut, Trophy, Award, Gamepad2, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
 
 export const GoogleAuthButton: React.FC = () => {
-  const { user, isLoggedIn, logout, loginWithCredential, loginManual } = useAuth();
+  const { user, isLoggedIn, logout, loginWithCredential } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [demoName, setDemoName] = useState("");
-  const [demoEmail, setDemoEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
-  // Initialize Google Identity Services (GIS) if client ID is set
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  // Initialize Google Identity Services (GIS)
   useEffect(() => {
     if (!showModal) return;
 
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const win = typeof window !== "undefined" ? (window as any) : {};
 
     // Load Google GSI Script if not loaded
@@ -39,14 +39,20 @@ export const GoogleAuthButton: React.FC = () => {
     function setupGoogleButton() {
       const g = typeof window !== "undefined" ? (window as any).google : undefined;
       if (g?.accounts?.id && clientId && googleBtnContainerRef.current) {
+        googleBtnContainerRef.current.innerHTML = "";
         g.accounts.id.initialize({
           client_id: clientId,
           callback: async (response: any) => {
             if (response.credential) {
               setIsSubmitting(true);
-              await loginWithCredential(response.credential);
+              setAuthError(null);
+              const ok = await loginWithCredential(response.credential);
               setIsSubmitting(false);
-              setShowModal(false);
+              if (ok) {
+                setShowModal(false);
+              } else {
+                setAuthError("Gagal memverifikasi akun Google ke database. Coba lagi.");
+              }
             }
           },
         });
@@ -55,30 +61,13 @@ export const GoogleAuthButton: React.FC = () => {
           theme: "filled_black",
           size: "large",
           shape: "pill",
-          text: "signin_with",
+          text: "continue_with",
           locale: "id",
+          width: 280,
         });
       }
     }
-  }, [showModal, loginWithCredential]);
-
-  // Handle Demo / Quick Input
-  const handleQuickLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!demoName.trim()) return;
-
-    setIsSubmitting(true);
-    const email = demoEmail.trim() || `${demoName.toLowerCase().replace(/\s+/g, "")}@player.tebaklagu`;
-    const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(demoName.trim())}`;
-
-    await loginManual({
-      name: demoName.trim(),
-      email,
-      avatar,
-    });
-    setIsSubmitting(false);
-    setShowModal(false);
-  };
+  }, [showModal, clientId, loginWithCredential]);
 
   // LOGGED IN STATE
   if (isLoggedIn && user) {
@@ -100,7 +89,7 @@ export const GoogleAuthButton: React.FC = () => {
               {user.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <span className="max-w-[100px] truncate font-semibold">{user.name}</span>
+          <span className="max-w-[110px] truncate font-semibold">{user.name}</span>
           <span className="text-[10px] font-mono text-accent font-bold">
             {user.total_score} pts
           </span>
@@ -170,9 +159,9 @@ export const GoogleAuthButton: React.FC = () => {
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-bold py-1.5 px-3 rounded-full text-xs shadow-sm transition active:scale-95 cursor-pointer"
+        className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-bold py-1.5 px-3.5 rounded-full text-xs shadow-sm transition active:scale-95 cursor-pointer"
       >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -190,17 +179,17 @@ export const GoogleAuthButton: React.FC = () => {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
           />
         </svg>
-        <span>Masuk Akun</span>
+        <span>Masuk Google</span>
       </button>
 
-      {/* Auth Modal */}
+      {/* Official Google Auth Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-surface border border-surfaceBorder rounded-3xl p-6 sm:p-7 max-w-sm w-full flex flex-col gap-4 shadow-2xl relative">
-            <div className="flex items-center justify-between">
+          <div className="bg-surface border border-surfaceBorder rounded-3xl p-6 sm:p-7 max-w-sm w-full flex flex-col items-center text-center gap-4 shadow-2xl relative">
+            <div className="w-full flex items-center justify-between pb-1 border-b border-surfaceBorder/60">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-accent" />
-                <h3 className="font-bold text-white text-base">Masuk Akun Pemain</h3>
+                <ShieldCheck className="w-5 h-5 text-accent" />
+                <h3 className="font-bold text-white text-base">Masuk Akun Resmi</h3>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -211,64 +200,48 @@ export const GoogleAuthButton: React.FC = () => {
             </div>
 
             <p className="text-xs text-muted leading-relaxed">
-              Simpan rekor poin secara permanen di database dan tampilkan namamu di papan peringkat!
+              Masuk aman dengan akun Google. Poin dan rekormu akan tersimpan permanen di database serta tampil di Papan Peringkat Nasional!
             </p>
 
-            {/* Google GSI Container */}
-            <div className="flex flex-col items-center justify-center w-full py-2">
-              <div ref={googleBtnContainerRef} className="min-h-[44px] flex items-center justify-center" />
-            </div>
-
-            <div className="flex items-center gap-2 text-mutedDark font-mono text-[10px]">
-              <div className="h-[1px] bg-surfaceBorder flex-1" />
-              <span>ATAU LOGIN CEPAT</span>
-              <div className="h-[1px] bg-surfaceBorder flex-1" />
-            </div>
-
-            {/* Quick Profile Setup Form */}
-            <form onSubmit={handleQuickLogin} className="flex flex-col gap-2.5">
-              <div>
-                <label className="text-[10px] font-mono text-muted uppercase font-semibold">
-                  Nama Pemain / Nickname
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Zidane, Dela, RajaMusik"
-                  value={demoName}
-                  onChange={(e) => setDemoName(e.target.value)}
-                  className="w-full mt-1 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-accent"
-                />
+            {authError && (
+              <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-xl">
+                {authError}
               </div>
+            )}
 
-              <div>
-                <label className="text-[10px] font-mono text-muted uppercase font-semibold">
-                  Email (Opsional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="zidane@gmail.com"
-                  value={demoEmail}
-                  onChange={(e) => setDemoEmail(e.target.value)}
-                  className="w-full mt-1 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-accent"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting || !demoName.trim()}
-                className="w-full mt-2 bg-accent hover:bg-green-500 text-zinc-950 font-black py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition active:scale-95 disabled:opacity-50"
-              >
-                {isSubmitting ? (
+            {/* Official Google GSI Container */}
+            <div className="flex flex-col items-center justify-center w-full py-3 min-h-[50px]">
+              {isSubmitting ? (
+                <div className="flex items-center gap-2 text-xs font-mono text-accent">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>Masuk & Simpan Profil</span>
-                  </>
-                )}
+                  <span>Memverifikasi akun Google...</span>
+                </div>
+              ) : clientId ? (
+                <div ref={googleBtnContainerRef} className="min-h-[44px] flex items-center justify-center" />
+              ) : (
+                <div className="bg-surfaceRaised border border-surfaceBorder p-4 rounded-2xl flex flex-col gap-2 text-center text-xs text-zinc-300">
+                  <span className="font-bold text-amber-400 flex items-center justify-center gap-1.5">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Google OAuth Setup</span>
+                  </span>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    Client ID Google belum disetel di environment. Tambahkan <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> di Google Cloud Console.
+                  </p>
+                  <p className="text-[10px] text-accent font-mono pt-1">
+                    Kamu tetap bisa langsung bermain seru sebagai Tamu tanpa login!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="w-full pt-2 border-t border-surfaceBorder text-center">
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-xs text-muted hover:text-white transition font-mono"
+              >
+                Lanjut Bermain Sebagai Tamu ➔
               </button>
-            </form>
+            </div>
           </div>
         </div>
       )}

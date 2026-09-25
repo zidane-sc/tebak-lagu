@@ -32,6 +32,16 @@ import confetti from "canvas-confetti";
 
 const AVATARS = ["👑", "🎧", "🎤", "🎸", "🎹", "🥁", "🎷", "⚡", "🕶️", "🚀"];
 const REACTION_EMOJIS = ["🔥", "😂", "😱", "👏", "👑", "💀"];
+const FUN_NICKNAMES = [
+  "Raja Musik",
+  "Koplo Master",
+  "Sepuh Galau",
+  "Sultan Melodi",
+  "Telinga Emas",
+  "Dewa Trivia",
+  "Bintang Pensi",
+  "Pujangga Nada",
+];
 
 interface FloatingReaction {
   id: string;
@@ -95,9 +105,15 @@ export default function MultiplayerPage() {
     } else {
       try {
         const saved = localStorage.getItem("tebak_lagu_multi_name");
-        if (saved) setPlayerName(saved);
-        else setPlayerName("Zidane");
-      } catch {}
+        if (saved) {
+          setPlayerName(saved);
+        } else {
+          const randomName = FUN_NICKNAMES[Math.floor(Math.random() * FUN_NICKNAMES.length)];
+          setPlayerName(randomName);
+        }
+      } catch {
+        setPlayerName("Raja Musik");
+      }
     }
   }, [user]);
 

@@ -7,51 +7,58 @@ export async function POST(request: Request) {
   try {
     await initDb();
     const body = await request.json();
-    const { credential, userInfo } = body;
+    const { credential } = body;
 
-    let email = "";
-    let name = "";
-    let avatar = "";
-    let googleId = "";
-
-    // 1. Verify credential via Google TokenInfo API if standard JWT credential passed
-    if (credential) {
-      try {
-        const verifyRes = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
-          { headers: { "User-Agent": "TebakLagu/3.0" } }
-        );
-
-        if (verifyRes.ok) {
-          const payload = await verifyRes.json();
-          email = payload.email || "";
-          name = payload.name || payload.given_name || "Pemain Musik";
-          avatar = payload.picture || "";
-          googleId = payload.sub || `g_${Date.now()}`;
-        }
-      } catch (err) {
-        console.warn("Google tokeninfo verify network notice:", err);
-      }
-    }
-
-    // 2. Direct user info fallback (from GSI client decoded or manual setup)
-    if (!email && userInfo && userInfo.email) {
-      email = userInfo.email;
-      name = userInfo.name || "Pemain Musik";
-      avatar = userInfo.avatar || userInfo.picture || "";
-      googleId = userInfo.id || `g_${Date.now()}`;
-    }
-
-    if (!email) {
+    if (!credential || typeof credential !== "string") {
       return NextResponse.json(
-        { error: "Gagal memverifikasi token Google. Email tidak ditemukan." },
+        { error: "Token Google ID wajib disertakan untuk autentikasi resmi!" },
         { status: 400 }
       );
     }
 
-    // Upsert into persistent SQLite DB
+    // Cryptographic verification via Google's official tokeninfo endpoint
+    let payload: any = null;
+    try {
+      const verifyRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+        { headers: { "User-Agent": "TebakLagu-Auth/1.0" } }
+      );
+
+      if (!verifyRes.ok) {
+        const errData = await verifyRes.json().catch(() => ({}));
+        return NextResponse.json(
+          {
+            error: "Token Google tidak valid atau sudah kedaluwarsa.",
+            details: errData.error_description || "Invalid Google ID token",
+          },
+          { status: 401 }
+        );
+      }
+
+      payload = await verifyRes.json();
+    } catch (netErr: any) {
+      console.error("Error communicating with Google tokeninfo endpoint:", netErr);
+      return NextResponse.json(
+        { error: "Gagal memverifikasi token ke server Google. Coba lagi beberapa saat." },
+        { status: 502 }
+      );
+    }
+
+    const email = payload.email;
+    const name = payload.name || payload.given_name || "Raja Musik";
+    const avatar = payload.picture || "";
+    const googleId = payload.sub;
+
+    if (!email) {
+      return NextResponse.json(
+        { error: "Token Google valid namun tidak memuat informasi email akun." },
+        { status: 400 }
+      );
+    }
+
+    // Upsert verified Google account into persistent SQLite DB
     const user = await upsertGoogleUser({
-      id: googleId || `u_${Math.random().toString(36).substring(2, 10)}`,
+      id: `google_${googleId}`,
       email,
       name,
       avatar,
