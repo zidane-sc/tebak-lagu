@@ -810,6 +810,53 @@ app.prepare().then(() => {
 
           ws.send(JSON.stringify({ type: "reconnect_failed" }));
         }
+
+        // 12. LEAVE ROOM (Pemain keluar secara sadar / klik tombol Exit)
+        else if (data.type === "leave_room") {
+          const roomCode = meta.roomCode;
+          if (!roomCode) return;
+          const room = rooms.get(roomCode);
+          if (room) {
+            const player = room.players.find((p) => p.id === playerId);
+            if (player && player.disconnectTimeout) {
+              clearTimeout(player.disconnectTimeout);
+              player.disconnectTimeout = null;
+            }
+
+            // If player was buzzing, release buzzer
+            if (room.buzzState?.buzzedPlayerId === playerId) {
+              handleBuzzTimeout(room);
+            }
+
+            // Remove player from room
+            room.players = room.players.filter((p) => p.id !== playerId);
+            if (room.buzzState?.playerLives) {
+              delete room.buzzState.playerLives[playerId];
+            }
+            if (room.skipVotes) {
+              room.skipVotes.delete(playerId);
+            }
+
+            if (room.players.length === 0) {
+              if (room.buzzState?.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
+              if (room.stageTimer) clearInterval(room.stageTimer);
+              rooms.delete(roomCode);
+            } else {
+              if (room.hostId === playerId) {
+                room.hostId = room.players[0].id;
+              }
+              broadcast(room, {
+                type: "player_left",
+                playerName: meta.name || "Seorang pemain",
+                message: `${meta.name || "Pemain"} telah keluar dari room.`,
+                room: getSanitizedRoom(room),
+              });
+            }
+          }
+
+          meta.roomCode = null;
+          ws.send(JSON.stringify({ type: "left_room_success" }));
+        }
       } catch (err) {
         console.error("WS Parse Error:", err);
       }

@@ -19,6 +19,7 @@ import {
   Crown,
   VolumeX,
   Radio,
+  LogOut,
 } from "lucide-react";
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
@@ -48,6 +49,7 @@ export default function MultiplayerPage() {
   const [avatar, setAvatar] = useState("👑");
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [view, setView] = useState<"menu" | "create" | "join" | "room" | "game">("menu");
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Room config (Create)
   const [selectedMode, setSelectedMode] = useState("heardle");
@@ -234,6 +236,17 @@ export default function MultiplayerPage() {
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+          } else if (data.type === "left_room_success") {
+            try {
+              sessionStorage.removeItem(SESSION_KEY);
+            } catch {}
+            setRoom(null);
+            setView("menu");
+            setIsPlayingAudio(false);
+            setBuzzCountdown(0);
+            if (audioRef.current) audioRef.current.pause();
+            if (synthRef.current) synthRef.current.stop();
+            if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
           } else if (data.type === "game_over") {
             sfx.playCorrect();
             setRoom(data.room);
@@ -341,6 +354,24 @@ export default function MultiplayerPage() {
     if (!ws || !room) return;
     sfx.playGong();
     ws.send(JSON.stringify({ type: "start_game" }));
+  };
+
+  const handleExitRoom = () => {
+    sfx.playClick();
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {}
+    if (ws) {
+      ws.send(JSON.stringify({ type: "leave_room" }));
+    }
+    setRoom(null);
+    setView("menu");
+    setIsPlayingAudio(false);
+    setBuzzCountdown(0);
+    if (audioRef.current) audioRef.current.pause();
+    if (synthRef.current) synthRef.current.stop();
+    if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+    setShowExitConfirm(false);
   };
 
   const handleBuzz = () => {
@@ -474,14 +505,27 @@ export default function MultiplayerPage() {
 
       {/* Top Header */}
       <header className="w-full flex items-center justify-between pb-3.5 border-b border-surfaceBorder z-10">
-        <Link
-          href="/"
-          onClick={() => sfx.playClick()}
-          className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition py-1.5 px-2.5 rounded-lg hover:bg-surfaceRaised active:scale-95"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Solo Mode</span>
-        </Link>
+        {view === "room" || view === "game" ? (
+          <button
+            onClick={() => {
+              sfx.playClick();
+              setShowExitConfirm(true);
+            }}
+            className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition py-1.5 px-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 active:scale-95 cursor-pointer font-semibold"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar</span>
+          </button>
+        ) : (
+          <Link
+            href="/"
+            onClick={() => sfx.playClick()}
+            className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition py-1.5 px-2.5 rounded-lg hover:bg-surfaceRaised active:scale-95"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Solo Mode</span>
+          </Link>
+        )}
 
         <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full shadow-sm">
           <Zap className="w-3.5 h-3.5 text-accent fill-accent" />
@@ -1248,6 +1292,14 @@ export default function MultiplayerPage() {
                   Menunggu Host memulai game baru...
                 </p>
               )}
+
+              <button
+                onClick={handleExitRoom}
+                className="w-full mt-1 py-3 px-4 rounded-xl border border-surfaceBorder bg-surfaceRaised hover:bg-zinc-800 text-xs font-semibold text-muted hover:text-white transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar ke Menu Utama</span>
+              </button>
             </div>
           )}
 
@@ -1281,6 +1333,37 @@ export default function MultiplayerPage() {
                 : "Ronde Berikutnya ➔"}
             </span>
           </button>
+        </div>
+      )}
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 max-w-xs w-full flex flex-col items-center gap-4 text-center shadow-2xl">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 text-2xl">
+              🚪
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-white">Keluar dari Room?</h4>
+              <p className="text-xs text-muted mt-1">
+                Kamu akan meninggalkan game dan posisimu di room ini akan dilepas.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 w-full mt-1">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-surfaceRaised border border-surfaceBorder text-xs font-semibold text-zinc-300 hover:text-white transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleExitRoom}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-md shadow-red-600/30 transition cursor-pointer"
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
