@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ScoreHeader } from "@/components/ScoreHeader";
 import { GuessInput } from "@/components/GuessInput";
@@ -10,7 +11,8 @@ import { HeardleModePlayer } from "@/components/modes/HeardleModePlayer";
 import { Song } from "@/data/songs";
 import { sfx } from "@/lib/sound-fx";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { SocialShareModal } from "@/components/SocialShareModal";
+import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle, Share2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
 const MODE_CONFIG: Record<
@@ -66,6 +68,7 @@ export default function PlayArenaPage() {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isWon, setIsWon] = useState(false);
   const [isMatchFinished, setIsMatchFinished] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Load Config from sessionStorage or fallback to URL query
   useEffect(() => {
@@ -230,6 +233,22 @@ export default function PlayArenaPage() {
         origin: { y: 0.6 },
         colors: ["#22c55e", "#eab308", "#38bdf8"],
       });
+
+      // Submit match score to Leaderboard API
+      fetch("/api/leaderboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user?.id || null,
+          player_name: user?.name || "Raja Musik",
+          player_avatar: user?.avatar || "",
+          mode: modeKey,
+          category: gameConfig.category,
+          difficulty: gameConfig.difficulty,
+          score: correctCount * 100,
+        }),
+      }).catch(() => {});
+
       return;
     }
 
@@ -376,24 +395,52 @@ export default function PlayArenaPage() {
 
             <div className="w-full flex flex-col gap-2 pt-1">
               <button
+                onClick={() => setShowShareModal(true)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition active:scale-95 cursor-pointer shadow-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Bagikan Hasil (WA / IG / TikTok)</span>
+              </button>
+
+              <button
                 onClick={handlePlayAgain}
-                className="w-full bg-accent hover:bg-green-500 text-zinc-950 font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm transition active:scale-95 cursor-pointer shadow-md"
+                className="w-full bg-accent hover:bg-green-500 text-zinc-950 font-black py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition active:scale-95 cursor-pointer shadow-md"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Main Lagi</span>
               </button>
 
-              <button
-                onClick={() => router.push("/")}
-                className="w-full bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs border border-surfaceBorder transition"
-              >
-                <Home className="w-4 h-4" />
-                <span>Kembali ke Menu Utama</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/leaderboard"
+                  className="bg-surfaceRaised hover:bg-zinc-800 text-amber-400 font-semibold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs border border-surfaceBorder transition"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>Peringkat</span>
+                </Link>
+
+                <button
+                  onClick={() => router.push("/")}
+                  className="bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white font-semibold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs border border-surfaceBorder transition"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Menu</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Social Share Modal */}
+      <SocialShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Hasil Pertandingan Tebak Lagu"
+        score={score}
+        modeTitle={`${config.title} (${correctCount}/${gameConfig.maxRounds} Benar)`}
+        shareUrl="https://tebak-lagu-live.fly.dev/"
+      />
     </div>
   );
 }

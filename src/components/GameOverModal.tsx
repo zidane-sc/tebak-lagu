@@ -10,8 +10,11 @@ import {
   Play,
   X,
   Disc,
+  MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { Song } from "@/data/songs";
+import { SocialShareModal } from "@/components/SocialShareModal";
 
 interface GameOverModalProps {
   isWon: boolean;
@@ -43,6 +46,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   isLastRound = false,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
 
   useEffect(() => {
     if (isWon) {
@@ -62,9 +66,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     const emptyBlocks = "⬜".repeat(Math.max(0, maxGuesses - guesses.length));
     const fullGrid = emojiBlocks + emptyBlocks;
 
-    const shareText = `Tebak Lagu · ${modeTitle}\n${fullGrid} (${guessesCount}/${maxGuesses})\n${
+    const shareText = `🎵 Tebak Lagu · ${modeTitle}\n${fullGrid} (${guessesCount}/${maxGuesses})\n${
       isWon ? `Score: +${scoreGained} pts` : "Jawaban Terungkap"
-    }\nhttps://experiences-nevada-initial-breakdown.trycloudflare.com/`;
+    }\n👉 https://tebak-lagu-live.fly.dev/`;
 
     navigator.clipboard.writeText(shareText);
     setCopied(true);
@@ -155,23 +159,29 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </a>
         </div>
 
-        {/* Share Button (Wordle Grid) */}
-        <button
-          onClick={handleShare}
-          className="w-full py-2 px-3 rounded-lg border border-surfaceBorder hover:border-zinc-600 bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white text-xs font-mono font-medium flex items-center justify-center gap-2 transition"
-        >
-          {copied ? (
-            <>
+        {/* Share Buttons (WhatsApp, IG, TikTok & Wordle Grid) */}
+        <div className="w-full flex gap-2">
+          <button
+            onClick={() => setShowSocialModal(true)}
+            className="flex-1 py-2 px-3 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+          >
+            <MessageCircle className="w-3.5 h-3.5 fill-current" />
+            <span>Bagikan (WA/IG)</span>
+          </button>
+
+          <button
+            onClick={handleShare}
+            className="py-2 px-3 rounded-lg border border-surfaceBorder hover:border-zinc-600 bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white text-xs font-mono font-medium flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+            title="Salin Skor Grid Emoji"
+          >
+            {copied ? (
               <Check className="w-3.5 h-3.5 text-accent" />
-              <span className="text-accent">Tersalin ke Clipboard!</span>
-            </>
-          ) : (
-            <>
+            ) : (
               <Share2 className="w-3.5 h-3.5 text-mutedDark" />
-              <span>Salin Skor (Grid Emoji)</span>
-            </>
-          )}
-        </button>
+            )}
+            <span>{copied ? "Tersalin!" : "Salin Grid"}</span>
+          </button>
+        </div>
 
         {/* Primary Action Button */}
         <div className="w-full flex gap-2 pt-1">
@@ -191,6 +201,16 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Social Share Modal */}
+      <SocialShareModal
+        isOpen={showSocialModal}
+        onClose={() => setShowSocialModal(false)}
+        title="Bagikan Hasil Tebak Lagu"
+        score={scoreGained}
+        modeTitle={modeTitle}
+        shareUrl="https://tebak-lagu-live.fly.dev/"
+      />
     </div>
   );
 };

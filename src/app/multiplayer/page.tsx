@@ -25,6 +25,7 @@ import {
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { SocialShareModal } from "@/components/SocialShareModal";
 import { useAuth } from "@/lib/auth-context";
 import { HummingSynth } from "@/lib/audio-synth";
 import { sfx } from "@/lib/sound-fx";
@@ -79,6 +80,7 @@ export default function MultiplayerPage() {
   // In-Game Playback State
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAudioBuffering, setIsAudioBuffering] = useState(false);
+  const [showSocialModal, setShowSocialModal] = useState(false);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(20);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
@@ -320,6 +322,26 @@ export default function MultiplayerPage() {
               spread: 90,
               origin: { y: 0.5 },
             });
+
+            // Auto-submit score to Leaderboard
+            try {
+              const myP = data.room?.players?.find((p: any) => p.id === myPlayerId);
+              if (myP && myP.score > 0) {
+                fetch("/api/leaderboard", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    user_id: user?.id || null,
+                    player_name: myP.name || user?.name || playerName,
+                    player_avatar: user?.avatar || "",
+                    mode: "multiplayer",
+                    category: data.room?.category || "Semua Genre",
+                    difficulty: data.room?.difficulty || "easy",
+                    score: myP.score,
+                  }),
+                }).catch(() => {});
+              }
+            } catch (e) {}
           } else if (data.type === "player_reaction") {
             sfx.playPop();
             const reactionId = Math.random().toString(36).substring(2, 9);
@@ -1502,27 +1524,46 @@ export default function MultiplayerPage() {
                 )}
               </div>
 
+              {/* Share Podium Button */}
+              <button
+                onClick={() => setShowSocialModal(true)}
+                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition active:scale-95 cursor-pointer shadow-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Bagikan Hasil Mabar (WA / IG / TikTok)</span>
+              </button>
+
               {isHost ? (
                 <button
                   onClick={handleStartGame}
-                  className="w-full mt-2 bg-accent hover:bg-green-500 text-zinc-950 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md cursor-pointer"
+                  className="w-full mt-1 bg-accent hover:bg-green-500 text-zinc-950 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Main Lagi dengan Teman</span>
                 </button>
               ) : (
-                <p className="text-xs text-muted font-mono mt-2">
+                <p className="text-xs text-muted font-mono mt-1">
                   Menunggu Host memulai game baru...
                 </p>
               )}
 
-              <button
-                onClick={handleExitRoom}
-                className="w-full mt-1 py-3 px-4 rounded-xl border border-surfaceBorder bg-surfaceRaised hover:bg-zinc-800 text-xs font-semibold text-muted hover:text-white transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Keluar ke Menu Utama</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2 w-full mt-1">
+                <Link
+                  href="/leaderboard"
+                  className="py-2.5 px-3 rounded-xl border border-surfaceBorder bg-surfaceRaised hover:bg-zinc-800 text-xs font-semibold text-amber-400 hover:text-amber-300 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>Peringkat</span>
+                </Link>
+
+                <button
+                  onClick={handleExitRoom}
+                  className="py-2.5 px-3 rounded-xl border border-surfaceBorder bg-surfaceRaised hover:bg-zinc-800 text-xs font-semibold text-muted hover:text-white transition active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Keluar</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -1606,6 +1647,16 @@ export default function MultiplayerPage() {
       <footer className="w-full text-center py-2 text-[11px] text-mutedDark font-mono z-10">
         Tebak Lagu Multiplayer · Real-Time WebSockets
       </footer>
+
+      {/* Social Share Modal */}
+      <SocialShareModal
+        isOpen={showSocialModal}
+        onClose={() => setShowSocialModal(false)}
+        title="Bagikan Hasil Mabar Tebak Lagu"
+        score={room?.players?.find((p: any) => p.id === myPlayerId)?.score}
+        modeTitle={`Multiplayer Room (${room?.players?.length || 2} Pemain)`}
+        shareUrl="https://tebak-lagu-live.fly.dev/multiplayer"
+      />
     </div>
   );
 }

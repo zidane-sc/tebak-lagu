@@ -448,3 +448,174 @@ export async function updateUserStats(
 
   return getUserById(userId);
 }
+
+// -------------------------------------------------------------
+// LEADERBOARD ENGINE
+// -------------------------------------------------------------
+export async function submitLeaderboardScore(entry: {
+  user_id?: string;
+  player_name: string;
+  player_avatar?: string;
+  mode: string;
+  category: string;
+  difficulty: string;
+  score: number;
+}) {
+  const id = `lb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  await db.execute({
+    sql: `
+      INSERT INTO leaderboard (id, user_id, player_name, player_avatar, mode, category, difficulty, score)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+    `,
+    args: [
+      id,
+      entry.user_id || null,
+      (entry.player_name || "Raja Musik").trim(),
+      entry.player_avatar || "",
+      entry.mode || "heardle",
+      entry.category || "Semua Genre",
+      entry.difficulty || "easy",
+      Math.max(0, entry.score || 0),
+    ],
+  });
+
+  if (entry.user_id && entry.score > 0) {
+    await updateUserStats(entry.user_id, entry.score, true);
+  }
+
+  return { id };
+}
+
+export async function getLeaderboard(options: {
+  tab?: "all_time" | "weekly";
+  mode?: string;
+  limit?: number;
+}) {
+  const tab = options.tab || "all_time";
+  const limit = Math.max(10, Math.min(100, options.limit || 50));
+  const mode = options.mode && options.mode !== "all" ? options.mode : null;
+
+  if (tab === "weekly") {
+    let sql = `
+      SELECT 
+        COALESCE(user_id, player_name) as player_key,
+        player_name,
+        player_avatar,
+        SUM(score) as total_score,
+        COUNT(*) as games_count,
+        MAX(created_at) as last_played
+      FROM leaderboard
+      WHERE created_at >= datetime('now', '-7 days')
+    `;
+    const args: any[] = [];
+    if (mode) {
+      sql += ` AND mode = ?`;
+      args.push(mode);
+    }
+    sql += `
+      GROUP BY player_key
+      ORDER BY total_score DESC
+      LIMIT ?;
+    `;
+    args.push(limit);
+
+    const res = await db.execute({ sql, args });
+    return res.rows.map((r: any, idx: number) => ({
+      rank: idx + 1,
+      player_key: r.player_key,
+      player_name: r.player_name,
+      player_avatar: r.player_avatar,
+      score: Number(r.total_score || 0),
+      games_count: Number(r.games_count || 0),
+      last_played: r.last_played,
+    }));
+  } else {
+    // All-time Mode-Specific:
+    if (mode) {
+      const sql = `
+        SELECT 
+          COALESCE(user_id, player_name) as player_key,
+          player_name,
+          player_avatar,
+          SUM(score) as total_score,
+          COUNT(*) as games_count,
+          MAX(created_at) as last_played
+        FROM leaderboard
+        WHERE mode = ?
+        GROUP BY player_key
+        ORDER BY total_score DESC
+        LIMIT ?;
+      `;
+      const res = await db.execute({ sql, args: [mode, limit] });
+      return res.rows.map((r: any, idx: number) => ({
+        rank: idx + 1,
+        player_key: r.player_key,
+        player_name: r.player_name,
+        player_avatar: r.player_avatar,
+        score: Number(r.total_score || 0),
+        games_count: Number(r.games_count || 0),
+        last_played: r.last_played,
+      }));
+    } else {
+      // Overall All-time:
+      const userRes = await db.execute({
+        sql: `
+          SELECT id as player_key, name as player_name, avatar as player_avatar, total_score, games_played, wins, updated_at as last_played
+          FROM users
+          WHERE total_score > 0
+          ORDER BY total_score DESC
+          LIMIT ?;
+        `,
+        args: [limit],
+      });
+
+      const usersList = userRes.rows.map((r: any) => ({
+        player_key: r.player_key,
+        player_name: r.player_name,
+        player_avatar: r.player_avatar,
+        score: Number(r.total_score || 0),
+        games_count: Number(r.games_played || 0),
+        wins: Number(r.wins || 0),
+        last_played: r.last_played,
+      }));
+
+      const lbRes = await db.execute({
+        sql: `
+          SELECT 
+            player_name as player_key,
+            player_name,
+            player_avatar,
+            SUM(score) as total_score,
+            COUNT(*) as games_count,
+            MAX(created_at) as last_played
+          FROM leaderboard
+          WHERE user_id IS NULL
+          GROUP BY player_name
+          ORDER BY total_score DESC
+          LIMIT ?;
+        `,
+        args: [limit],
+      });
+
+      const guestList = lbRes.rows.map((r: any) => ({
+        player_key: r.player_key,
+        player_name: r.player_name,
+        player_avatar: r.player_avatar,
+        score: Number(r.total_score || 0),
+        games_count: Number(r.games_count || 0),
+        wins: 0,
+        last_played: r.last_played,
+      }));
+
+      const combined = [...usersList, ...guestList]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map((item, idx) => ({
+          rank: idx + 1,
+          ...item,
+        }));
+
+      return combined;
+    }
+  }
+}

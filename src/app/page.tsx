@@ -4,20 +4,20 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { SocialShareModal } from "@/components/SocialShareModal";
 import {
   Mic,
   Music,
   Timer,
   Volume2,
-  Flame,
   Trophy,
   ArrowUpRight,
   Disc3,
-  SlidersHorizontal,
   Zap,
   X,
   Play,
   Settings,
+  Share2,
 } from "lucide-react";
 import { CATEGORIES } from "@/data/songs";
 
@@ -46,9 +46,8 @@ const GAME_MODES = [
 
 export default function HomePage() {
   const router = useRouter();
-  const [streak, setStreak] = useState(0);
   const [score, setScore] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<string>("Semua Genre");
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Single Player Mode Configuration Modal State
   const [configModalMode, setConfigModalMode] = useState<any>(null);
@@ -102,7 +101,14 @@ export default function HomePage() {
         </div>
 
         {/* Global Player Stats & Google Login */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="p-2 rounded-full bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-white transition"
+            title="Bagikan ke Teman (WA, IG, TikTok)"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
           <GoogleAuthButton />
         </div>
       </header>
@@ -115,58 +121,69 @@ export default function HomePage() {
             Pilih Mode Tebakan
           </h2>
           <p className="text-xs sm:text-sm text-muted max-w-xl">
-            Uji ketajaman telinga mengenali musik melalui lirik robot datar, melodi sintetis, maupun potongan audio sepersekian detik.
+            Uji ketajaman telinga mengenali musik melalui lirik robot datar maupun potongan audio sepersekian detik.
           </p>
         </div>
 
-        {/* Multiplayer Banner */}
-        <Link
-          href="/multiplayer"
-          className="w-full bg-surface hover:bg-surfaceRaised border border-surfaceBorder hover:border-accent/40 rounded-2xl p-4 transition-all flex items-center justify-between gap-3 shadow-sm group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-surfaceRaised group-hover:bg-accentDim border border-surfaceBorder group-hover:border-accent/30 flex items-center justify-center text-zinc-300 group-hover:text-accent transition-colors">
-              <Zap className="w-5 h-5 group-hover:fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-white tracking-tight">
-                  Multiplayer Room
-                </h3>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">
-                  LIVE BUZZER
-                </span>
+        {/* 2-Card Feature Grid: Multiplayer Room & Leaderboard */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {/* Multiplayer Banner */}
+          <Link
+            href="/multiplayer"
+            className="bg-surface hover:bg-surfaceRaised border border-surfaceBorder hover:border-accent/40 rounded-2xl p-4 transition-all flex items-center justify-between gap-3 shadow-sm group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-surfaceRaised group-hover:bg-accentDim border border-surfaceBorder group-hover:border-accent/30 flex items-center justify-center text-zinc-300 group-hover:text-accent transition-colors">
+                <Zap className="w-5 h-5 group-hover:fill-current" />
               </div>
-              <p className="text-xs text-muted mt-0.5">
-                Ajak teman atau pasangan tanding tebak lagu real-time dengan sistem buzzer!
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-white tracking-tight">
+                    Multiplayer Room
+                  </h3>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold">
+                    LIVE BUZZER
+                  </span>
+                </div>
+                <p className="text-xs text-muted mt-0.5">
+                  Tanding tebak lagu real-time bareng teman!
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-white font-mono pr-1 transition-colors">
-            <span>Masuk</span>
-            <ArrowUpRight className="w-4 h-4 text-mutedDark group-hover:text-accent" />
-          </div>
-        </Link>
+            <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-white font-mono pr-1 transition-colors">
+              <span>Masuk</span>
+              <ArrowUpRight className="w-4 h-4 text-mutedDark group-hover:text-accent" />
+            </div>
+          </Link>
 
-        {/* Genre Pill Filter (Horizontal Scrolling on Mobile) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 no-scrollbar -mx-1 px-1">
-          <span className="text-xs text-mutedDark font-mono flex items-center gap-1 mr-1 shrink-0">
-            <SlidersHorizontal className="w-3 h-3" />
-            <span>Genre:</span>
-          </span>
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all whitespace-nowrap shrink-0 ${
-                selectedCategory === cat
-                  ? "bg-zinc-100 text-zinc-950 font-semibold shadow-sm"
-                  : "bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white border border-surfaceBorder"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {/* Papan Peringkat / Leaderboard */}
+          <Link
+            href="/leaderboard"
+            className="bg-surface hover:bg-surfaceRaised border border-surfaceBorder hover:border-amber-400/40 rounded-2xl p-4 transition-all flex items-center justify-between gap-3 shadow-sm group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-surfaceRaised group-hover:bg-amber-500/10 border border-surfaceBorder group-hover:border-amber-500/30 flex items-center justify-center text-zinc-300 group-hover:text-amber-400 transition-colors">
+                <Trophy className="w-5 h-5 group-hover:fill-current" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-white tracking-tight">
+                    Papan Peringkat
+                  </h3>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
+                    TOP SKOR
+                  </span>
+                </div>
+                <p className="text-xs text-muted mt-0.5">
+                  Lihat juara nasional & peringkat mingguan!
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-white font-mono pr-1 transition-colors">
+              <span>Lihat</span>
+              <ArrowUpRight className="w-4 h-4 text-mutedDark group-hover:text-amber-400" />
+            </div>
+          </Link>
         </div>
 
         {/* Mode Cards Grid (Clean Minimalist Engineering Aesthetic) */}
@@ -180,7 +197,6 @@ export default function HomePage() {
                 key={mode.id}
                 onClick={() => {
                   setConfigModalMode(mode);
-                  setModalCategory(selectedCategory);
                 }}
                 className="group relative bg-surface hover:bg-surfaceRaised border border-surfaceBorder hover:border-surfaceBorderHover rounded-2xl p-5 transition-all duration-200 flex flex-col justify-between gap-4 text-left cursor-pointer"
               >
@@ -194,7 +210,7 @@ export default function HomePage() {
                       <span className="font-mono text-[11px] text-mutedDark block leading-none">
                         MODE {mode.index}
                       </span>
-                      <h3 className="text-base font-semibold text-white tracking-tight mt-0.5">
+                      <h3 className="text-base font-bold text-white tracking-tight group-hover:text-accent transition-colors mt-1">
                         {mode.title}
                       </h3>
                     </div>
@@ -218,7 +234,7 @@ export default function HomePage() {
                 {/* Card Footer: Action */}
                 <div className="pt-3 border-t border-surfaceBorder/60 flex items-center justify-between text-xs text-muted group-hover:text-white transition-colors">
                   <span className="font-mono text-[11px]">
-                    Atur & Mainkan ({selectedCategory})
+                    Atur & Mainkan ➔
                   </span>
                   <div className="flex items-center gap-1 font-medium group-hover:translate-x-0.5 transition-transform text-zinc-400 group-hover:text-accent">
                     <span>Atur Game</span>
@@ -402,6 +418,11 @@ export default function HomePage() {
       <footer className="w-full pt-6 border-t border-surfaceBorder flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mutedDark font-mono">
         <p>Tebak Lagu · Audio Trivia Engine</p>
         <div className="flex items-center gap-3">
+          <Link href="/leaderboard" className="hover:text-amber-400 flex items-center gap-1 transition-colors text-zinc-400">
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Papan Peringkat</span>
+          </Link>
+          <span>•</span>
           <Link href="/admin" className="hover:text-accent flex items-center gap-1 transition-colors text-zinc-400">
             <Settings className="w-3.5 h-3.5" />
             <span>Studio Admin</span>
@@ -410,6 +431,16 @@ export default function HomePage() {
           <p>Komunitas Pecinta Musik 🎧</p>
         </div>
       </footer>
+
+      {/* Social Share Modal */}
+      <SocialShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Ajak Teman Main Tebak Lagu"
+        score={score}
+        modeTitle="Adu Telinga Dewa"
+        shareUrl="https://tebak-lagu-live.fly.dev/"
+      />
     </div>
   );
 }
