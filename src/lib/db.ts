@@ -351,3 +351,100 @@ export async function saveSettingToDb(key: string, value: any) {
     args: [key, valStr],
   });
 }
+
+// User Auth & Profiles in DB
+export interface DbUser {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string;
+  total_score: number;
+  games_played: number;
+  wins: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export function rowToUser(row: any): DbUser | null {
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    email: String(row.email),
+    name: String(row.name),
+    avatar: row.avatar || "",
+    total_score: Number(row.total_score || 0),
+    games_played: Number(row.games_played || 0),
+    wins: Number(row.wins || 0),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export async function upsertGoogleUser(user: {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+}): Promise<DbUser> {
+  const emailClean = user.email.toLowerCase().trim();
+  const check = await db.execute({
+    sql: "SELECT * FROM users WHERE email = ?;",
+    args: [emailClean],
+  });
+
+  if (check.rows.length > 0) {
+    const existing = rowToUser(check.rows[0])!;
+    await db.execute({
+      sql: `UPDATE users SET name = ?, avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;`,
+      args: [user.name, user.avatar || existing.avatar, existing.id],
+    });
+    const refreshed = await db.execute({
+      sql: "SELECT * FROM users WHERE id = ?;",
+      args: [existing.id],
+    });
+    return rowToUser(refreshed.rows[0])!;
+  }
+
+  await db.execute({
+    sql: `
+      INSERT INTO users (id, email, name, avatar, total_score, games_played, wins)
+      VALUES (?, ?, ?, ?, 0, 0, 0);
+    `,
+    args: [user.id, emailClean, user.name, user.avatar || ""],
+  });
+
+  const created = await db.execute({
+    sql: "SELECT * FROM users WHERE id = ?;",
+    args: [user.id],
+  });
+  return rowToUser(created.rows[0])!;
+}
+
+export async function getUserById(userId: string): Promise<DbUser | null> {
+  const res = await db.execute({
+    sql: "SELECT * FROM users WHERE id = ?;",
+    args: [userId],
+  });
+  if (res.rows.length === 0) return null;
+  return rowToUser(res.rows[0]);
+}
+
+export async function updateUserStats(
+  userId: string,
+  pointsGained: number,
+  isWin: boolean = false
+): Promise<DbUser | null> {
+  await db.execute({
+    sql: `
+      UPDATE users SET
+        total_score = total_score + ?,
+        games_played = games_played + 1,
+        wins = wins + ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?;
+    `,
+    args: [Math.max(0, pointsGained), isWin ? 1 : 0, userId],
+  });
+
+  return getUserById(userId);
+}

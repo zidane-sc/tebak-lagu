@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import {
   Mic,
   Music,
@@ -100,15 +101,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Global Player Stats (Monospace Minimalism) */}
-        <div className="flex items-center gap-2 font-mono text-xs">
-          <div
-            className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1.5 rounded-lg text-zinc-200 font-semibold"
-            title="Total Score"
-          >
-            <Trophy className="w-3.5 h-3.5 text-accent" />
-            <span>{score} Pts</span>
-          </div>
+        {/* Global Player Stats & Google Login */}
+        <div className="flex items-center gap-3">
+          <GoogleAuthButton />
         </div>
       </header>
 

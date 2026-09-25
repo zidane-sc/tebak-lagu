@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { useAuth } from "@/lib/auth-context";
 import { HummingSynth } from "@/lib/audio-synth";
 import { sfx } from "@/lib/sound-fx";
 import confetti from "canvas-confetti";
@@ -84,14 +86,20 @@ export default function MultiplayerPage() {
     };
   }, []);
 
-  // Load saved name
+  const { user } = useAuth();
+
+  // Load saved name or auto-sync with logged in Google User
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("tebak_lagu_multi_name");
-      if (saved) setPlayerName(saved);
-      else setPlayerName("Zidane");
-    } catch {}
-  }, []);
+    if (user && user.name) {
+      setPlayerName(user.name);
+    } else {
+      try {
+        const saved = localStorage.getItem("tebak_lagu_multi_name");
+        if (saved) setPlayerName(saved);
+        else setPlayerName("Zidane");
+      } catch {}
+    }
+  }, [user]);
 
   const toggleSound = () => {
     const next = !soundEnabled;
@@ -659,6 +667,17 @@ export default function MultiplayerPage() {
             <p className="text-xs text-muted max-w-xs mx-auto">
               Adu cepat pencet Buzzer real-time bareng teman atau pasangan! Siapa cepat dia dapat poin.
             </p>
+          </div>
+
+          {/* User Auth Bar */}
+          <div className="flex items-center justify-between bg-surface border border-surfaceBorder rounded-2xl p-3 px-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono text-muted uppercase">Status:</span>
+              <span className="text-xs font-semibold text-white">
+                {user ? user.name : "Tamu (Guest)"}
+              </span>
+            </div>
+            <GoogleAuthButton />
           </div>
 
           {/* Profile Name & Avatar */}

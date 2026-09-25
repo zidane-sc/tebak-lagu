@@ -9,6 +9,7 @@ import { TtsModePlayer } from "@/components/modes/TtsModePlayer";
 import { HeardleModePlayer } from "@/components/modes/HeardleModePlayer";
 import { Song } from "@/data/songs";
 import { sfx } from "@/lib/sound-fx";
+import { useAuth } from "@/lib/auth-context";
 import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -32,6 +33,7 @@ export default function PlayArenaPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user, syncScore } = useAuth();
 
   const modeKey = (params?.mode as string) || "heardle";
   const config = MODE_CONFIG[modeKey] || MODE_CONFIG.heardle;
@@ -168,6 +170,10 @@ export default function PlayArenaPage() {
       setIsGameOver(true);
       setScore(newScore);
       setCorrectCount((c) => c + 1);
+
+      if (user) {
+        syncScore(points, true);
+      }
 
       try {
         localStorage.setItem("tebak_lagu_score", newScore.toString());
