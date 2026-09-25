@@ -3,6 +3,10 @@ primary_region = "sin"
 
 [build]
 
+[mounts]
+  source = "tebak_lagu_data"
+  destination = "/app/data"
+
 [env]
   NODE_ENV = "production"
   PORT = "3000"

@@ -1,58 +1,50 @@
 import { NextResponse } from "next/server";
-import { SONGS_CATALOG } from "@/data/songs";
+import { db, initDb, getRandomSong, getCatalogStats, rowToSong } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const mode = searchParams.get("mode");
-  const random = searchParams.get("random") === "true";
+  try {
+    await initDb();
+    const { searchParams } = new URL(request.url);
+    const random = searchParams.get("random") === "true";
+    const search = searchParams.get("search");
 
-  // For autocomplete options: return title, artist, year, id
-  const search = searchParams.get("search");
-  if (search) {
-    const q = search.toLowerCase();
-    const results = SONGS_CATALOG.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) ||
-        s.artist.toLowerCase().includes(q)
-    ).map((s) => ({
-      id: s.id,
-      title: s.title,
-      artist: s.artist,
-      year: s.year,
-      display: `${s.title} - ${s.artist}`,
-    }));
-    return NextResponse.json({ results });
-  }
+    // For autocomplete options: return title, artist, year, id
+    if (search && search.trim()) {
+      const term = `%${search.trim().toLowerCase()}%`;
+      const res = await db.execute({
+        sql: "SELECT id, title, artist, year FROM songs WHERE title LIKE ? OR artist LIKE ? LIMIT 15;",
+        args: [term, term],
+      });
 
-  // Pick random song
-  if (random) {
-    const randomIndex = Math.floor(Math.random() * SONGS_CATALOG.length);
-    const song = SONGS_CATALOG[randomIndex];
+      const results = res.rows.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        artist: r.artist,
+        year: r.year,
+        display: `${r.title} - ${r.artist}`,
+      }));
+
+      return NextResponse.json({ results });
+    }
+
+    // Pick random song
+    if (random) {
+      const category = searchParams.get("category");
+      const difficulty = searchParams.get("difficulty");
+      const song = await getRandomSong(category, difficulty);
+      return NextResponse.json({ song });
+    }
+
+    // Default: return stats and total
+    const stats = await getCatalogStats();
     return NextResponse.json({
-      song: {
-        id: song.id,
-        year: song.year,
-        category: song.category,
-        lyricsClues: song.lyricsClues,
-        hummingMelody: song.hummingMelody,
-        searchQuery: song.searchQuery,
-        previewFallback: song.previewFallback,
-        // Answer is concealed or exposed depending on game loop
-        title: song.title,
-        artist: song.artist,
-      },
+      total: stats.total,
+      stats,
     });
+  } catch (err: any) {
+    console.error("API /api/songs error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  // Default: return all catalog
-  return NextResponse.json({
-    total: SONGS_CATALOG.length,
-    songs: SONGS_CATALOG.map((s) => ({
-      id: s.id,
-      title: s.title,
-      artist: s.artist,
-      year: s.year,
-      category: s.category,
-    })),
-  });
 }

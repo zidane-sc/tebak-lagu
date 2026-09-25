@@ -33,5 +33,7 @@ next-env.d.ts
 *.log
 *.pid
 npm-debug.log*
+/data/*.db*
+/data/*.sqlite*
 yarn-debug.log*
 yarn-error.log*

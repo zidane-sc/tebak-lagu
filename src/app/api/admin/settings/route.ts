@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { initDb, getSettingsFromDb, saveSettingToDb } from "@/lib/db";
 
-const settingsPath = path.join(process.cwd(), "src/data/settings.json");
+export const dynamic = "force-dynamic";
 
 const DEFAULT_SETTINGS = {
   buzzerTimerSeconds: 20,
@@ -17,30 +16,31 @@ const DEFAULT_SETTINGS = {
   consensusVoteSkip: true,
 };
 
-function readSettings() {
-  try {
-    if (fs.existsSync(settingsPath)) {
-      return JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    }
-  } catch (e) {}
-  return DEFAULT_SETTINGS;
-}
-
 export async function GET() {
-  return NextResponse.json(readSettings());
+  try {
+    await initDb();
+    const dbSettings = await getSettingsFromDb();
+    const merged = { ...DEFAULT_SETTINGS, ...dbSettings };
+    return NextResponse.json(merged);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
+    await initDb();
     const body = await request.json();
-    const current = readSettings();
-    const updated = { ...current, ...body };
+    const current = await getSettingsFromDb();
+    const updated = { ...DEFAULT_SETTINGS, ...current, ...body };
 
-    fs.writeFileSync(settingsPath, JSON.stringify(updated, null, 2), "utf-8");
+    for (const [key, value] of Object.entries(updated)) {
+      await saveSettingToDb(key, value);
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Pengaturan game berhasil disimpan!",
+      message: "Pengaturan game berhasil disimpan ke database persistent!",
       settings: updated,
     });
   } catch (err: any) {

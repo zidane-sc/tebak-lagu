@@ -9,29 +9,14 @@ const port = parseInt(process.env.PORT || "3000", 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
-// In-memory catalog cache for server-authoritative song picking
-let SONGS_CATALOG = [];
-let lastMtime = 0;
-const fs = require("fs");
-const path = require("path");
-const songsJsonPath = path.join(__dirname, "src/data/songs.json");
-
-function getActiveCatalog() {
-  try {
-    if (fs.existsSync(songsJsonPath)) {
-      const stat = fs.statSync(songsJsonPath);
-      if (stat.mtimeMs > lastMtime || SONGS_CATALOG.length === 0) {
-        SONGS_CATALOG = JSON.parse(fs.readFileSync(songsJsonPath, "utf-8"));
-        lastMtime = stat.mtimeMs;
-        console.log(`> Loaded massive catalog: ${SONGS_CATALOG.length} songs ready.`);
-      }
-    }
-  } catch (e) {
-    console.log("Note: Songs catalog load notice:", e.message);
-  }
-  return SONGS_CATALOG;
-}
-getActiveCatalog();
+// Database connection (LibSQL / SQLite persistent engine)
+const { initDb, getRandomSong, getCatalogStats } = require("./src/lib/db-server.js");
+initDb().then(async () => {
+  const stats = await getCatalogStats();
+  console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
+}).catch((err) => {
+  console.error("> Database init error:", err);
+});
 
 // -------------------------------------------------------------
 // MULTIPLAYER ROOM STATE MANAGER
@@ -337,25 +322,15 @@ async function startRound(room) {
     }
   }, 1000);
 
-  // Pick song matching category and difficulty
-  const catalog = getActiveCatalog();
-  let pool = catalog;
-  if (room.category && room.category !== "Semua Genre") {
-    pool = pool.filter((s) => s.category === room.category);
-  }
-  if (room.difficulty && room.difficulty !== "all") {
-    const diffFiltered = pool.filter((s) => s.difficulty === room.difficulty);
-    if (diffFiltered.length > 0) pool = diffFiltered;
-  }
-  const activePool = pool.length > 0 ? pool : catalog;
-  let chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
+  // Pick song matching category and difficulty directly from persistent SQLite DB
+  let chosenSong = await getRandomSong(room.category, room.difficulty);
 
   // For TTS mode, ensure chosen song has REAL lyrics (never dummy "tebak judul")!
   if (room.mode === "tts") {
     let lyrics = await resolveLyrics(chosenSong);
     let attempts = 0;
     while (!lyrics && attempts < 5) {
-      chosenSong = activePool[Math.floor(Math.random() * activePool.length)];
+      chosenSong = await getRandomSong(room.category, room.difficulty);
       lyrics = await resolveLyrics(chosenSong);
       attempts++;
     }
