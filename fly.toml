@@ -3,6 +3,9 @@ primary_region = "sin"
 
 [build]
 
+[build.args]
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID = "697459395695-25m5q42d0b6bqflu3abcjsgvkg78ef0c.apps.googleusercontent.com"
+
 [mounts]
   source = "tebak_lagu_data"
   destination = "/app/data"
@@ -10,6 +13,7 @@ primary_region = "sin"
 [env]
   NODE_ENV = "production"
   PORT = "3000"
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID = "697459395695-25m5q42d0b6bqflu3abcjsgvkg78ef0c.apps.googleusercontent.com"
 
 [http_service]
   internal_port = 3000
