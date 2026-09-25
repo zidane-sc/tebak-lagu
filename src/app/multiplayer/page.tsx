@@ -111,7 +111,11 @@ export default function MultiplayerPage() {
           sfx.playClick();
           setMyPlayerId(data.playerId);
           setRoom(data.room);
-          setView("room");
+          if (data.room.status === "lobby") {
+            setView("room");
+          } else {
+            setView("game");
+          }
         } else if (data.type === "room_updated" || data.type === "player_joined" || data.type === "player_left") {
           sfx.playClick();
           setRoom(data.room);
@@ -288,6 +292,18 @@ export default function MultiplayerPage() {
     if (!ws || !room) return;
     sfx.playClick();
     ws.send(JSON.stringify({ type: "next_round" }));
+  };
+
+  const handleSkipRound = () => {
+    if (!ws || !room) return;
+    sfx.playWrong();
+    ws.send(JSON.stringify({ type: "skip_round" }));
+  };
+
+  const handleForfeitBuzz = () => {
+    if (!ws || !room) return;
+    sfx.playWrong();
+    ws.send(JSON.stringify({ type: "forfeit_buzz" }));
   };
 
   const sendReaction = (emoji: string) => {
@@ -934,7 +950,7 @@ export default function MultiplayerPage() {
                 <div className="w-full mt-1">
                   <GuessInput
                     onGuess={handleGuess}
-                    onSkip={() => {}}
+                    onSkip={handleForfeitBuzz}
                     disabled={false}
                     guesses={[]}
                     maxGuesses={1}
@@ -950,6 +966,19 @@ export default function MultiplayerPage() {
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Quick Skip Round Button (Jika Buntu / Nyerah) */}
+          {(room.status === "playing" || room.status === "buzzed") && (
+            <div className="flex justify-center mt-1">
+              <button
+                onClick={handleSkipRound}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold bg-surfaceRaised/90 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-red-400 transition active:scale-95 cursor-pointer shadow-sm"
+              >
+                <span>⏭️</span>
+                <span>{isHost ? "Lewati Ronde (Nyerah)" : "Vote Lewati Ronde"}</span>
+              </button>
             </div>
           )}
 

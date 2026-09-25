@@ -297,16 +297,6 @@ app.prepare().then(() => {
             return;
           }
 
-          if (room.status !== "lobby") {
-            ws.send(
-              JSON.stringify({
-                type: "error",
-                message: `Game di room "${code}" sudah dimulai!`,
-              })
-            );
-            return;
-          }
-
           if (room.players.length >= 8) {
             ws.send(
               JSON.stringify({
@@ -317,16 +307,22 @@ app.prepare().then(() => {
             return;
           }
 
+          const isMidGame = room.status !== "lobby";
           const player = {
             id: playerId,
             name: data.playerName || `Pemain ${room.players.length + 1}`,
             avatar: data.avatar || "🎧",
             score: 0,
-            isReady: false,
+            isReady: isMidGame ? true : false,
             ws,
           };
 
           room.players.push(player);
+          if (room.buzzState) {
+            if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+            room.buzzState.playerLives[playerId] = 3;
+          }
+
           meta.roomCode = code;
           meta.name = player.name;
 
@@ -339,18 +335,23 @@ app.prepare().then(() => {
             })
           );
 
-          broadcast(room, {
-            type: "player_joined",
-            player: {
-              id: player.id,
-              name: player.name,
-              avatar: player.avatar,
-              score: player.score,
-              isReady: player.isReady,
-              isHost: false,
+          broadcast(
+            room,
+            {
+              type: "player_joined",
+              player: {
+                id: player.id,
+                name: player.name,
+                avatar: player.avatar,
+                score: player.score,
+                isReady: player.isReady,
+                isHost: false,
+                lives: 3,
+              },
+              room: getSanitizedRoom(room),
             },
-            room: getSanitizedRoom(room),
-          }, ws);
+            ws
+          );
         }
 
         // 3. TOGGLE READY
@@ -536,6 +537,32 @@ app.prepare().then(() => {
             playerName: meta.name,
             emoji: data.emoji || "🔥",
           });
+        }
+
+        // 9. SKIP ROUND (Lewati ronde jika buntu / nyerah)
+        else if (data.type === "skip_round") {
+          const room = rooms.get(meta.roomCode);
+          if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
+
+          // Clear any active countdown timer
+          if (room.buzzState.buzzTimer) {
+            clearTimeout(room.buzzState.buzzTimer);
+            room.buzzState.buzzTimer = null;
+          }
+
+          room.status = "revealed";
+          broadcast(room, {
+            type: "round_revealed",
+            message: `Ronde dilewati! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+            room: getSanitizedRoom(room),
+          });
+        }
+
+        // 10. FORFEIT BUZZ (Pemain yang buzz klik 'Nyerah' tanpa nunggu 20s)
+        else if (data.type === "forfeit_buzz") {
+          const room = rooms.get(meta.roomCode);
+          if (!room || room.status !== "buzzed" || room.buzzState.buzzedPlayerId !== playerId) return;
+          handleBuzzTimeout(room);
         }
       } catch (err) {
         console.error("WS Parse Error:", err);
