@@ -232,7 +232,7 @@ async function getRandomSong(category, difficulty, mode = null) {
   }
 
   if (mode === "tts") {
-    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]'";
+    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 30 AND lyrics_clues != '[]' AND lyrics_clues NOT LIKE '%lagu populer%' AND lyrics_clues NOT LIKE '%lagu hits%' AND lyrics_clues NOT LIKE '%rilis pada tahun%'";
   }
 
   sql += " ORDER BY RANDOM() LIMIT 1;";
@@ -240,7 +240,7 @@ async function getRandomSong(category, difficulty, mode = null) {
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
     const fallbackSql = mode === "tts"
-      ? "SELECT * FROM songs WHERE lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]' ORDER BY RANDOM() LIMIT 1;"
+      ? "SELECT * FROM songs WHERE lyrics_clues IS NOT NULL AND length(lyrics_clues) > 30 AND lyrics_clues != '[]' AND lyrics_clues NOT LIKE '%lagu populer%' AND lyrics_clues NOT LIKE '%lagu hits%' AND lyrics_clues NOT LIKE '%rilis pada tahun%' ORDER BY RANDOM() LIMIT 1;"
       : "SELECT * FROM songs ORDER BY RANDOM() LIMIT 1;";
     const fallback = await db.execute(fallbackSql);
     return rowToSong(fallback.rows[0]);
@@ -283,7 +283,7 @@ async function getMatchSongsQueue(category, difficulty, count = 5, mode = null) 
   }
 
   if (mode === "tts") {
-    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]'";
+    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 30 AND lyrics_clues != '[]' AND lyrics_clues NOT LIKE '%lagu populer%' AND lyrics_clues NOT LIKE '%lagu hits%' AND lyrics_clues NOT LIKE '%rilis pada tahun%'";
   }
 
   // Fetch a larger sample pool to guarantee unique selections
