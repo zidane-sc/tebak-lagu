@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { initDb, getRandomSong } from "@/lib/db";
+import { initDb, getRandomSong, recordSongPlay } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,9 @@ export async function GET(request: Request) {
     if (!baseSong) {
       return NextResponse.json({ error: "Lagu tidak ditemukan" }, { status: 404 });
     }
+
+    // Record song play in background
+    recordSongPlay(baseSong.id);
 
     // For TTS mode, resolve real lyrics on-the-fly if needed
     if (mode === "tts") {

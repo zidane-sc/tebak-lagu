@@ -178,6 +178,13 @@ export default function PlayArenaPage() {
         syncScore(points, true);
       }
 
+      // Track correct guess analytics
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId: song.id, action: "result", isCorrect: true }),
+      }).catch(() => {});
+
       try {
         localStorage.setItem("tebak_lagu_score", newScore.toString());
       } catch {}
@@ -197,6 +204,13 @@ export default function PlayArenaPage() {
       if (newGuesses.length >= config.maxGuesses) {
         setIsWon(false);
         setIsGameOver(true);
+
+        // Track failed guess analytics
+        fetch("/api/analytics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ songId: song.id, action: "result", isCorrect: false }),
+        }).catch(() => {});
       }
     }
   };

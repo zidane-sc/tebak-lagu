@@ -30,6 +30,15 @@ import {
   ExternalLink,
   Loader2,
   AlertCircle,
+  BarChart3,
+  TrendingUp,
+  Skull,
+  Award,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  Trophy,
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
 
@@ -39,8 +48,12 @@ export default function AdminDashboardPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
-  // Active Tab: "catalog" | "voicelab" | "settings"
-  const [activeTab, setActiveTab] = useState<"catalog" | "voicelab" | "settings">("catalog");
+  // Active Tab: "catalog" | "analytics" | "voicelab" | "settings"
+  const [activeTab, setActiveTab] = useState<"catalog" | "analytics" | "voicelab" | "settings">("catalog");
+
+  // Analytics State
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
 
   // Catalog State
   const [songs, setSongs] = useState<any[]>([]);
@@ -184,6 +197,21 @@ export default function AdminDashboardPage() {
     } catch (err) {}
   };
 
+  const fetchAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const res = await fetch("/api/admin/analytics");
+      if (res.ok) {
+        const data = await res.json();
+        setAnalyticsData(data);
+      }
+    } catch (err) {
+      console.error("Fetch analytics error:", err);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
   useEffect(() => {
     if (isUnlocked) {
       fetchSongs();
@@ -193,6 +221,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (isUnlocked && activeTab === "settings") {
       fetchSettings();
+    }
+    if (isUnlocked && activeTab === "analytics") {
+      fetchAnalytics();
     }
   }, [isUnlocked, activeTab]);
 
@@ -622,6 +653,18 @@ export default function AdminDashboardPage() {
         >
           <Music className="w-4 h-4" />
           <span>Katalog Musik ({filteredTotal})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold transition cursor-pointer ${
+            activeTab === "analytics"
+              ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
+              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 text-accent" />
+          <span>Statistik & Analitik Game</span>
         </button>
 
         <button
@@ -1120,6 +1163,313 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </form>
+        </section>
+      )}
+
+      {/* ============================================================= */}
+      {/* TAB 4: GAMEPLAY ANALYTICS & INSIGHTS */}
+      {/* ============================================================= */}
+      {activeTab === "analytics" && (
+        <section className="flex flex-col gap-6 my-4 flex-1 animate-fade-in">
+          {/* Header & Refresh */}
+          <div className="flex items-center justify-between bg-surface border border-surfaceBorder rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accentDim border border-accent/30 flex items-center justify-center text-accent">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm sm:text-base text-white">
+                  Statistik & Analitik Game
+                </h3>
+                <p className="text-xs text-muted">
+                  Pantau performa tebakan, lagu paling gampang, lagu paling angker, dan aktivitas komunitas
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={fetchAnalytics}
+              disabled={isLoadingAnalytics}
+              className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-xs font-semibold text-muted hover:text-white transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingAnalytics ? "animate-spin text-accent" : ""}`} />
+              <span>Segarkan</span>
+            </button>
+          </div>
+
+          {isLoadingAnalytics && !analyticsData ? (
+            <div className="p-16 text-center text-xs text-muted font-mono flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-accent" />
+              <span>Memuat data analitik game...</span>
+            </div>
+          ) : !analyticsData ? (
+            <div className="p-12 text-center text-xs text-muted font-mono bg-surface border border-surfaceBorder rounded-2xl">
+              Gagal memuat data analitik. Coba klik tombol Segarkan di atas.
+            </div>
+          ) : (
+            <>
+              {/* 4 Overview Stat Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[11px] font-mono text-muted uppercase">Total Putaran Dimainkan</span>
+                  <span className="text-2xl font-black text-white font-mono">
+                    {analyticsData.overview?.totalPlays?.toLocaleString() || 0}
+                  </span>
+                  <span className="text-[10px] text-mutedDark font-mono">Solo + Multiplayer</span>
+                </div>
+
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[11px] font-mono text-accent uppercase">Akurasi Tebakan Global</span>
+                  <span className="text-2xl font-black text-accent font-mono">
+                    {analyticsData.overview?.globalAccuracy || 0}%
+                  </span>
+                  <span className="text-[10px] text-mutedDark font-mono">
+                    {analyticsData.overview?.totalGuesses?.toLocaleString() || 0} Benar · {analyticsData.overview?.totalFails?.toLocaleString() || 0} Gagal
+                  </span>
+                </div>
+
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[11px] font-mono text-sky-400 uppercase">Pemain Terdaftar</span>
+                  <span className="text-2xl font-black text-sky-400 font-mono">
+                    {analyticsData.overview?.totalUsers?.toLocaleString() || 0}
+                  </span>
+                  <span className="text-[10px] text-mutedDark font-mono">
+                    {analyticsData.overview?.totalScoreAwarded?.toLocaleString() || 0} Pts didistribusikan
+                  </span>
+                </div>
+
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[11px] font-mono text-amber-400 uppercase">Rekor Leaderboard</span>
+                  <span className="text-2xl font-black text-amber-400 font-mono">
+                    {analyticsData.overview?.totalMatchesRecorded?.toLocaleString() || 0}
+                  </span>
+                  <span className="text-[10px] text-mutedDark font-mono">Pertandingan tuntas tercatat</span>
+                </div>
+              </div>
+
+              {/* 2-Column: Easiest vs Hardest Songs */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* 🟢 TOP 10 LAGU PALING GAMPANG */}
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                  <div className="flex items-center justify-between pb-2 border-b border-surfaceBorder">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <h4 className="font-bold text-xs sm:text-sm text-white">
+                        Lagu Paling Gampang (Akurasi Tinggi)
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      Top 10 Mudah
+                    </span>
+                  </div>
+
+                  {analyticsData.easiestSongs?.length === 0 ? (
+                    <p className="text-xs text-muted font-mono p-4 text-center">
+                      Belum ada data lagu dengan tebakan sukses. Mainkan beberapa ronde terlebih dahulu!
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-surfaceBorder/60">
+                      {analyticsData.easiestSongs?.map((s: any, idx: number) => (
+                        <div key={s.id} className="py-2.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-4 font-mono font-bold text-xs text-muted text-center">
+                              #{idx + 1}
+                            </span>
+                            {s.album_cover ? (
+                              <img
+                                src={s.album_cover}
+                                alt={s.title}
+                                className="w-8 h-8 rounded-lg object-cover border border-surfaceBorder shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-surfaceRaised border border-surfaceBorder flex items-center justify-center text-zinc-400 shrink-0">
+                                <Music className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-xs text-white truncate">{s.title}</p>
+                              <p className="text-[11px] text-muted truncate">
+                                {s.artist} · <span className="font-mono text-[10px]">{s.category}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 font-mono">
+                            <span className="text-xs font-bold text-emerald-400 block">
+                              {s.accuracy}%
+                            </span>
+                            <span className="text-[10px] text-muted">
+                              {s.times_guessed}/{s.times_played}x tebak
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 💀 TOP 10 LAGU PALING ANGKER / FRUSTRASI */}
+                <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                  <div className="flex items-center justify-between pb-2 border-b border-surfaceBorder">
+                    <div className="flex items-center gap-2">
+                      <Skull className="w-4 h-4 text-rose-400" />
+                      <h4 className="font-bold text-xs sm:text-sm text-white">
+                        Lagu Paling Angker (Sering Gagal / Nyerah)
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-mono text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                      Top 10 Sulit
+                    </span>
+                  </div>
+
+                  {analyticsData.hardestSongs?.length === 0 ? (
+                    <p className="text-xs text-muted font-mono p-4 text-center">
+                      Belum ada data lagu dengan kegagalan tebak.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-surfaceBorder/60">
+                      {analyticsData.hardestSongs?.map((s: any, idx: number) => (
+                        <div key={s.id} className="py-2.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-4 font-mono font-bold text-xs text-muted text-center">
+                              #{idx + 1}
+                            </span>
+                            {s.album_cover ? (
+                              <img
+                                src={s.album_cover}
+                                alt={s.title}
+                                className="w-8 h-8 rounded-lg object-cover border border-surfaceBorder shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-surfaceRaised border border-surfaceBorder flex items-center justify-center text-zinc-400 shrink-0">
+                                <Music className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-xs text-white truncate">{s.title}</p>
+                              <p className="text-[11px] text-muted truncate">
+                                {s.artist} · <span className="font-mono text-[10px]">{s.category}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 font-mono">
+                            <span className="text-xs font-bold text-rose-400 block">
+                              {s.fail_rate}% Gagal
+                            </span>
+                            <span className="text-[10px] text-muted">
+                              {s.times_failed}/{s.times_played}x hangus
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Genre Popularity & Plays Breakdown */}
+              <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center gap-2 pb-2 border-b border-surfaceBorder">
+                  <Activity className="w-4 h-4 text-accent" />
+                  <h4 className="font-bold text-xs sm:text-sm text-white">
+                    Sebaran Popularitas Putaran per Kategori Genre
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  {analyticsData.genreStats?.map((g: any) => {
+                    const totalAllGenrePlays = analyticsData.overview?.totalPlays || 1;
+                    const percent = Math.round((g.total_plays / Math.max(1, totalAllGenrePlays)) * 100);
+
+                    return (
+                      <div key={g.category} className="bg-surfaceRaised p-3 rounded-xl border border-surfaceBorder flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-white">{g.category}</span>
+                          <span className="font-mono text-muted text-[11px]">
+                            {g.total_plays}x diputar ({g.song_count} lagu)
+                          </span>
+                        </div>
+                        <div className="w-full bg-zinc-800 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-accent h-full rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(4, percent)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live Recent Matches Feed */}
+              <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center justify-between pb-2 border-b border-surfaceBorder">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <h4 className="font-bold text-xs sm:text-sm text-white">
+                      Aktivitas Pertandingan Terkini (Live Feed)
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted">
+                    {analyticsData.recentMatches?.length || 0} Pertandingan Terakhir
+                  </span>
+                </div>
+
+                {analyticsData.recentMatches?.length === 0 ? (
+                  <p className="text-xs text-muted font-mono p-4 text-center">
+                    Belum ada pertandingan tercatat.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-surfaceBorder text-muted text-[10px] font-mono uppercase">
+                          <th className="py-2 px-3">Pemain</th>
+                          <th className="py-2 px-3">Mode</th>
+                          <th className="py-2 px-3">Genre</th>
+                          <th className="py-2 px-3">Kesulitan</th>
+                          <th className="py-2 px-3 text-right">Skor</th>
+                          <th className="py-2 px-3 text-right">Waktu</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surfaceBorder/60 font-mono">
+                        {analyticsData.recentMatches?.map((m: any) => (
+                          <tr key={m.id} className="hover:bg-surfaceRaised/40 transition">
+                            <td className="py-2.5 px-3 font-semibold text-white flex items-center gap-2">
+                              {m.player_avatar ? (
+                                <img src={m.player_avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-surfaceRaised text-zinc-300 flex items-center justify-center text-[10px]">
+                                  {m.player_name?.charAt(0) || "P"}
+                                </div>
+                              )}
+                              <span>{m.player_name}</span>
+                            </td>
+                            <td className="py-2.5 px-3 text-zinc-300 uppercase text-[10px]">
+                              {m.mode}
+                            </td>
+                            <td className="py-2.5 px-3 text-muted text-[11px]">
+                              {m.category}
+                            </td>
+                            <td className="py-2.5 px-3 text-[11px]">
+                              <span className={m.difficulty === "easy" ? "text-emerald-400" : m.difficulty === "medium" ? "text-amber-400" : "text-rose-400"}>
+                                {m.difficulty}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-bold text-accent">
+                              {m.score} pts
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-mutedDark text-[10px]">
+                              {new Date(m.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </section>
       )}
 

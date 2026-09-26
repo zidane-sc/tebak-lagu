@@ -10,7 +10,7 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 // Database connection (LibSQL / SQLite persistent engine)
-const { initDb, getRandomSong, getMatchSongsQueue, getCatalogStats } = require("./src/lib/db-server.js");
+const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats } = require("./src/lib/db-server.js");
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -208,6 +208,13 @@ function advanceToNextRound(room) {
 
 function triggerRoundRevealed(room, initialPayload) {
   room.status = "revealed";
+
+  if (room.currentSong?.id && !initialPayload.isCorrect) {
+    db.execute({
+      sql: "UPDATE songs SET times_failed = times_failed + 1 WHERE id = ?;",
+      args: [room.currentSong.id],
+    }).catch(() => {});
+  }
   if (room.stageTimer) {
     clearInterval(room.stageTimer);
     room.stageTimer = null;
@@ -350,6 +357,13 @@ async function startRound(room) {
   chosenSong.previewResolved = preview || chosenSong.previewUrl;
 
   room.currentSong = chosenSong;
+
+  if (chosenSong?.id) {
+    db.execute({
+      sql: "UPDATE songs SET times_played = times_played + 1 WHERE id = ?;",
+      args: [chosenSong.id],
+    }).catch(() => {});
+  }
 
   broadcast(room, {
     type: "round_started",
@@ -680,6 +694,14 @@ app.prepare().then(() => {
           if (isMatch) {
             // Correct Guess! +100 Points
             player.score += 100;
+
+            if (room.currentSong?.id) {
+              db.execute({
+                sql: "UPDATE songs SET times_guessed = times_guessed + 1 WHERE id = ?;",
+                args: [room.currentSong.id],
+              }).catch(() => {});
+            }
+
             triggerRoundRevealed(room, {
               type: "guess_result",
               isCorrect: true,

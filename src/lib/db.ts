@@ -619,3 +619,186 @@ export async function getLeaderboard(options: {
     }
   }
 }
+
+// -------------------------------------------------------------
+// GAMEPLAY ANALYTICS & TRACKING ENGINE
+// -------------------------------------------------------------
+export async function recordSongPlay(songId: string) {
+  if (!songId) return;
+  try {
+    await db.execute({
+      sql: "UPDATE songs SET times_played = times_played + 1 WHERE id = ?;",
+      args: [songId],
+    });
+  } catch (e) {
+    console.error("Error recording song play:", e);
+  }
+}
+
+export async function recordSongResult(songId: string, isCorrect: boolean) {
+  if (!songId) return;
+  try {
+    if (isCorrect) {
+      await db.execute({
+        sql: "UPDATE songs SET times_guessed = times_guessed + 1 WHERE id = ?;",
+        args: [songId],
+      });
+    } else {
+      await db.execute({
+        sql: "UPDATE songs SET times_failed = times_failed + 1 WHERE id = ?;",
+        args: [songId],
+      });
+    }
+  } catch (e) {
+    console.error("Error recording song result:", e);
+  }
+}
+
+export async function getAnalyticsData() {
+  // 1. Overall Song Performance Metrics
+  const songsStatsRes = await db.execute(`
+    SELECT 
+      COUNT(*) as total_catalog,
+      SUM(times_played) as total_plays,
+      SUM(times_guessed) as total_guesses,
+      SUM(times_failed) as total_fails
+    FROM songs;
+  `);
+  const totalCatalog = Number(songsStatsRes.rows[0]?.total_catalog || 0);
+  const totalPlays = Number(songsStatsRes.rows[0]?.total_plays || 0);
+  const totalGuesses = Number(songsStatsRes.rows[0]?.total_guesses || 0);
+  const totalFails = Number(songsStatsRes.rows[0]?.total_fails || 0);
+  const globalAccuracy = totalPlays > 0 ? Math.round((totalGuesses / totalPlays) * 100) : 0;
+
+  // 2. User & Community Metrics
+  const userStatsRes = await db.execute(`
+    SELECT 
+      COUNT(*) as total_users,
+      SUM(total_score) as total_score_awarded,
+      SUM(games_played) as total_user_matches,
+      SUM(wins) as total_user_wins
+    FROM users;
+  `);
+  const totalUsers = Number(userStatsRes.rows[0]?.total_users || 0);
+  const totalScoreAwarded = Number(userStatsRes.rows[0]?.total_score_awarded || 0);
+  const totalUserMatches = Number(userStatsRes.rows[0]?.total_user_matches || 0);
+
+  // 3. Leaderboard Submissions Count
+  const lbStatsRes = await db.execute(`SELECT COUNT(*) as total_matches_recorded FROM leaderboard;`);
+  const totalMatchesRecorded = Number(lbStatsRes.rows[0]?.total_matches_recorded || 0);
+
+  // 4. Top 10 Most Played Songs
+  const topPlayedRes = await db.execute(`
+    SELECT id, title, artist, category, difficulty, times_played, times_guessed, times_failed, album_cover
+    FROM songs
+    WHERE times_played > 0
+    ORDER BY times_played DESC, times_guessed DESC
+    LIMIT 10;
+  `);
+  const topPlayed = topPlayedRes.rows.map((r: any) => ({
+    id: String(r.id),
+    title: String(r.title),
+    artist: String(r.artist),
+    category: String(r.category),
+    difficulty: String(r.difficulty),
+    times_played: Number(r.times_played || 0),
+    times_guessed: Number(r.times_guessed || 0),
+    times_failed: Number(r.times_failed || 0),
+    album_cover: r.album_cover,
+    accuracy: Number(r.times_played || 0) > 0 ? Math.round((Number(r.times_guessed || 0) / Number(r.times_played)) * 100) : 0,
+  }));
+
+  // 5. Top 10 Easiest Songs (Highest accuracy, at least 1 play)
+  const easiestRes = await db.execute(`
+    SELECT id, title, artist, category, difficulty, times_played, times_guessed, times_failed, album_cover,
+      ROUND((times_guessed * 100.0 / MAX(1, times_played)), 1) as accuracy
+    FROM songs
+    WHERE times_played >= 1 AND times_guessed > 0
+    ORDER BY accuracy DESC, times_guessed DESC
+    LIMIT 10;
+  `);
+  const easiestSongs = easiestRes.rows.map((r: any) => ({
+    id: String(r.id),
+    title: String(r.title),
+    artist: String(r.artist),
+    category: String(r.category),
+    difficulty: String(r.difficulty),
+    times_played: Number(r.times_played || 0),
+    times_guessed: Number(r.times_guessed || 0),
+    times_failed: Number(r.times_failed || 0),
+    album_cover: r.album_cover,
+    accuracy: Number(r.accuracy || 0),
+  }));
+
+  // 6. Top 10 Hardest Songs / Paling Angker (Highest fail rate, at least 1 play)
+  const hardestRes = await db.execute(`
+    SELECT id, title, artist, category, difficulty, times_played, times_guessed, times_failed, album_cover,
+      ROUND((times_failed * 100.0 / MAX(1, times_played)), 1) as fail_rate
+    FROM songs
+    WHERE times_played >= 1 AND times_failed > 0
+    ORDER BY fail_rate DESC, times_failed DESC
+    LIMIT 10;
+  `);
+  const hardestSongs = hardestRes.rows.map((r: any) => ({
+    id: String(r.id),
+    title: String(r.title),
+    artist: String(r.artist),
+    category: String(r.category),
+    difficulty: String(r.difficulty),
+    times_played: Number(r.times_played || 0),
+    times_guessed: Number(r.times_guessed || 0),
+    times_failed: Number(r.times_failed || 0),
+    album_cover: r.album_cover,
+    fail_rate: Number(r.fail_rate || 0),
+  }));
+
+  // 7. Genre Popularity & Plays Breakdown
+  const genreRes = await db.execute(`
+    SELECT category, COUNT(*) as song_count, SUM(times_played) as total_plays
+    FROM songs
+    GROUP BY category
+    ORDER BY total_plays DESC, song_count DESC;
+  `);
+  const genreStats = genreRes.rows.map((r: any) => ({
+    category: String(r.category),
+    song_count: Number(r.song_count || 0),
+    total_plays: Number(r.total_plays || 0),
+  }));
+
+  // 8. Recent Match Activity from Leaderboard
+  const recentRes = await db.execute(`
+    SELECT id, player_name, player_avatar, mode, category, difficulty, score, created_at
+    FROM leaderboard
+    ORDER BY created_at DESC
+    LIMIT 12;
+  `);
+  const recentMatches = recentRes.rows.map((r: any) => ({
+    id: String(r.id),
+    player_name: String(r.player_name),
+    player_avatar: r.player_avatar,
+    mode: String(r.mode),
+    category: String(r.category),
+    difficulty: String(r.difficulty),
+    score: Number(r.score || 0),
+    created_at: r.created_at,
+  }));
+
+  return {
+    overview: {
+      totalCatalog,
+      totalPlays,
+      totalGuesses,
+      totalFails,
+      globalAccuracy,
+      totalUsers,
+      totalScoreAwarded,
+      totalUserMatches,
+      totalMatchesRecorded,
+    },
+    topPlayed,
+    easiestSongs,
+    hardestSongs,
+    genreStats,
+    recentMatches,
+  };
+}
