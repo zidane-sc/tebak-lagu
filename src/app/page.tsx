@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { SocialShareModal } from "@/components/SocialShareModal";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
+import { VinylPlayer } from "@/components/VinylPlayer";
+import { sfx } from "@/lib/sound-fx";
 import {
   Mic,
   Music,
@@ -134,26 +136,32 @@ export default function HomePage() {
 
       {/* Main Content Area */}
       <main className="w-full my-auto py-5 sm:py-8 flex flex-col gap-5 sm:gap-7 z-10">
-        {/* Eye-Catching Hero Section with Audio Waveform */}
-        <div className="flex flex-col items-center text-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/15 via-purple-500/15 to-amber-500/15 border border-white/10 text-zinc-300 text-[11px] sm:text-xs font-mono font-medium shadow-inner max-w-full text-center">
-            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
-            <span className="truncate">4.619+ Lagu Hits & Kolaborasi</span>
+        {/* Eye-Catching Hero Section with Animated Turntable & Audio Waveform */}
+        <div className="flex flex-col items-center text-center gap-3 pt-1">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 py-1 rounded-full bg-gradient-to-r from-emerald-500/15 via-purple-500/15 to-amber-500/15 border border-white/10 text-zinc-300 text-[11px] sm:text-xs font-mono font-medium shadow-inner">
+            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0 animate-pulse" />
+            <span>4.619+ Lagu Hits & Kolaborasi Indonesia/Barat</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white max-w-2xl leading-[1.2]">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white max-w-2xl leading-[1.18]">
             Adu Telinga Dewa, <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
               Tebak Lagu Tercepat!
             </span>
           </h1>
 
+          {/* Interactive Glowing Vinyl Turntable Centerpiece */}
+          <div className="my-1 relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 via-purple-500/20 to-amber-500/20 rounded-full blur-2xl -z-10" />
+            <VinylPlayer isPlaying={true} label="Tebak Lagu Live" size="sm" />
+          </div>
+
           <p className="text-xs sm:text-sm text-zinc-400 max-w-lg leading-relaxed px-1">
             Kenali musik lewat potongan audio detik bertahap, bait puisi robotik datar, dan adu cepat tombol buzzer real-time bareng teman!
           </p>
 
           {/* Micro Equalizer Preview Deck */}
-          <div className="w-full max-w-[280px] sm:max-w-xs bg-surfaceRaised/50 border border-surfaceBorder rounded-2xl p-2 px-3 sm:px-4 flex items-center justify-between mt-0.5 shadow-inner">
+          <div className="w-full max-w-[280px] sm:max-w-xs bg-surfaceRaised/50 border border-surfaceBorder rounded-2xl p-2 px-3 sm:px-4 flex items-center justify-between shadow-inner">
             <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1.5 shrink-0">
               <Radio className="w-3 h-3 text-accent animate-pulse" />
               <span>FREKUENSI AUDIO</span>
