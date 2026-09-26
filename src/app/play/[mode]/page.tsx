@@ -160,6 +160,15 @@ export default function PlayArenaPage() {
 
     if (isMatch) {
       sfx.playCorrect();
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([40, 50, 100]);
+      }
+      confetti({
+        particleCount: 70,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#22c55e", "#10b981", "#38bdf8", "#facc15"],
+      });
 
       const points = (config.maxGuesses - guesses.length) * 100;
       const newScore = score + points;
@@ -190,6 +199,9 @@ export default function PlayArenaPage() {
       } catch {}
     } else {
       sfx.playWrong();
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([160]);
+      }
 
       const newGuesses = [
         ...guesses,
@@ -220,6 +232,9 @@ export default function PlayArenaPage() {
     if (!song || isGameOver) return;
 
     sfx.playSkip();
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([40]);
+    }
 
     const newGuesses = [
       ...guesses,

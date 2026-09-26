@@ -269,6 +269,9 @@ export default function MultiplayerPage() {
             }, 100);
           } else if (data.type === "player_buzzed") {
             sfx.playBuzzer();
+            if (typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate([100]);
+            }
             stopAndResetAudio();
             setScreenFlash("buzz");
             setTimeout(() => setScreenFlash(null), 300);
@@ -292,6 +295,9 @@ export default function MultiplayerPage() {
                 }
                 if (prev <= 4) {
                   sfx.playTick(true);
+                  if (typeof navigator !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate([25]);
+                  }
                 } else {
                   sfx.playTick(false);
                 }
@@ -309,17 +315,23 @@ export default function MultiplayerPage() {
 
             if (data.isCorrect) {
               sfx.playCorrect();
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate([40, 50, 120]);
+              }
               setScreenFlash("correct");
               setTimeout(() => setScreenFlash(null), 400);
 
               confetti({
-                particleCount: 65,
-                spread: 70,
+                particleCount: 75,
+                spread: 80,
                 origin: { y: 0.6 },
                 colors: ["#22c55e", "#eab308", "#38bdf8", "#fafafa"],
               });
             } else {
               sfx.playWrong();
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate([180]);
+              }
               setScreenFlash("wrong");
               setTimeout(() => setScreenFlash(null), 350);
             }
@@ -500,6 +512,10 @@ export default function MultiplayerPage() {
 
   const handleBuzz = () => {
     if (!ws || !room || room.status !== "playing") return;
+    sfx.playBuzzer();
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate([90]);
+    }
     ws.send(JSON.stringify({ type: "buzz" }));
   };
 
