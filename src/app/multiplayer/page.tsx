@@ -1,5 +1,7 @@
 "use client";
 
+import { io, Socket } from "socket.io-client";
+
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
@@ -65,7 +67,14 @@ interface FloatingReaction {
 
 export default function MultiplayerPage() {
   // Connection states
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  const emit = (type: string, data: any = {}) => {
+    if (socketRef.current) {
+      socketRef.current.emit(type, { type, ...data });
+    }
+  };
   const [isConnected, setIsConnected] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -265,27 +274,38 @@ export default function MultiplayerPage() {
   });
 
   const handleToggleRoomAudio = () => {
-    if (!ws || !room) return;
+    if (!socketRef.current || !room) return;
     const nextAction = isPlayingAudio ? "pause" : "play";
-    ws.send(JSON.stringify({ type: "toggle_room_audio", action: nextAction }));
+    emit("toggle_room_audio", { action: nextAction });
   };
 
   // Session storage key
   const SESSION_KEY = "tebak_lagu_multi_session";
 
-  // Initialize WebSocket connection with Auto-Reconnect & Session Recovery
+  // Initialize Socket.IO connection with native auto-reconnect, dual-transport, & session recovery
   useEffect(() => {
-    let socket: WebSocket | null = null;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let activeSocket: Socket | null = null;
     let isUnmounted = false;
 
     function connect() {
       if (isUnmounted) return;
-      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const host = window.location.host;
-      socket = new WebSocket(`${proto}//${host}/ws`);
+      if (activeSocket && activeSocket.connected) return;
 
-      socket.onopen = () => {
+      const s = io({
+        path: "/socket.io",
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 500,
+        reconnectionDelayMax: 2000,
+        timeout: 10000,
+      });
+
+      activeSocket = s;
+      socketRef.current = s;
+      setSocket(s);
+
+      s.on("connect", () => {
         setIsConnected(true);
         setErrorMsg(null);
 
@@ -295,26 +315,33 @@ export default function MultiplayerPage() {
           if (raw) {
             const sess = JSON.parse(raw);
             if (sess.roomCode && sess.playerId) {
-              socket?.send(
-                JSON.stringify({
-                  type: "reconnect",
-                  roomCode: sess.roomCode,
-                  playerId: sess.playerId,
-                  playerName: sess.playerName,
-                })
-              );
+              s.emit("reconnect", {
+                type: "reconnect",
+                roomCode: sess.roomCode,
+                playerId: sess.playerId,
+                playerName: sess.playerName,
+              });
             }
           }
         } catch {}
-      };
+      });
 
-      socket.onmessage = (event) => {
+      s.on("disconnect", (reason) => {
+        setIsConnected(false);
+      });
+
+      s.on("connect_error", (err) => {
+        console.warn("Socket.IO connect error:", err.message);
+      });
+
+      // Unified event dispatcher for all server messages
+      s.onAny((eventType, rawData) => {
         try {
-          const data = JSON.parse(event.data);
+          const data = typeof rawData === "string" ? JSON.parse(rawData) : (rawData || {}); if (!data.type) data.type = eventType;
 
           if (data.type === "ping") {
             try {
-              socket?.send(JSON.stringify({ type: "pong" }));
+              
             } catch (e) {}
             return;
           }
@@ -358,12 +385,12 @@ export default function MultiplayerPage() {
               if (raw) {
                 const sess = JSON.parse(raw);
                 if (sess.roomCode) {
-                  socket?.send(JSON.stringify({
+                  s.emit("join_room", {
                     type: "join_room",
                     roomCode: sess.roomCode,
                     playerName: sess.playerName || playerName,
                     playerId: sess.playerId
-                  }));
+                  });
                   return;
                 }
               }
@@ -575,33 +602,24 @@ export default function MultiplayerPage() {
             setErrorMsg(data.message);
           }
         } catch (err) {
-          console.error("WS Message Error:", err);
+          console.error("Socket.IO Message Error:", err);
         }
-      };
-
-      socket.onclose = () => {
-        setIsConnected(false);
-        if (!isUnmounted) {
-          reconnectTimeout = setTimeout(connect, 1500);
-        }
-      };
-
-      setWs(socket);
+      });
     }
 
     connect();
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-          connect();
+        if (!activeSocket || !activeSocket.connected) {
+          activeSocket?.connect();
         } else {
           try {
             const raw = sessionStorage.getItem(SESSION_KEY);
             if (raw) {
               const sess = JSON.parse(raw);
               if (sess.roomCode) {
-                socket.send(JSON.stringify({ type: "sync_state", roomCode: sess.roomCode }));
+                activeSocket.emit("sync_state", { type: "sync_state", roomCode: sess.roomCode });
               }
             }
           } catch {}
@@ -614,8 +632,7 @@ export default function MultiplayerPage() {
     return () => {
       isUnmounted = true;
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (socket) socket.close();
+      if (activeSocket) activeSocket.disconnect();
     };
   }, []);
 
@@ -646,12 +663,10 @@ export default function MultiplayerPage() {
   };
 
   const handleCreateRoom = () => {
-    if (!ws || !playerName.trim()) return;
+    if (!socketRef.current || !playerName.trim()) return;
     sfx.playClick();
     savePlayerName(playerName.trim());
-    ws.send(
-      JSON.stringify({
-        type: "create_room",
+    emit("create_room", {
         playerName: playerName.trim(),
         avatar,
         mode: selectedMode,
@@ -659,34 +674,30 @@ export default function MultiplayerPage() {
         difficulty: selectedDifficulty,
         audioProfile: selectedAudioProfile,
         maxRounds,
-      })
-    );
+      });
   };
 
   const handleJoinRoom = () => {
-    if (!ws || !playerName.trim() || !roomCodeInput.trim()) return;
+    if (!socketRef.current || !playerName.trim() || !roomCodeInput.trim()) return;
     sfx.playClick();
     savePlayerName(playerName.trim());
-    ws.send(
-      JSON.stringify({
-        type: "join_room",
+    emit("join_room", {
         roomCode: roomCodeInput.trim().toUpperCase(),
         playerName: playerName.trim(),
         avatar,
-      })
-    );
+      });
   };
 
   const handleToggleReady = () => {
-    if (!ws || !room) return;
+    if (!socketRef.current || !room) return;
     sfx.playClick();
-    ws.send(JSON.stringify({ type: "toggle_ready" }));
+    emit("toggle_ready");
   };
 
   const handleStartGame = () => {
-    if (!ws || !room) return;
+    if (!socketRef.current || !room) return;
     sfx.playGong();
-    ws.send(JSON.stringify({ type: "start_game" }));
+    emit("start_game");
   };
 
   const handleExitRoom = () => {
@@ -694,8 +705,8 @@ export default function MultiplayerPage() {
     try {
       sessionStorage.removeItem(SESSION_KEY);
     } catch {}
-    if (ws) {
-      ws.send(JSON.stringify({ type: "leave_room" }));
+    if (socketRef.current) {
+      emit("leave_room");
     }
     setRoom(null);
     setView("menu");
@@ -719,7 +730,7 @@ export default function MultiplayerPage() {
   const cooldownSeconds = Math.max(0, Math.ceil(((myPlayer?.buzzCooldownUntil || 0) - Date.now()) / 1000));
 
   const handleBuzz = () => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room || room.status !== "playing") return;
+    if (!socketRef.current || !socketRef.current?.connected || !room || room.status !== "playing") return;
     if (isCooldown) {
       sfx.playWrong();
       return;
@@ -728,88 +739,74 @@ export default function MultiplayerPage() {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate([90]);
     }
-    ws.send(JSON.stringify({
-      type: "buzz",
+    emit("buzz", {
       roomCode: room.code,
       playerId: myPlayerId || myPlayer?.id,
       playerName: myPlayer?.name || playerName
-    }));
+    });
   };
 
   const handleGuess = (title: string, artist: string) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room || room.status !== "buzzed") return;
-    ws.send(
-      JSON.stringify({
-        type: "submit_guess",
+    if (!socketRef.current || !socketRef.current?.connected || !room || room.status !== "buzzed") return;
+    emit("submit_guess", {
         roomCode: room.code,
         playerId: myPlayerId || myPlayer?.id,
         playerName: myPlayer?.name || playerName,
         title,
         artist,
-      })
-    );
+      });
   };
 
   const handleNextRound = () => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
+    if (!socketRef.current || !socketRef.current?.connected || !room) return;
     sfx.playClick();
     stopAndResetAudio();
-    ws.send(JSON.stringify({
-      type: "next_round",
+    emit("next_round", {
       roomCode: room.code,
       playerId: myPlayerId || myPlayer?.id
-    }));
+    });
   };
 
   const handleSkipRound = () => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
+    if (!socketRef.current || !socketRef.current?.connected || !room) return;
     sfx.playWrong();
-    ws.send(JSON.stringify({
-      type: "skip_round",
+    emit("skip_round", {
       roomCode: room.code,
       playerId: myPlayerId || myPlayer?.id
-    }));
+    });
   };
 
   const handleAdvanceClue = () => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
+    if (!socketRef.current || !socketRef.current?.connected || !room) return;
     sfx.playClick();
-    ws.send(JSON.stringify({
-      type: "vote_advance_clue",
+    emit("vote_advance_clue", {
       roomCode: room.code,
       playerId: myPlayerId || myPlayer?.id,
       playerName: myPlayer?.name || playerName
-    }));
+    });
   };
 
   const handleForfeitBuzz = () => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
+    if (!socketRef.current || !socketRef.current?.connected || !room) return;
     sfx.playWrong();
-    ws.send(JSON.stringify({
-      type: "forfeit_buzz",
+    emit("forfeit_buzz", {
       roomCode: room.code,
       playerId: myPlayerId || myPlayer?.id
-    }));
+    });
   };
 
   const sendReaction = (emoji: string) => {
-    if (!ws || !room) return;
-    ws.send(
-      JSON.stringify({
-        type: "reaction",
+    if (!socketRef.current || !room) return;
+    emit("reaction", {
         emoji,
-      })
-    );
+      });
   };
 
   const sendSfx = (sfxId: string) => {
-    if (!ws || !room) return;
-    ws.send(
-      JSON.stringify({
-        type: "trigger_sfx",
+    if (!socketRef.current || !room) return;
+    emit("trigger_sfx", {
         sfxId,
-      })
-    );
+      });
   };
 
   const copyRoomCode = () => {

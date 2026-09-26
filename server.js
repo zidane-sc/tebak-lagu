@@ -1,7 +1,7 @@
 const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
-const { WebSocketServer, WebSocket } = require("ws");
+const { Server } = require("socket.io");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
@@ -19,10 +19,11 @@ initDb().then(async () => {
 });
 
 // -------------------------------------------------------------
-// MULTIPLAYER ROOM STATE MANAGER
+// MULTIPLAYER ROOM STATE MANAGER (Socket.IO Real-time Engine)
 // -------------------------------------------------------------
 const rooms = new Map(); // roomCode -> RoomState
-const clientMeta = new WeakMap(); // ws -> { id, roomCode, name }
+const clientMeta = new WeakMap(); // socket -> { id, roomCode, name }
+let io; // Global Socket.IO Server Instance
 
 function generateRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -33,13 +34,22 @@ function generateRoomCode() {
   return rooms.has(code) ? generateRoomCode() : code;
 }
 
-function broadcast(room, payload, excludeWs = null) {
-  const msg = JSON.stringify(payload);
-  for (const player of room.players) {
-    if (player.ws && player.ws.readyState === WebSocket.OPEN && player.ws !== excludeWs) {
-      player.ws.send(msg);
-    }
+function broadcast(room, payload, excludeSocket = null) {
+  if (!io || !room || !room.code) return;
+  const data = typeof payload === "string" ? JSON.parse(payload) : (payload || {});
+  const eventName = data.type || "game_message";
+  if (excludeSocket && excludeSocket.to) {
+    excludeSocket.to(room.code).emit(eventName, data);
+  } else {
+    io.to(room.code).emit(eventName, data);
   }
+}
+
+function sendTo(socket, payload) {
+  if (!socket) return;
+  const data = typeof payload === "string" ? JSON.parse(payload) : (payload || {});
+  const eventName = data.type || "game_message";
+  socket.emit(eventName, data);
 }
 
 // In-memory preview URL cache for fast resolution
@@ -463,44 +473,27 @@ app.prepare().then(() => {
     }
   });
 
-  const wss = new WebSocketServer({ noServer: true });
-
-  server.on("upgrade", (req, socket, head) => {
-    const { pathname } = parse(req.url);
-    if (pathname === "/ws") {
-      wss.handleUpgrade(req, socket, head, (ws) => {
-        wss.emit("connection", ws, req);
-      });
-    } else {
-      socket.destroy();
-    }
+  io = new Server(server, {
+    path: "/socket.io",
+    cors: { origin: "*" },
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 2 * 60 * 1000,
+      skipMiddlewares: true,
+    },
+    pingInterval: 10000,
+    pingTimeout: 5000,
+    transports: ["websocket", "polling"],
   });
 
-  wss.on("connection", (ws) => {
-    ws.isAlive = true;
-    ws.on("pong", () => {
-      ws.isAlive = true;
-    });
-
+  io.on("connection", (socket) => {
     let playerId = "p_" + Math.random().toString(36).substring(2, 9);
-    clientMeta.set(ws, { id: playerId, roomCode: null, name: "" });
+    clientMeta.set(socket, { id: playerId, roomCode: null, name: "" });
 
-    ws.on("message", async (raw) => {
+    const handleEvent = async (type, rawData = {}) => {
       try {
-        const data = JSON.parse(raw.toString());
-        const meta = clientMeta.get(ws);
-
-        if (data.type === "pong") {
-          ws.isAlive = true;
-          return;
-        }
-        if (data.type === "ping") {
-          ws.isAlive = true;
-          try {
-            ws.send(JSON.stringify({ type: "pong" }));
-          } catch (e) {}
-          return;
-        }
+        const data = typeof rawData === "string" ? JSON.parse(rawData) : (rawData || {});
+        const meta = clientMeta.get(socket) || { id: playerId, roomCode: null, name: "" };
+        data.type = type || data.type;
 
         // 1. CREATE ROOM
         if (data.type === "create_room") {
@@ -511,7 +504,7 @@ app.prepare().then(() => {
             avatar: data.avatar || "👑",
             score: 0,
             isReady: true,
-            ws,
+            socket, socketId: socket.id, ws: socket,
           };
 
           const room = {
@@ -537,8 +530,9 @@ app.prepare().then(() => {
           rooms.set(roomCode, room);
           meta.roomCode = roomCode;
           meta.name = player.name;
+          socket.join(roomCode);
 
-          ws.send(
+          sendTo(socket, 
             JSON.stringify({
               type: "room_created",
               roomCode,
@@ -554,12 +548,10 @@ app.prepare().then(() => {
           const room = rooms.get(code);
 
           if (!room) {
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "error",
                 message: `Room code "${code}" tidak ditemukan!`,
-              })
-            );
+              });
             return;
           }
 
@@ -575,11 +567,12 @@ app.prepare().then(() => {
               existingPlayer.disconnectTimeout = null;
             }
             existingPlayer.isDisconnected = false;
-            existingPlayer.ws = ws;
+            existingPlayer.socket = socket; existingPlayer.socketId = socket.id; existingPlayer.ws = socket;
             playerId = existingPlayer.id;
             meta.id = existingPlayer.id;
             meta.roomCode = code;
             meta.name = existingPlayer.name;
+            socket.join(code);
 
             if (!room.buzzState) room.buzzState = { playerLives: {} };
             if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
@@ -590,14 +583,12 @@ app.prepare().then(() => {
               room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== existingPlayer.id);
             }
 
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "room_joined",
                 roomCode: code,
                 playerId: existingPlayer.id,
                 room: getSanitizedRoom(room),
-              })
-            );
+              });
 
             broadcast(
               room,
@@ -609,18 +600,16 @@ app.prepare().then(() => {
                 message: `${existingPlayer.name} kembali ke room! ⚡`,
                 room: getSanitizedRoom(room),
               },
-              ws
+              socket
             );
             return;
           }
 
           if (room.players.length >= 8) {
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "error",
                 message: `Room "${code}" sudah penuh (maksimal 8 pemain)!`,
-              })
-            );
+              });
             return;
           }
 
@@ -631,7 +620,7 @@ app.prepare().then(() => {
             avatar: data.avatar || "🎧",
             score: 0,
             isReady: isMidGame ? true : false,
-            ws,
+            socket, socketId: socket.id, ws: socket,
           };
 
           room.players.push(player);
@@ -642,8 +631,9 @@ app.prepare().then(() => {
 
           meta.roomCode = code;
           meta.name = player.name;
+          socket.join(code);
 
-          ws.send(
+          sendTo(socket, 
             JSON.stringify({
               type: "room_joined",
               roomCode: code,
@@ -667,7 +657,7 @@ app.prepare().then(() => {
               },
               room: getSanitizedRoom(room),
             },
-            ws
+            socket
           );
         }
 
@@ -727,14 +717,14 @@ app.prepare().then(() => {
 
           // Determine the player accurately across reconnections
           const callerId = data.playerId || meta.id || playerId;
-          let player = room.players.find((p) => p.id === callerId || p.ws === ws);
+          let player = room.players.find((p) => p.id === callerId || p.socket === socket || p.socketId === socket.id);
           if (!player && data.playerName) {
             player = room.players.find((p) => p.name.trim().toLowerCase() === data.playerName.trim().toLowerCase());
           }
           if (!player) return;
 
           // Ensure player socket and status are active
-          player.ws = ws;
+          player.socket = socket; player.socketId = socket.id; player.ws = socket;
           player.isDisconnected = false;
           meta.roomCode = room.code;
           meta.id = player.id;
@@ -743,12 +733,10 @@ app.prepare().then(() => {
           // Check if this player is in penalty cooldown
           if (room.buzzCooldowns && room.buzzCooldowns[player.id] && room.buzzCooldowns[player.id] > Date.now()) {
             const secLeft = Math.ceil((room.buzzCooldowns[player.id] - Date.now()) / 1000);
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "buzz_rejected",
                 message: `Kamu terkena penalti cooldown (${secLeft}s)! Beri kesempatan pemain lain.`,
-              })
-            );
+              });
             return;
           }
 
@@ -759,12 +747,10 @@ app.prepare().then(() => {
           }
 
           if (room.buzzState.playerLives[player.id] <= 0) {
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "buzz_rejected",
                 message: "Nyawa tebakanmu sudah habis di ronde ini (0/3)!",
-              })
-            );
+              });
             return;
           }
 
@@ -958,7 +944,7 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
           if (room.hostId !== playerId) {
-            ws.send(JSON.stringify({ type: "error", message: "Hanya Host room yang dapat mengontrol audio secara manual!" }));
+            sendTo(socket, { type: "error", message: "Hanya Host room yang dapat mengontrol audio secara manual!" });
             return;
           }
           broadcast(room, {
@@ -1078,11 +1064,12 @@ app.prepare().then(() => {
                 player.disconnectTimeout = null;
               }
               player.isDisconnected = false;
-              player.ws = ws;
+              player.socket = socket; player.socketId = socket.id; player.ws = socket;
               playerId = player.id; // UPDATE CLOSURE ID
               meta.id = player.id;
               meta.roomCode = code;
               meta.name = player.name;
+              socket.join(code);
 
               // Ensure player lives are properly initialized and never undefined
               if (!room.buzzState) room.buzzState = { playerLives: {} };
@@ -1099,14 +1086,12 @@ app.prepare().then(() => {
                 delete room.buzzCooldowns[player.id];
               }
 
-              ws.send(
-                JSON.stringify({
+              sendTo(socket, {
                   type: "reconnected",
                   roomCode: code,
                   playerId: player.id,
                   room: getSanitizedRoom(room),
-                })
-              );
+                });
 
               broadcast(
                 room,
@@ -1118,13 +1103,13 @@ app.prepare().then(() => {
                   message: `${player.name} kembali online! ⚡`,
                   room: getSanitizedRoom(room),
                 },
-                ws
+                socket
               );
               return;
             }
           }
 
-          ws.send(JSON.stringify({ type: "reconnect_failed" }));
+          sendTo(socket, { type: "reconnect_failed" });
         }
 
         // 11b. SYNC CURRENT ROOM STATE (Tab focus / phone unlock resync)
@@ -1132,12 +1117,10 @@ app.prepare().then(() => {
           const code = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
           const room = rooms.get(code);
           if (room) {
-            ws.send(
-              JSON.stringify({
+            sendTo(socket, {
                 type: "state_synced",
                 room: getSanitizedRoom(room),
-              })
-            );
+              });
           }
         }
 
@@ -1185,23 +1168,28 @@ app.prepare().then(() => {
             }
           }
 
+          if (meta.roomCode) socket.leave(meta.roomCode);
           meta.roomCode = null;
-          ws.send(JSON.stringify({ type: "left_room_success" }));
+          sendTo(socket, { type: "left_room_success" });
         }
       } catch (err) {
-        console.error("WS Parse Error:", err);
+        console.error("Socket.IO Event Error:", err);
       }
+    };
+
+    socket.onAny(async (eventName, eventData) => {
+      await handleEvent(eventName, eventData);
     });
 
-    ws.on("close", () => {
-      const meta = clientMeta.get(ws);
+    socket.on("disconnect", (reason) => {
+      const meta = clientMeta.get(socket);
       if (meta && meta.roomCode) {
         const room = rooms.get(meta.roomCode);
         if (room) {
-          const player = room.players.find((p) => p.id === playerId || p.ws === ws);
+          const player = room.players.find((p) => p.id === playerId || p.socket === socket || p.socketId === socket.id);
           if (player) {
             player.isDisconnected = true;
-            player.ws = null;
+            player.socket = null;
 
             // If this player was holding the buzzer when disconnected, release it immediately!
             if (room.buzzState?.buzzedPlayerId === player.id) {
@@ -1248,24 +1236,6 @@ app.prepare().then(() => {
         }
       }
     });
-  });
-
-  // Heartbeat ping interval every 15s to detect dead mobile sockets
-  const heartbeatInterval = setInterval(() => {
-    wss.clients.forEach((ws) => {
-      if (ws.isAlive === false) {
-        return ws.terminate();
-      }
-      ws.isAlive = false;
-      try {
-        ws.ping();
-        ws.send(JSON.stringify({ type: "ping" }));
-      } catch (e) {}
-    });
-  }, 15000);
-
-  server.on("close", () => {
-    clearInterval(heartbeatInterval);
   });
 
   server.listen(port, () => {
