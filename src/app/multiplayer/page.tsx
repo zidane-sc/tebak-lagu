@@ -112,6 +112,7 @@ export default function MultiplayerPage() {
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const [cooldownTick, setCooldownTick] = useState<number>(0);
+  const [lastRoundWinner, setLastRoundWinner] = useState<{ name: string; points: number; streak: number } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -383,14 +384,16 @@ export default function MultiplayerPage() {
           } else if (data.type === "clue_extended") {
             sfx.playGong();
             setRoom(data.room);
-            if (isPlayingAudio) {
-              setTimeout(() => playAudioRef.current(data.room), 200);
-            }
+            // Seamlessly auto-play the newly unlocked clue audio for all devices
+            setTimeout(() => {
+              playAudioRef.current(data.room);
+            }, 250);
           } else if (data.type === "round_started") {
             stopAndResetAudio();
             setRoom(data.room);
             setView("game");
             setBuzzCountdown(0);
+            setLastRoundWinner(null);
             setRoundKickoff(3); // 3-second tension countdown!
 
             // Preload audio immediately in background so first click plays with 0ms lag!
@@ -470,6 +473,12 @@ export default function MultiplayerPage() {
               setScreenFlash("correct");
               setTimeout(() => setScreenFlash(null), 400);
 
+              setLastRoundWinner({
+                name: data.guesserName,
+                points: data.pointsGained || 250,
+                streak: data.streak || 1,
+              });
+
               confetti({
                 particleCount: 75,
                 spread: 80,
@@ -488,10 +497,17 @@ export default function MultiplayerPage() {
               }
             }
           } else if (data.type === "round_revealed") {
-            stopAndResetAudio();
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+
+            // Celebration: play the full hook of the revealed song!
+            if (audioRef.current && data.room?.revealedSong?.previewUrl) {
+              audioRef.current.src = data.room.revealedSong.previewUrl;
+              audioRef.current.currentTime = data.room.revealedSong.startSecond || 0;
+              audioRef.current.playbackRate = 1.0;
+              audioRef.current.play().then(() => setIsPlayingAudio(true)).catch(() => {});
+            }
           } else if (data.type === "left_room_success") {
             try {
               sessionStorage.removeItem(SESSION_KEY);
@@ -1408,7 +1424,7 @@ export default function MultiplayerPage() {
               </span>
             </div>
 
-            {/* Score Strip with Rank badges and Lives */}
+            {/* Score Strip with Rank badges, Streaks and Lives */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {sortedPlayers.map((p: any, idx: number) => (
                 <div
@@ -1422,6 +1438,11 @@ export default function MultiplayerPage() {
                   {idx === 0 && <Crown className="w-3 h-3 text-amber-400" />}
                   <span>{p.avatar}</span>
                   <span className="font-semibold text-zinc-200">{p.score}</span>
+                  {p.streak >= 2 && (
+                    <span className="text-[10px] text-amber-400 font-bold bg-amber-500/15 px-1 rounded border border-amber-500/30" title={`Win streak ${p.streak}x berturut-turut!`}>
+                      🔥{p.streak}x
+                    </span>
+                  )}
                   <span className="text-[10px] text-red-400 ml-0.5">
                     {p.lives !== undefined ? (p.lives > 0 ? "❤️".repeat(p.lives) : "💀") : "❤️❤️❤️"}
                   </span>
@@ -1565,53 +1586,57 @@ export default function MultiplayerPage() {
               size="sm"
             />
 
-            {/* Audio Status & Host Controls */}
-            {isHost ? (
+            {/* Audio Status & Interactive Playback Controls */}
+            <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
+              {/* Personal Replay Button for Every Player */}
               <button
-                onClick={handleToggleRoomAudio}
+                onClick={() => playAudioLocal()}
                 disabled={isAudioBuffering}
-                className={`mt-1 flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
-                  isAudioBuffering ? "opacity-75 cursor-wait" : ""
-                }`}
-                title="Kontrol Host: Jeda atau Putar audio untuk seluruh room"
+                className="flex items-center gap-1.5 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
+                title="Dengarkan ulang potongan clue saat ini di ponselmu"
               >
                 {isAudioBuffering ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                    <span>Menyiapkan Audio...</span>
-                  </>
-                ) : isPlayingAudio ? (
-                  <>
-                    <Pause className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                    <span>👑 Host: Jeda Audio ⏸️</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-current text-amber-400" />
-                    <span>👑 Host: Lanjut Audio ▶️</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <div className="mt-1 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surfaceRaised/80 border border-surfaceBorder text-xs font-mono text-zinc-300">
-                {isAudioBuffering ? (
-                  <>
                     <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
-                    <span>Sinkronisasi Audio...</span>
+                    <span>Memuat...</span>
                   </>
                 ) : isPlayingAudio ? (
                   <>
                     <Volume2 className="w-3.5 h-3.5 text-accent animate-pulse" />
-                    <span className="text-accent font-bold">Musik Sedang Berputar 🎶</span>
+                    <span className="text-accent font-bold">Sedang Berputar 🎶</span>
                   </>
                 ) : (
                   <>
-                    <VolumeX className="w-3.5 h-3.5 text-mutedDark" />
-                    <span className="text-muted">Audio Dijeda ⏸️</span>
+                    <RotateCcw className="w-3.5 h-3.5 text-accent" />
+                    <span>Putar Ulang Clue 🔁</span>
                   </>
                 )}
-              </div>
-            )}
+              </button>
+
+              {/* Host Emergency Room Play/Pause Toggle */}
+              {isHost && (
+                <button
+                  onClick={handleToggleRoomAudio}
+                  disabled={isAudioBuffering}
+                  className={`flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
+                    isAudioBuffering ? "opacity-75 cursor-wait" : ""
+                  }`}
+                  title="Kontrol Host: Jeda atau Putar audio untuk seluruh room"
+                >
+                  {isPlayingAudio ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Jeda Room ⏸️</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5 fill-current text-amber-400" />
+                      <span>Lanjut Room ▶️</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
 
             {/* Live Audio Waveform Visualizer */}
             <AudioWaveformVisualizer
@@ -1760,17 +1785,54 @@ export default function MultiplayerPage() {
           {/* REVEALED / ROUND OVER */}
           {/* ======================================================== */}
           {room.status === "revealed" && (
-            <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 flex flex-col items-center gap-3 text-center shadow-sm animate-fade-in relative overflow-hidden">
+            <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 flex flex-col items-center gap-3 text-center shadow-lg animate-fade-in relative overflow-hidden">
               <span className="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                RONDE SELESAI
+                RONDE {room.currentRound} SELESAI
               </span>
-              <h3 className="text-xl font-extrabold text-white">
-                {room.revealedSong?.title}
-              </h3>
-              <p className="text-xs text-muted font-medium">{room.revealedSong?.artist}</p>
+
+              {/* Album Cover & Track Details */}
+              <div className="flex items-center gap-3.5 bg-surfaceRaised/80 border border-surfaceBorder p-3 rounded-2xl w-full text-left">
+                {room.revealedSong?.albumCover ? (
+                  <img
+                    src={room.revealedSong.albumCover}
+                    alt={room.revealedSong.title}
+                    className="w-16 h-16 rounded-xl object-cover shadow-md shrink-0 border border-surfaceBorder"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-surfaceBorder flex items-center justify-center text-zinc-500 shrink-0 text-2xl">
+                    💿
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-black text-white truncate">
+                    {room.revealedSong?.title}
+                  </h3>
+                  <p className="text-xs text-muted truncate mt-0.5">
+                    {room.revealedSong?.artist}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-zinc-400">
+                    <span>{room.revealedSong?.year || "Musik"}</span>
+                    <span>•</span>
+                    <span className="text-accent">{room.revealedSong?.category}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Round Winner Banner */}
+              {lastRoundWinner ? (
+                <div className="w-full bg-emerald-500/15 border border-emerald-500/30 rounded-xl p-2.5 text-center text-xs font-mono text-emerald-300 font-bold flex items-center justify-center gap-1.5 animate-bounce">
+                  <span>🏆</span>
+                  <span>{lastRoundWinner.name} berhasil menebak! (+{lastRoundWinner.points} PTS)</span>
+                  {lastRoundWinner.streak >= 2 && <span>🔥{lastRoundWinner.streak}x</span>}
+                </div>
+              ) : (
+                <div className="w-full bg-zinc-800/80 border border-zinc-700/40 rounded-xl p-2.5 text-center text-xs font-mono text-zinc-400 font-medium">
+                  💀 Tidak ada yang berhasil menebak! Ronde ini hangus.
+                </div>
+              )}
 
               {/* 5-Second Auto Advance Countdown Indicator */}
-              <div className="w-full mt-2 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5 font-mono text-xs">
+              <div className="w-full bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5 font-mono text-xs">
                 <div className="flex items-center justify-between text-zinc-300">
                   <span className="flex items-center gap-1.5 text-[11px]">
                     <Timer className="w-3.5 h-3.5 text-accent animate-pulse" />

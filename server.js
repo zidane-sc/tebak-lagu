@@ -171,6 +171,7 @@ function getSanitizedRoom(room) {
           ? room.buzzState.playerLives[p.id]
           : 3,
       buzzCooldownUntil: room.buzzCooldowns && room.buzzCooldowns[p.id] ? room.buzzCooldowns[p.id] : 0,
+      streak: p.streak || 0,
     })),
     buzzedPlayer: room.buzzState?.buzzedPlayerId
       ? {
@@ -392,6 +393,9 @@ function handleBuzzTimeout(room) {
 
   const penaltyPlayerId = room.buzzState.buzzedPlayerId;
   const penaltyPlayerName = room.buzzState.buzzedPlayerName;
+
+  const penaltyPlayer = room.players.find((p) => p.id === penaltyPlayerId);
+  if (penaltyPlayer) penaltyPlayer.streak = 0;
 
   if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
   const currentLives =
@@ -812,8 +816,21 @@ app.prepare().then(() => {
             (guessTitle && targetArtist && guessTitle.includes(targetArtist) && targetTitle.length < 5);
 
           if (isMatch) {
-            // Correct Guess! +100 Points
-            player.score += 100;
+            // Dynamic Scoring Engine:
+            // Base points: Stage 1 = 500 | Stage 2 = 350 | Stage 3 = 200 | Stage 4 = 100
+            const stagePointsMap = { 1: 500, 2: 350, 3: 200, 4: 100 };
+            const basePoints = stagePointsMap[room.clueStage || 1] || 250;
+
+            // Speed bonus: up to 150 points based on fast buzz reaction
+            const speedBonus = Math.max(20, Math.min(150, Math.round(((room.clueSecondsLeft || 10) / 10) * 150)));
+
+            // Streak multiplier: 2 in a row = 1.2x | 3+ in a row = 1.5x
+            if (!player.streak) player.streak = 0;
+            player.streak += 1;
+            const multiplier = player.streak >= 3 ? 1.5 : player.streak === 2 ? 1.2 : 1.0;
+
+            const totalPoints = Math.round((basePoints + speedBonus) * multiplier);
+            player.score += totalPoints;
 
             if (room.currentSong?.id) {
               db.execute({
@@ -826,10 +843,16 @@ app.prepare().then(() => {
               type: "guess_result",
               isCorrect: true,
               guesserName: player.name,
-              pointsGained: 100,
+              guesserId: player.id,
+              pointsGained: totalPoints,
+              basePoints,
+              speedBonus,
+              streak: player.streak,
+              clueStage: room.clueStage,
             });
           } else {
-            // Wrong Guess! Deduct 1 life
+            // Wrong Guess! Deduct 1 life & reset streak
+            player.streak = 0;
             if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
             const currentLives =
               room.buzzState.playerLives[playerId] !== undefined
