@@ -80,7 +80,7 @@ export const PwaInstallBanner: React.FC = () => {
       <div className="bg-surface/95 backdrop-blur-xl border-2 border-accent/40 rounded-3xl p-4 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 text-left">
         <div className="flex items-center gap-3 min-w-0">
           {/* App Icon */}
-          <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-surfaceBorder overflow-hidden shrink-0 shadow-md">
+          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-zinc-950 border border-emerald-500/50 overflow-hidden shrink-0 shadow-lg shadow-emerald-500/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/icon-192.png"

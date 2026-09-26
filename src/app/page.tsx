@@ -104,9 +104,10 @@ export default function HomePage() {
     <div className="min-h-[100dvh] text-zinc-100 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-4xl mx-auto selection:bg-accentDim selection:text-accent relative">
       {/* Top Floating Glass Header */}
       <header className="w-full flex items-center justify-between p-3 sm:p-4 rounded-2xl glass-panel shadow-lg shadow-black/20 z-10">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-400/30 border border-emerald-500/40 flex items-center justify-center text-accent shadow-md shadow-emerald-500/10 shrink-0">
-            <Disc3 className="w-5 h-5 animate-spin [animation-duration:8s] text-accent" />
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-950 border border-emerald-500/50 overflow-hidden flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icons/icon-192.png" alt="Tebak Lagu" className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2">
