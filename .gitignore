@@ -19,9 +19,10 @@
 *.tsbuildinfo
 next-env.d.ts
 
-# Misc
-.DS_Store
-*.pem
+# Local SQLite DB & Data
+data/
+*.db
+*.log
 
 # Local env files
 .env*.local
