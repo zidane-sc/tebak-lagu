@@ -86,7 +86,18 @@ export default function MultiplayerPage() {
 
   // Live Room State
   const [room, setRoom] = useState<any>(null);
-  const [myPlayerId, setMyPlayerId] = useState<string>("");
+  const [myPlayerId, setMyPlayerId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = sessionStorage.getItem("tebak_lagu_multi_session");
+        if (raw) {
+          const sess = JSON.parse(raw);
+          return sess.playerId || "";
+        }
+      } catch {}
+    }
+    return "";
+  });
   const [copied, setCopied] = useState(false);
 
   // In-Game Playback State
@@ -309,6 +320,7 @@ export default function MultiplayerPage() {
 
           if (data.type === "state_synced") {
             setRoom(data.room);
+            if (data.playerId) setMyPlayerId(data.playerId);
             if (data.room.status === "lobby") {
               setView("room");
             } else {
@@ -319,14 +331,15 @@ export default function MultiplayerPage() {
 
           if (data.type === "room_created" || data.type === "room_joined" || data.type === "reconnected") {
             sfx.playClick();
-            setMyPlayerId(data.playerId);
+            const confirmedPlayerId = data.playerId || myPlayerId;
+            setMyPlayerId(confirmedPlayerId);
             setRoom(data.room);
             try {
               sessionStorage.setItem(
                 SESSION_KEY,
                 JSON.stringify({
                   roomCode: data.roomCode,
-                  playerId: data.playerId,
+                  playerId: confirmedPlayerId,
                   playerName: playerName,
                   avatar: avatar,
                 })
@@ -338,6 +351,22 @@ export default function MultiplayerPage() {
               setView("game");
             }
           } else if (data.type === "reconnect_failed") {
+            // Do not delete immediately if mid-game, attempt re-sync with roomCode
+            try {
+              const raw = sessionStorage.getItem(SESSION_KEY);
+              if (raw) {
+                const sess = JSON.parse(raw);
+                if (sess.roomCode) {
+                  socket?.send(JSON.stringify({
+                    type: "join_room",
+                    roomCode: sess.roomCode,
+                    playerName: sess.playerName || playerName,
+                    playerId: sess.playerId
+                  }));
+                  return;
+                }
+              }
+            } catch {}
             sessionStorage.removeItem(SESSION_KEY);
           } else if (
             data.type === "room_updated" ||
@@ -662,15 +691,19 @@ export default function MultiplayerPage() {
     setShowExitConfirm(false);
   };
 
-  const myPlayer = room?.players?.find((p: any) => p.id === myPlayerId);
+  const myPlayer =
+    room?.players?.find((p: any) => p.id === myPlayerId) ||
+    room?.players?.find((p: any) => p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
   const isHost = myPlayer?.isHost;
-  const isMyTurnToGuess = room?.buzzedPlayer?.id === myPlayerId;
+  const isMyTurnToGuess =
+    room?.buzzedPlayer?.id === myPlayerId ||
+    (room?.buzzedPlayer?.id && myPlayer?.id && room.buzzedPlayer.id === myPlayer.id);
 
   const isCooldown = (myPlayer?.buzzCooldownUntil || 0) > Date.now();
   const cooldownSeconds = Math.max(0, Math.ceil(((myPlayer?.buzzCooldownUntil || 0) - Date.now()) / 1000));
 
   const handleBuzz = () => {
-    if (!ws || !room || room.status !== "playing") return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room || room.status !== "playing") return;
     if (isCooldown) {
       sfx.playWrong();
       return;
@@ -679,14 +712,22 @@ export default function MultiplayerPage() {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate([90]);
     }
-    ws.send(JSON.stringify({ type: "buzz" }));
+    ws.send(JSON.stringify({
+      type: "buzz",
+      roomCode: room.code,
+      playerId: myPlayerId || myPlayer?.id,
+      playerName: myPlayer?.name || playerName
+    }));
   };
 
   const handleGuess = (title: string, artist: string) => {
-    if (!ws || !room || room.status !== "buzzed") return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room || room.status !== "buzzed") return;
     ws.send(
       JSON.stringify({
         type: "submit_guess",
+        roomCode: room.code,
+        playerId: myPlayerId || myPlayer?.id,
+        playerName: myPlayer?.name || playerName,
         title,
         artist,
       })
@@ -694,32 +735,45 @@ export default function MultiplayerPage() {
   };
 
   const handleNextRound = () => {
-    if (!ws || !room) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
     sfx.playClick();
     stopAndResetAudio();
-    ws.send(JSON.stringify({ type: "next_round" }));
+    ws.send(JSON.stringify({
+      type: "next_round",
+      roomCode: room.code,
+      playerId: myPlayerId || myPlayer?.id
+    }));
   };
 
   const handleSkipRound = () => {
-    if (!ws || !room) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
     sfx.playWrong();
-    ws.send(JSON.stringify({ type: "skip_round" }));
+    ws.send(JSON.stringify({
+      type: "skip_round",
+      roomCode: room.code,
+      playerId: myPlayerId || myPlayer?.id
+    }));
   };
 
   const handleAdvanceClue = () => {
-    if (!ws || !room) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
     sfx.playClick();
-    if (isHost) {
-      ws.send(JSON.stringify({ type: "advance_clue" }));
-    } else {
-      ws.send(JSON.stringify({ type: "vote_advance_clue" }));
-    }
+    ws.send(JSON.stringify({
+      type: "vote_advance_clue",
+      roomCode: room.code,
+      playerId: myPlayerId || myPlayer?.id,
+      playerName: myPlayer?.name || playerName
+    }));
   };
 
   const handleForfeitBuzz = () => {
-    if (!ws || !room) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !room) return;
     sfx.playWrong();
-    ws.send(JSON.stringify({ type: "forfeit_buzz" }));
+    ws.send(JSON.stringify({
+      type: "forfeit_buzz",
+      roomCode: room.code,
+      playerId: myPlayerId || myPlayer?.id
+    }));
   };
 
   const sendReaction = (emoji: string) => {
@@ -1455,25 +1509,31 @@ export default function MultiplayerPage() {
                 </span>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {room.clueStage < 4 && (
-                    <button
-                      onClick={handleAdvanceClue}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                        room.clueVotes?.includes(myPlayerId)
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
-                          : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
-                      }`}
-                    >
-                      <span>💡</span>
-                      <span>
-                        {isHost
-                          ? "Buka Clue ➔"
-                          : `Buka Clue (${room.clueVotes?.length || 0}/${
-                              Math.max(1, Math.ceil((room.players?.filter((p: any) => !p.isDisconnected).length || 1) / 2))
-                            })`}
-                      </span>
-                    </button>
-                  )}
+                  {room.clueStage < 4 && (() => {
+                    const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
+                    const requiredVotes = room.clueVotesRequired || (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
+                    const hasVoted = room.clueVotes?.includes(myPlayerId) || (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
+                    const currentVotes = room.clueVotes?.length || 0;
+
+                    return (
+                      <button
+                        onClick={handleAdvanceClue}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                          hasVoted
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
+                            : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                        }`}
+                        title={activeCount <= 2 ? "Butuh persetujuan kedua pemain untuk membuka clue lebih awal" : "Butuh >50% persetujuan pemain untuk membuka clue"}
+                      >
+                        <span>💡</span>
+                        <span>
+                          {hasVoted
+                            ? `✓ Menunggu (${currentVotes}/${requiredVotes})`
+                            : `Buka Clue (${currentVotes}/${requiredVotes})`}
+                        </span>
+                      </button>
+                    );
+                  })()}
 
                   <button
                     onClick={handleSkipRound}

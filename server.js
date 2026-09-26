@@ -134,6 +134,12 @@ async function resolveLyrics(song) {
 }
 
 function getSanitizedRoom(room) {
+  const activePlayers = room.players.filter((p) => !p.isDisconnected);
+  const totalActive = Math.max(1, activePlayers.length);
+  const clueVotesRequired = totalActive <= 2
+    ? totalActive
+    : Math.floor(totalActive / 2) + 1;
+
   return {
     code: room.code,
     hostId: room.hostId,
@@ -147,9 +153,10 @@ function getSanitizedRoom(room) {
     nextRoundCountdown: room.nextRoundCountdown !== undefined ? room.nextRoundCountdown : null,
     nextRoundVotes: room.nextRoundVotes ? Array.from(room.nextRoundVotes) : [],
     clueStage: room.clueStage || 1,
-    clueSecondsLeft: room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30,
+    clueSecondsLeft: room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 10,
     skipVotes: room.skipVotes ? Array.from(room.skipVotes) : [],
     clueVotes: room.clueVotes ? Array.from(room.clueVotes) : [],
+    clueVotesRequired,
     playerLives: room.buzzState ? (room.buzzState.playerLives || {}) : {},
     players: room.players.map((p) => ({
       id: p.id,
@@ -552,6 +559,57 @@ app.prepare().then(() => {
             return;
           }
 
+          // Check if player is rejoining an existing slot (e.g. after refresh or disconnect)
+          const existingPlayer = room.players.find(
+            (p) => (data.playerId && p.id === data.playerId) ||
+                   (data.playerName && p.name.trim().toLowerCase() === data.playerName.trim().toLowerCase())
+          );
+
+          if (existingPlayer) {
+            if (existingPlayer.disconnectTimeout) {
+              clearTimeout(existingPlayer.disconnectTimeout);
+              existingPlayer.disconnectTimeout = null;
+            }
+            existingPlayer.isDisconnected = false;
+            existingPlayer.ws = ws;
+            playerId = existingPlayer.id;
+            meta.id = existingPlayer.id;
+            meta.roomCode = code;
+            meta.name = existingPlayer.name;
+
+            if (!room.buzzState) room.buzzState = { playerLives: {} };
+            if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+            if (room.buzzState.playerLives[existingPlayer.id] === undefined) {
+              room.buzzState.playerLives[existingPlayer.id] = 3;
+            }
+            if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[existingPlayer.id] > 0) {
+              room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== existingPlayer.id);
+            }
+
+            ws.send(
+              JSON.stringify({
+                type: "room_joined",
+                roomCode: code,
+                playerId: existingPlayer.id,
+                room: getSanitizedRoom(room),
+              })
+            );
+
+            broadcast(
+              room,
+              {
+                type: "player_connection_change",
+                playerId: existingPlayer.id,
+                playerName: existingPlayer.name,
+                isConnected: true,
+                message: `${existingPlayer.name} kembali ke room! ⚡`,
+                room: getSanitizedRoom(room),
+              },
+              ws
+            );
+            return;
+          }
+
           if (room.players.length >= 8) {
             ws.send(
               JSON.stringify({
@@ -659,12 +717,28 @@ app.prepare().then(() => {
 
         // 5. BUZZ IN! (Siapa cepat dia dapat)
         else if (data.type === "buzz") {
-          const room = rooms.get(meta.roomCode);
+          const roomCode = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
+          const room = rooms.get(roomCode);
           if (!room || room.status !== "playing") return;
 
+          // Determine the player accurately across reconnections
+          const callerId = data.playerId || meta.id || playerId;
+          let player = room.players.find((p) => p.id === callerId || p.ws === ws);
+          if (!player && data.playerName) {
+            player = room.players.find((p) => p.name.trim().toLowerCase() === data.playerName.trim().toLowerCase());
+          }
+          if (!player) return;
+
+          // Ensure player socket and status are active
+          player.ws = ws;
+          player.isDisconnected = false;
+          meta.roomCode = room.code;
+          meta.id = player.id;
+          playerId = player.id;
+
           // Check if this player is in penalty cooldown
-          if (room.buzzCooldowns && room.buzzCooldowns[playerId] && room.buzzCooldowns[playerId] > Date.now()) {
-            const secLeft = Math.ceil((room.buzzCooldowns[playerId] - Date.now()) / 1000);
+          if (room.buzzCooldowns && room.buzzCooldowns[player.id] && room.buzzCooldowns[player.id] > Date.now()) {
+            const secLeft = Math.ceil((room.buzzCooldowns[player.id] - Date.now()) / 1000);
             ws.send(
               JSON.stringify({
                 type: "buzz_rejected",
@@ -676,11 +750,11 @@ app.prepare().then(() => {
 
           // Check if this player has lives remaining in this round
           if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
-          if (room.buzzState.playerLives[playerId] === undefined) {
-            room.buzzState.playerLives[playerId] = 3;
+          if (room.buzzState.playerLives[player.id] === undefined) {
+            room.buzzState.playerLives[player.id] = 3;
           }
 
-          if (room.buzzState.playerLives[playerId] <= 0) {
+          if (room.buzzState.playerLives[player.id] <= 0) {
             ws.send(
               JSON.stringify({
                 type: "buzz_rejected",
@@ -690,12 +764,14 @@ app.prepare().then(() => {
             return;
           }
 
-          const player = room.players.find((p) => p.id === playerId);
-          if (!player) return;
+          // Ensure player is un-lockedout if lives > 0
+          if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[player.id] > 0) {
+            room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== player.id);
+          }
 
           // Lockout others!
           room.status = "buzzed";
-          room.buzzState.buzzedPlayerId = playerId;
+          room.buzzState.buzzedPlayerId = player.id;
           room.buzzState.buzzedPlayerName = player.name;
 
           // Start 15-second guess countdown
@@ -706,7 +782,7 @@ app.prepare().then(() => {
 
           broadcast(room, {
             type: "player_buzzed",
-            buzzedPlayerId: playerId,
+            buzzedPlayerId: player.id,
             buzzedPlayerName: player.name,
             secondsAllowed: 15,
             room: getSanitizedRoom(room),
@@ -913,27 +989,36 @@ app.prepare().then(() => {
           handleBuzzTimeout(room);
         }
 
-        // 10b. VOTE ADVANCE CLUE (Buka clue selanjutnya tanpa nunggu 30 detik!)
+        // 10b. VOTE ADVANCE CLUE (Buka clue selanjutnya tanpa nunggu)
         else if (data.type === "vote_advance_clue" || data.type === "advance_clue") {
-          const room = rooms.get(meta.roomCode);
+          const roomCode = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
+          const room = rooms.get(roomCode);
           if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
           if (room.clueStage >= 4) return; // Sudah tahap maksimal
 
+          const voterId = data.playerId || meta.id || playerId;
+
           if (!room.clueVotes) room.clueVotes = new Set();
-          if (room.clueVotes.has(playerId)) {
-            room.clueVotes.delete(playerId);
+          if (room.clueVotes.has(voterId)) {
+            room.clueVotes.delete(voterId);
           } else {
-            room.clueVotes.add(playerId);
+            room.clueVotes.add(voterId);
           }
 
           const activePlayers = room.players.filter((p) => !p.isDisconnected);
-          const threshold = Math.max(1, Math.ceil(activePlayers.length / 2));
-          const isHost = room.hostId === playerId;
+          const totalActive = Math.max(1, activePlayers.length);
 
-          if (isHost || room.clueVotes.size >= threshold) {
+          // Rule Zidane:
+          // Jika 1 atau 2 pemain: butuh 100% persetujuan (keduanya harus vote!)
+          // Jika lebih dari 2 pemain: baru pakai mekanisme mayoritas (> 50%)
+          const threshold = totalActive <= 2
+            ? totalActive
+            : Math.floor(totalActive / 2) + 1;
+
+          if (room.clueVotes.size >= threshold) {
             room.clueVotes = new Set();
             room.clueStage += 1;
-            room.clueSecondsLeft = room.clueStage === 4 ? 90 : 30;
+            room.clueSecondsLeft = room.clueStage === 4 ? 15 : 10;
 
             broadcast(room, {
               type: "clue_extended",
@@ -947,7 +1032,7 @@ app.prepare().then(() => {
               type: "clue_vote_updated",
               votesCount: room.clueVotes.size,
               totalRequired: threshold,
-              message: `${meta.name} vote buka clue (${room.clueVotes.size}/${threshold})`,
+              message: `${meta.name || "Pemain"} vote buka clue (${room.clueVotes.size}/${threshold})`,
               room: getSanitizedRoom(room),
             });
           }
@@ -955,11 +1040,15 @@ app.prepare().then(() => {
 
         // 11. RECONNECT SESSION (Saat HP unlock / switch tab kembali)
         else if (data.type === "reconnect") {
-          const code = (data.roomCode || "").toUpperCase().trim();
+          const code = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
           const room = rooms.get(code);
 
           if (room) {
-            const player = room.players.find((p) => p.id === data.playerId);
+            let player = room.players.find((p) => p.id === data.playerId);
+            if (!player && data.playerName) {
+              player = room.players.find((p) => p.name.trim().toLowerCase() === data.playerName.trim().toLowerCase());
+            }
+
             if (player) {
               if (player.disconnectTimeout) {
                 clearTimeout(player.disconnectTimeout);
@@ -981,6 +1070,10 @@ app.prepare().then(() => {
               // Un-lockout player on reconnect if they still have lives
               if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[player.id] > 0) {
                 room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== player.id);
+              }
+              // Clear penalty cooldown on reconnect if expired
+              if (room.buzzCooldowns && room.buzzCooldowns[player.id] && room.buzzCooldowns[player.id] <= Date.now()) {
+                delete room.buzzCooldowns[player.id];
               }
 
               ws.send(
@@ -1082,14 +1175,19 @@ app.prepare().then(() => {
       if (meta && meta.roomCode) {
         const room = rooms.get(meta.roomCode);
         if (room) {
-          const player = room.players.find((p) => p.id === playerId);
+          const player = room.players.find((p) => p.id === playerId || p.ws === ws);
           if (player) {
             player.isDisconnected = true;
             player.ws = null;
 
+            // If this player was holding the buzzer when disconnected, release it immediately!
+            if (room.buzzState?.buzzedPlayerId === player.id) {
+              handleBuzzTimeout(room);
+            }
+
             broadcast(room, {
               type: "player_connection_change",
-              playerId,
+              playerId: player.id,
               playerName: player.name,
               isConnected: false,
               room: getSanitizedRoom(room),
