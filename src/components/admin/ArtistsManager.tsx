@@ -30,6 +30,8 @@ export const ArtistsManager: React.FC<{
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [minSongsFilter, setMinSongsFilter] = useState<number>(0);
 
   // Selected for View Songs Modal
   const [viewArtist, setViewArtist] = useState<string | null>(null);
@@ -85,6 +87,12 @@ export const ArtistsManager: React.FC<{
       limit: "24",
       search: debouncedSearch,
     });
+    if (selectedCategory && selectedCategory !== "all") {
+      q.set("category", selectedCategory);
+    }
+    if (minSongsFilter > 0) {
+      q.set("min_songs", minSongsFilter.toString());
+    }
 
     fetch(`/api/admin/entities?${q.toString()}`)
       .then((r) => r.json())
@@ -101,7 +109,7 @@ export const ArtistsManager: React.FC<{
 
   useEffect(() => {
     fetchArtists();
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, selectedCategory, minSongsFilter]);
 
   const handleRenameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,8 +191,41 @@ export const ArtistsManager: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <div className="relative flex-1 sm:w-60">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Genre Filter */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setPage(1);
+            }}
+            className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-2.5 py-2 text-xs text-white outline-none focus:border-accent font-sans transition cursor-pointer"
+          >
+            <option value="all">Semua Genre</option>
+            {CATEGORIES.filter((c) => c !== "Semua Genre").map((catName) => (
+              <option key={catName} value={catName}>
+                {catName}
+              </option>
+            ))}
+          </select>
+
+          {/* Min Songs Filter Toggle */}
+          <button
+            onClick={() => {
+              setMinSongsFilter(minSongsFilter > 0 ? 0 : 2);
+              setPage(1);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition border cursor-pointer whitespace-nowrap ${
+              minSongsFilter > 0
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                : "bg-surfaceRaised border-surfaceBorder text-muted hover:text-white"
+            }`}
+            title="Filter hanya artis utama (minimal 2 lagu)"
+          >
+            <span>{minSongsFilter > 0 ? "⭐ Artis Utama (≥2 Lagu)" : "👥 Semua Artis"}</span>
+          </button>
+
+          <div className="relative flex-1 sm:w-52">
             <Search className="w-4 h-4 absolute left-3 top-3 text-mutedDark" />
             <input
               type="text"
@@ -206,7 +247,7 @@ export const ArtistsManager: React.FC<{
             ) : (
               <Sparkles className="w-3.5 h-3.5" />
             )}
-            <span>{isSyncing ? "Menyinkronkan..." : "Sinkronkan Multi-Artis"}</span>
+            <span>{isSyncing ? "Menyinkronkan..." : "Sinkronkan"}</span>
           </button>
 
           <button

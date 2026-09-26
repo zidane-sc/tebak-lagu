@@ -10,6 +10,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "artists";
     const search = searchParams.get("search")?.trim() || "";
+    const category = searchParams.get("category")?.trim() || "";
+    const minSongs = parseInt(searchParams.get("min_songs") || "0", 10);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.max(5, Math.min(100, parseInt(searchParams.get("limit") || "30", 10)));
     const offset = (page - 1) * limit;
@@ -18,13 +20,23 @@ export async function GET(request: Request) {
     // 1. ARTISTS LIST (From Multi-Artist Normalized Table)
     // -----------------------------------------------------------
     if (type === "artists") {
-      let whereClause = "";
+      const conditions: string[] = [];
       const args: any[] = [];
 
       if (search) {
-        whereClause = "WHERE a.name LIKE ?";
+        conditions.push("a.name LIKE ?");
         args.push(`%${search}%`);
       }
+      if (category && category !== "all" && category !== "Semua Genre") {
+        conditions.push("a.category = ?");
+        args.push(category);
+      }
+      if (minSongs > 0) {
+        conditions.push("a.song_count >= ?");
+        args.push(minSongs);
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       const totalRes = await db.execute({
         sql: `SELECT COUNT(*) as total FROM artists a ${whereClause};`,
