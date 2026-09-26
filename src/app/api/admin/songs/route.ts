@@ -98,13 +98,14 @@ export async function POST(request: Request) {
 
     const searchQuery = `${title.trim()} ${artist.trim()}`;
     const popularity = body.popularity || (difficulty === "easy" ? 90 : difficulty === "medium" ? 75 : 50);
+    const startSecond = body.startSecond !== undefined ? Number(body.startSecond) : 0;
 
     await db.execute({
       sql: `
         INSERT OR REPLACE INTO songs (
           id, title, artist, year, category, difficulty, popularity,
-          preview_url, album_cover, lyrics_clues, humming_melody, search_query
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+          preview_url, album_cover, lyrics_clues, humming_melody, search_query, start_second
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
       `,
       args: [
         songId,
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
         JSON.stringify(lyricsClues),
         JSON.stringify(hummingMelody),
         searchQuery,
+        startSecond,
       ],
     });
 
@@ -145,7 +147,19 @@ export async function PUT(request: Request) {
   try {
     await initDb();
     const body = await request.json();
-    const { id, title, artist, category, difficulty, year, popularity, previewUrl, albumCover } = body;
+    const {
+      id,
+      title,
+      artist,
+      category,
+      difficulty,
+      year,
+      popularity,
+      previewUrl,
+      albumCover,
+      startSecond,
+      lyricsClues,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID lagu wajib disertakan!" }, { status: 400 });
@@ -169,6 +183,8 @@ export async function PUT(request: Request) {
     const updatedPopularity = popularity !== undefined ? parseInt(popularity, 10) : existing.popularity;
     const updatedPreview = previewUrl !== undefined ? previewUrl : existing.previewUrl;
     const updatedCover = albumCover !== undefined ? albumCover : existing.albumCover;
+    const updatedStartSecond = startSecond !== undefined ? Number(startSecond) : existing.startSecond || 0;
+    const updatedLyricsClues = lyricsClues !== undefined ? JSON.stringify(lyricsClues) : JSON.stringify(existing.lyricsClues || []);
     const searchQuery = `${updatedTitle} ${updatedArtist}`;
 
     await db.execute({
@@ -182,7 +198,9 @@ export async function PUT(request: Request) {
           popularity = ?,
           preview_url = ?,
           album_cover = ?,
-          search_query = ?
+          search_query = ?,
+          start_second = ?,
+          lyrics_clues = ?
         WHERE id = ?;
       `,
       args: [
@@ -195,6 +213,8 @@ export async function PUT(request: Request) {
         updatedPreview,
         updatedCover,
         searchQuery,
+        updatedStartSecond,
+        updatedLyricsClues,
         id,
       ],
     });

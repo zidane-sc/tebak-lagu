@@ -12,16 +12,20 @@ interface HeardleModePlayerProps {
   searchQuery: string;
   startSecond?: number;
   unlockedLevel: number; // 0 to 5
+  isGameOver?: boolean;
+  customDurations?: number[];
 }
 
-// Stepped unlocked durations in seconds
-const DURATIONS = [0.5, 1.5, 3.0, 6.0, 10.0, 15.0];
+// Stepped unlocked durations in seconds (Fair, exciting progression starting at 3s)
+const DEFAULT_DURATIONS = [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
 
 export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   previewUrl: initialPreview,
   searchQuery,
   startSecond,
   unlockedLevel,
+  isGameOver = false,
+  customDurations,
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview || null);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,14 +35,48 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const maxAllowedDuration = DURATIONS[Math.min(unlockedLevel, DURATIONS.length - 1)];
+  const durations =
+    Array.isArray(customDurations) && customDurations.length > 0
+      ? customDurations
+      : DEFAULT_DURATIONS;
+  const maxAllowedDuration = durations[Math.min(unlockedLevel, durations.length - 1)];
 
-  // Pick a random snippet timestamp whenever a new song loads
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  // 1. Force stop playback when game over modal is active
+  useEffect(() => {
+    if (isGameOver) {
+      stopPlayback();
+    }
+  }, [isGameOver]);
+
+  // 2. Stop playback whenever level is unlocked/skipped or song changes
+  useEffect(() => {
+    stopPlayback();
+  }, [unlockedLevel, searchQuery]);
+
+  // 3. Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopPlayback();
+    };
+  }, []);
+
+  // Use custom configured startSecond if > 0, otherwise random offset
   useEffect(() => {
     const offset =
-      startSecond !== undefined
-        ? Math.min(12, startSecond % 14)
-        : Math.floor(Math.random() * 10);
+      startSecond !== undefined && startSecond > 0
+        ? Number(startSecond)
+        : Math.floor(Math.random() * 8);
     setRandomOffset(offset);
   }, [searchQuery, startSecond]);
 
@@ -57,17 +95,6 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
       setPreviewUrl(initialPreview);
     }
   }, [initialPreview, searchQuery]);
-
-  const stopPlayback = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    setIsPlaying(false);
-  };
 
   const handlePlay = () => {
     if (isPlaying) {
@@ -150,13 +177,13 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         <div className="flex justify-between items-center text-xs font-mono">
           <span className="text-mutedDark">DURASI TERBUKA</span>
           <span className="text-zinc-100 font-semibold">
-            {maxAllowedDuration}s <span className="text-mutedDark">/ 15.0s</span>
+            {maxAllowedDuration}s <span className="text-mutedDark">/ 30.0s</span>
           </span>
         </div>
 
         {/* 6 Segment Progress Blocks (Precision Track) */}
         <div className="grid grid-cols-6 gap-1.5 h-2.5">
-          {DURATIONS.map((dur, index) => {
+          {durations.map((dur, index) => {
             const isUnlocked = index <= unlockedLevel;
             return (
               <div

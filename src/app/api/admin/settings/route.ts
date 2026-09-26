@@ -14,6 +14,10 @@ const DEFAULT_SETTINGS = {
   defaultAudioProfile: "normal",
   allowMidGameJoin: true,
   consensusVoteSkip: true,
+  // Time Slice progression (seconds for Level 1 - 6)
+  heardleDurations: [3.0, 5.0, 9.0, 15.0, 22.0, 30.0],
+  // Robot Speech TTS progression (stanzas opened per attempt)
+  ttsCluesProgression: [1, 2, 3, 4],
 };
 
 export async function GET() {

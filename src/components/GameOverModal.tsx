@@ -47,6 +47,29 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const handleNext = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    onNext();
+  };
+
+  const handleExit = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    onExit();
+  };
 
   useEffect(() => {
     if (isWon) {
@@ -132,7 +155,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* Audio Sample Player */}
         {previewUrl && (
           <div className="w-full bg-surfaceRaised/50 rounded-lg p-2 border border-surfaceBorder">
-            <audio controls src={previewUrl} className="w-full h-8" autoPlay />
+            <audio ref={audioRef} controls src={previewUrl} className="w-full h-8" autoPlay />
           </div>
         )}
 
@@ -186,16 +209,16 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {/* Primary Action Button */}
         <div className="w-full flex gap-2 pt-1">
           <button
-            onClick={onNext}
-            className="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow transition transform active:scale-95 text-xs sm:text-sm"
+            onClick={handleNext}
+            className="flex-1 bg-zinc-100 hover:bg-white text-zinc-950 font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow transition transform active:scale-95 text-xs sm:text-sm cursor-pointer"
           >
             <span>{isLastRound ? "Selesai & Lihat Skor" : "Lagu Berikutnya"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
-            onClick={onExit}
-            className="py-2.5 px-3.5 rounded-xl bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white text-xs font-medium border border-surfaceBorder transition"
+            onClick={handleExit}
+            className="py-2.5 px-3.5 rounded-xl bg-surfaceRaised hover:bg-zinc-800 text-muted hover:text-white text-xs font-medium border border-surfaceBorder transition cursor-pointer"
           >
             Menu
           </button>

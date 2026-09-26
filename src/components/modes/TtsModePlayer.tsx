@@ -10,6 +10,7 @@ interface TtsModePlayerProps {
   activeClueCount: number;
   initialVoiceType?: RobotVoiceType;
   lang?: "id" | "en";
+  isGameOver?: boolean;
 }
 
 type RobotVoiceType = "normal" | "deep" | "fast";
@@ -19,11 +20,35 @@ export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
   activeClueCount,
   initialVoiceType = "normal",
   lang = "id",
+  isGameOver = false,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [voiceType] = useState<RobotVoiceType>(initialVoiceType);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Stop robot playback when game over modal is active
+  useEffect(() => {
+    if (isGameOver && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [isGameOver]);
+
+  // Stop playback when clue advances
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, [activeClueCount]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, []);
 
   const safeClues =
     clues && clues.length > 0

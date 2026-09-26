@@ -58,7 +58,7 @@ function rowToSong(row) {
     lyricsClues,
     hummingMelody,
     searchQuery: row.search_query || `${row.title} ${row.artist}`,
-    startSecond: 0,
+    startSecond: row.start_second !== undefined && row.start_second !== null ? Number(row.start_second) : 0,
     lang: row.category === "Western Hits" ? "en" : "id",
     timesPlayed: row.times_played || 0,
     timesGuessed: row.times_guessed || 0,
@@ -94,9 +94,15 @@ async function initDb() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_songs_difficulty ON songs(difficulty);`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist);`);
 
-  // Ensure 'album' column exists
+  // Ensure 'album' and 'start_second' columns exist
   try {
     await db.execute("ALTER TABLE songs ADD COLUMN album TEXT;");
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    await db.execute("ALTER TABLE songs ADD COLUMN start_second INTEGER DEFAULT 0;");
   } catch (e) {
     // Column already exists
   }

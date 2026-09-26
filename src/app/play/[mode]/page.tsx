@@ -100,13 +100,23 @@ export default function PlayArenaPage() {
     } catch {}
   }, []);
 
+  // Fetch Server Tuned Settings (durations, tts progression)
+  const [serverSettings, setServerSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((data) => setServerSettings(data))
+      .catch(() => {});
+  }, []);
+
   // Fetch song from server database (with guaranteed LRCLIB lyrics & Apple preview)
   const loadNewSong = useCallback(() => {
     setIsLoading(true);
     setIsGameOver(false);
     setIsWon(false);
     setGuesses([]);
-    setActiveClueCount(1);
+    setActiveClueCount(serverSettings?.ttsCluesProgression?.[0] || 1);
     setUnlockedHeardleLevel(0);
     setScoreGained(0);
 
@@ -210,7 +220,10 @@ export default function PlayArenaPage() {
       setGuesses(newGuesses);
 
       const cluesTotal = song.lyricsClues?.length || 4;
-      setActiveClueCount((prev) => Math.min(cluesTotal, prev + 1));
+      const ttsProgression = serverSettings?.ttsCluesProgression || [1, 2, 3, 4];
+      const nextTtsIdx = Math.min(ttsProgression.length - 1, newGuesses.length);
+      const nextTtsCount = ttsProgression[nextTtsIdx] ?? (newGuesses.length + 1);
+      setActiveClueCount(Math.min(cluesTotal, nextTtsCount));
       setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
 
       if (newGuesses.length >= config.maxGuesses) {
@@ -243,7 +256,10 @@ export default function PlayArenaPage() {
     setGuesses(newGuesses);
 
     const cluesTotal = song.lyricsClues?.length || 4;
-    setActiveClueCount((prev) => Math.min(cluesTotal, prev + 1));
+    const ttsProgression = serverSettings?.ttsCluesProgression || [1, 2, 3, 4];
+    const nextTtsIdx = Math.min(ttsProgression.length - 1, newGuesses.length);
+    const nextTtsCount = ttsProgression[nextTtsIdx] ?? (newGuesses.length + 1);
+    setActiveClueCount(Math.min(cluesTotal, nextTtsCount));
     setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
 
     if (newGuesses.length >= config.maxGuesses) {
@@ -341,6 +357,7 @@ export default function PlayArenaPage() {
                 : "normal"
             }
             lang={song.lang || (song.category === "Western Hits" ? "en" : "id")}
+            isGameOver={isGameOver}
           />
         )}
 
@@ -350,6 +367,8 @@ export default function PlayArenaPage() {
             searchQuery={song.searchQuery}
             startSecond={song.startSecond}
             unlockedLevel={unlockedHeardleLevel}
+            isGameOver={isGameOver}
+            customDurations={serverSettings?.heardleDurations}
           />
         )}
 

@@ -97,6 +97,8 @@ export default function AdminDashboardPage() {
   const [formPopularity, setFormPopularity] = useState(90);
   const [formPreviewUrl, setFormPreviewUrl] = useState("");
   const [formAlbumCover, setFormAlbumCover] = useState("");
+  const [formStartSecond, setFormStartSecond] = useState<number>(0);
+  const [formLyricsClues, setFormLyricsClues] = useState<string[]>([]);
 
   // Apple Music Online Search in Add Modal
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("");
@@ -119,6 +121,8 @@ export default function AdminDashboardPage() {
     defaultRounds: 5,
     defaultDifficulty: "easy",
     defaultAudioProfile: "normal",
+    heardleDurations: [3.0, 5.0, 9.0, 15.0, 22.0, 30.0],
+    ttsCluesProgression: [1, 2, 3, 4],
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsSaveMsg, setSettingsSaveMsg] = useState<string | null>(null);
@@ -358,6 +362,12 @@ export default function AdminDashboardPage() {
     setFormPopularity(song.popularity || 80);
     setFormPreviewUrl(song.previewUrl || song.previewResolved || "");
     setFormAlbumCover(song.albumCover || "");
+    setFormStartSecond(song.startSecond !== undefined ? Number(song.startSecond) : 0);
+    setFormLyricsClues(
+      Array.isArray(song.lyricsClues) && song.lyricsClues.length > 0
+        ? [...song.lyricsClues]
+        : ["", "", "", ""]
+    );
     setShowEditModal(true);
   };
 
@@ -423,6 +433,8 @@ export default function AdminDashboardPage() {
           popularity: formPopularity,
           previewUrl: formPreviewUrl,
           albumCover: formAlbumCover,
+          startSecond: formStartSecond,
+          lyricsClues: formLyricsClues.filter((c: string) => c.trim().length > 0),
         }),
       });
 
@@ -1243,6 +1255,91 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* ======================================================== */}
+            {/* HEARDLE / TIME SLICE PROGRESSION CONFIGURATION */}
+            {/* ======================================================== */}
+            <div className="pt-4 border-t border-surfaceBorder flex flex-col gap-3">
+              <div>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold uppercase tracking-wider">
+                  ⏱️ MODE TIME SLICE (HEARDLE) - DURASI CUPLIKAN PER PERCOBAAN
+                </span>
+                <p className="text-xs text-muted mt-0.5">
+                  Tentukan berapa detik audio dibuka pada setiap ronde/kesempatan tebak (Level 1 s/d 6).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                {[0, 1, 2, 3, 4, 5].map((lvl) => {
+                  const currentDurations = Array.isArray(gameSettings.heardleDurations)
+                    ? gameSettings.heardleDurations
+                    : [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
+                  return (
+                    <div key={lvl} className="flex flex-col gap-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-center">
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">Ronde {lvl + 1}</span>
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="1"
+                          max="30"
+                          value={currentDurations[lvl] ?? (lvl === 0 ? 3 : lvl === 1 ? 5 : lvl === 2 ? 9 : lvl === 3 ? 15 : lvl === 4 ? 22 : 30)}
+                          onChange={(e) => {
+                            const copy = [...currentDurations];
+                            copy[lvl] = parseFloat(e.target.value) || 1;
+                            setGameSettings({ ...gameSettings, heardleDurations: copy });
+                          }}
+                          className="w-14 text-center bg-black/40 border border-surfaceBorder rounded p-1 text-xs text-white font-mono font-bold outline-none focus:border-accent"
+                        />
+                        <span className="text-[10px] text-muted font-mono">s</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ======================================================== */}
+            {/* ROBOT SPEECH (TTS) PROGRESSION CONFIGURATION */}
+            {/* ======================================================== */}
+            <div className="pt-4 border-t border-surfaceBorder flex flex-col gap-3">
+              <div>
+                <span className="text-[10px] font-mono text-purple-400 font-semibold uppercase tracking-wider">
+                  🤖 MODE ROBOT SPEECH (TTS) - JUMLAH BAIT TERBUKA PER PERCOBAAN
+                </span>
+                <p className="text-xs text-muted mt-0.5">
+                  Tentukan berapa bait lirik yang dibacakan robot pada setiap kesempatan tebak (Percobaan 1 s/d 4).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[0, 1, 2, 3].map((lvl) => {
+                  const currentProgression = Array.isArray(gameSettings.ttsCluesProgression)
+                    ? gameSettings.ttsCluesProgression
+                    : [1, 2, 3, 4];
+                  return (
+                    <div key={lvl} className="flex flex-col gap-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-center">
+                      <span className="text-[10px] font-mono text-purple-400 font-bold">Tebakan #{lvl + 1}</span>
+                      <div className="flex items-center justify-center gap-1">
+                        <input
+                          type="number"
+                          min="1"
+                          max="8"
+                          value={currentProgression[lvl] ?? (lvl + 1)}
+                          onChange={(e) => {
+                            const copy = [...currentProgression];
+                            copy[lvl] = parseInt(e.target.value, 10) || 1;
+                            setGameSettings({ ...gameSettings, ttsCluesProgression: copy });
+                          }}
+                          className="w-14 text-center bg-black/40 border border-surfaceBorder rounded p-1 text-xs text-white font-mono font-bold outline-none focus:border-accent"
+                        />
+                        <span className="text-[10px] text-muted font-mono">Bait</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex items-center justify-between pt-3 border-t border-surfaceBorder mt-2">
               <span className="text-xs font-mono text-emerald-400">
                 {settingsSaveMsg || "Siap disimpan ke server"}
@@ -1947,14 +2044,141 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Audio Preview URL */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-mono text-mutedDark font-semibold">AUDIO PREVIEW URL</label>
+                  <input
+                    type="text"
+                    value={formPreviewUrl}
+                    onChange={(e) => setFormPreviewUrl(e.target.value)}
+                    className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono text-[11px]"
+                  />
+                </div>
+
+                {/* Start Second Offset */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-mono text-amber-400 font-semibold flex items-center justify-between">
+                    <span>⏱️ MULAI DARI DETIK KE-</span>
+                    <span className="text-zinc-500 font-normal">Intro / Reff</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      min={0}
+                      max={180}
+                      value={formStartSecond}
+                      onChange={(e) => setFormStartSecond(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
+                      placeholder="0 detik"
+                    />
+                    <span className="text-xs text-muted font-mono pr-1">detik</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Album Cover */}
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-mono text-mutedDark font-semibold">AUDIO PREVIEW URL</label>
+                <label className="text-[11px] font-mono text-mutedDark font-semibold">ALBUM COVER ARTWORK URL</label>
                 <input
                   type="text"
-                  value={formPreviewUrl}
-                  onChange={(e) => setFormPreviewUrl(e.target.value)}
+                  value={formAlbumCover}
+                  onChange={(e) => setFormAlbumCover(e.target.value)}
                   className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono text-[11px]"
+                  placeholder="https://..."
                 />
+              </div>
+
+              {/* Robot TTS Lyrics Stanzas Management */}
+              <div className="flex flex-col gap-2 pt-2 border-t border-surfaceBorder">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-mono text-purple-400 font-semibold flex items-center gap-1.5">
+                    <span>🤖 BAIT LIRIK ROBOT TTS ({formLyricsClues.length} Bait)</span>
+                  </label>
+                  <span className="text-[10px] text-zinc-400 font-mono">Bait 1 = Yang pertama dibacakan</span>
+                </div>
+
+                <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                  {formLyricsClues.map((clue, idx) => (
+                    <div key={idx} className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${idx === 0 ? "bg-accent/20 text-accent border border-accent/40" : "text-muted"}`}>
+                          {idx === 0 ? "🌟 BAIT PERTAMA (CLUE AWAL)" : `Bait #${idx + 1}`}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const copy = [...formLyricsClues];
+                                const [item] = copy.splice(idx, 1);
+                                copy.unshift(item);
+                                setFormLyricsClues(copy);
+                              }}
+                              className="text-[10px] font-mono py-0.5 px-2 rounded bg-accent/15 hover:bg-accent/30 text-accent border border-accent/30 cursor-pointer"
+                              title="Pindahkan bait ini jadi yang pertama dibacakan robot"
+                            >
+                              Jadikan Bait 1 ⬆️
+                            </button>
+                          )}
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const copy = [...formLyricsClues];
+                                const temp = copy[idx - 1];
+                                copy[idx - 1] = copy[idx];
+                                copy[idx] = temp;
+                                setFormLyricsClues(copy);
+                              }}
+                              className="text-xs p-1 text-muted hover:text-white"
+                              title="Geser Naik"
+                            >
+                              ▲
+                            </button>
+                          )}
+                          {idx < formLyricsClues.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const copy = [...formLyricsClues];
+                                const temp = copy[idx + 1];
+                                copy[idx + 1] = copy[idx];
+                                copy[idx] = temp;
+                                setFormLyricsClues(copy);
+                              }}
+                              className="text-xs p-1 text-muted hover:text-white"
+                              title="Geser Turun"
+                            >
+                              ▼
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <textarea
+                        rows={2}
+                        value={clue}
+                        onChange={(e) => {
+                          const copy = [...formLyricsClues];
+                          copy[idx] = e.target.value;
+                          setFormLyricsClues(copy);
+                        }}
+                        placeholder={`Tulis penggalan lirik bait #${idx + 1}...`}
+                        className="bg-black/40 border border-surfaceBorder rounded-lg p-2 text-xs text-white outline-none focus:border-accent font-sans leading-relaxed resize-none"
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setFormLyricsClues([...formLyricsClues, ""])}
+                    className="py-1.5 px-3 rounded-xl border border-dashed border-surfaceBorder hover:border-accent text-xs font-mono text-muted hover:text-accent transition text-center cursor-pointer"
+                  >
+                    + Tambah Bait Lirik Baru
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
