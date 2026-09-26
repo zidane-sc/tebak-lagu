@@ -34,17 +34,18 @@ export async function GET(request: Request) {
           WHEN LOWER(title) LIKE ? THEN 300
           WHEN LOWER(artist) = ? THEN 200
           WHEN LOWER(artist) LIKE ? THEN 100
+          WHEN LOWER(search_query) LIKE ? THEN 80
           ELSE 10
         END as relevance
       FROM songs
-      WHERE title LIKE ? OR artist LIKE ?
+      WHERE title LIKE ? OR artist LIKE ? OR search_query LIKE ?
       ORDER BY relevance DESC, popularity DESC, deezer_rank DESC
       LIMIT 10;
     `;
 
     const localRes = await db.execute({
       sql,
-      args: [queryLower, starts, word, queryLower, starts, contains, contains],
+      args: [queryLower, starts, word, queryLower, starts, contains, contains, contains, contains],
     });
 
     const localMatches = localRes.rows.map(rowToSong);

@@ -15,6 +15,7 @@ import {
   Check,
   X,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { EntitySongsModal } from "./EntitySongsModal";
 import { CATEGORIES } from "@/data/songs";
@@ -42,6 +43,31 @@ export const ArtistsManager: React.FC<{
   const [reassignArtist, setReassignArtist] = useState<any | null>(null);
   const [newGenre, setNewGenre] = useState<string>("Galau Hits");
   const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
+
+  // Sync / Seeder Multi-Artist State
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncMultiArtists = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/admin/entities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync_artists" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onNotification?.(data.message || "Seeding & Sinkronisasi Multi-Artis berhasil!", "success");
+        fetchArtists();
+      } else {
+        onNotification?.(data.error || "Gagal sinkronisasi artis.", "error");
+      }
+    } catch (err) {
+      onNotification?.("Terjadi kesalahan jaringan.", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -157,8 +183,8 @@ export const ArtistsManager: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="relative flex-1 sm:w-60">
             <Search className="w-4 h-4 absolute left-3 top-3 text-mutedDark" />
             <input
               type="text"
@@ -168,6 +194,20 @@ export const ArtistsManager: React.FC<{
               className="w-full bg-surfaceRaised border border-surfaceBorder rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder:text-mutedDark outline-none focus:border-accent font-sans transition"
             />
           </div>
+
+          <button
+            onClick={handleSyncMultiArtists}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            title="Ekstrak & Sinkronkan relasi multi-penyanyi dari katalog lagu"
+          >
+            {isSyncing ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            <span>{isSyncing ? "Menyinkronkan..." : "Sinkronkan Multi-Artis"}</span>
+          </button>
 
           <button
             onClick={fetchArtists}

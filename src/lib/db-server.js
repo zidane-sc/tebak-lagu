@@ -139,6 +139,33 @@ async function initDb() {
     );
   `);
 
+  // Multi-Artist & Multi-Singer Architecture
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS artists (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      image TEXT,
+      category TEXT,
+      song_count INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS song_artists (
+      song_id TEXT NOT NULL,
+      artist_id TEXT NOT NULL,
+      artist_name TEXT NOT NULL,
+      role TEXT DEFAULT 'primary',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (song_id, artist_id)
+    );
+  `);
+
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_artist ON song_artists(artist_id);`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_song ON song_artists(song_id);`);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_name ON song_artists(artist_name);`);
+
   const countRes = await db.execute("SELECT COUNT(*) as total FROM songs;");
   const count = Number(countRes.rows[0]?.total || 0);
 

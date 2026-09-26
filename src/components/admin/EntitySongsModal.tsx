@@ -188,9 +188,20 @@ export const EntitySongsModal: React.FC<EntitySongsModalProps> = ({
                       )}
 
                       <div className="min-w-0">
-                        <p className="font-semibold text-xs sm:text-sm text-white truncate">
-                          {titleText}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-semibold text-xs sm:text-sm text-white truncate">
+                            {titleText}
+                          </p>
+                          {song.role && song.role !== "primary" && (
+                            <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded font-bold uppercase ${
+                              song.role === "featured"
+                                ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                                : "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                            }`}>
+                              {song.role === "featured" ? "Featured" : "Duet / Collab"}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-muted truncate">
                           {artistText} {song.year ? `(${song.year})` : ""}{" "}
                           {song.album ? `• ${song.album}` : ""}

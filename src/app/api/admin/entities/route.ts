@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, initDb } from "@/lib/db";
+import { seedArtists } from "@/scripts/seed-artists";
 
 export const dynamic = "force-dynamic";
 
@@ -14,19 +15,19 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
 
     // -----------------------------------------------------------
-    // 1. ARTISTS LIST
+    // 1. ARTISTS LIST (From Multi-Artist Normalized Table)
     // -----------------------------------------------------------
     if (type === "artists") {
       let whereClause = "";
       const args: any[] = [];
 
       if (search) {
-        whereClause = "WHERE artist LIKE ?";
+        whereClause = "WHERE a.name LIKE ?";
         args.push(`%${search}%`);
       }
 
       const totalRes = await db.execute({
-        sql: `SELECT COUNT(DISTINCT artist) as total FROM songs ${whereClause};`,
+        sql: `SELECT COUNT(*) as total FROM artists a ${whereClause};`,
         args,
       });
       const total = Number(totalRes.rows[0]?.total || 0);
@@ -34,31 +35,36 @@ export async function GET(request: Request) {
       const artistsRes = await db.execute({
         sql: `
           SELECT 
-            artist,
-            COUNT(*) as song_count,
-            SUM(times_played) as total_plays,
-            SUM(times_guessed) as total_guesses,
-            MAX(album_cover) as sample_cover,
-            GROUP_CONCAT(DISTINCT category) as categories,
-            MIN(year) as min_year,
-            MAX(year) as max_year,
-            MAX(deezer_rank) as top_deezer_rank
-          FROM songs
+            a.id,
+            a.name as artist,
+            a.image as sample_cover,
+            a.category as primary_category,
+            a.song_count,
+            COALESCE(SUM(s.times_played), 0) as total_plays,
+            COALESCE(SUM(s.times_guessed), 0) as total_guesses,
+            GROUP_CONCAT(DISTINCT s.category) as categories,
+            MIN(s.year) as min_year,
+            MAX(s.year) as max_year,
+            MAX(s.deezer_rank) as top_deezer_rank
+          FROM artists a
+          LEFT JOIN song_artists sa ON a.id = sa.artist_id
+          LEFT JOIN songs s ON sa.song_id = s.id
           ${whereClause}
-          GROUP BY artist
-          ORDER BY song_count DESC, total_plays DESC
+          GROUP BY a.id
+          ORDER BY a.song_count DESC, total_plays DESC
           LIMIT ? OFFSET ?;
         `,
         args: [...args, limit, offset],
       });
 
       const artists = artistsRes.rows.map((r: any) => ({
+        id: String(r.id),
         artist: String(r.artist),
         song_count: Number(r.song_count || 0),
         total_plays: Number(r.total_plays || 0),
         total_guesses: Number(r.total_guesses || 0),
         sample_cover: r.sample_cover || "",
-        categories: r.categories ? String(r.categories).split(",") : [],
+        categories: r.categories ? String(r.categories).split(",") : [r.primary_category || "Pop"],
         min_year: r.min_year ? Number(r.min_year) : null,
         max_year: r.max_year ? Number(r.max_year) : null,
         top_deezer_rank: Number(r.top_deezer_rank || 0),
@@ -170,17 +176,42 @@ export async function GET(request: Request) {
     }
 
     // -----------------------------------------------------------
-    // 4. SONGS BY ARTIST OR ALBUM
+    // 4. SONGS BY ARTIST (Multi-Artist Aware Query)
     // -----------------------------------------------------------
     if (type === "songs_by_artist") {
       const artist = searchParams.get("artist") || "";
+
+      // Query through song_artists junction table for full coverage (solo + collabs)
       const res = await db.execute({
-        sql: "SELECT id, title, artist, year, category, difficulty, album, album_cover, preview_url, deezer_rank, bpm, times_played FROM songs WHERE artist = ? ORDER BY year DESC, title ASC;",
-        args: [artist],
+        sql: `
+          SELECT 
+            s.id,
+            s.title,
+            s.artist,
+            s.year,
+            s.category,
+            s.difficulty,
+            s.album,
+            s.album_cover,
+            s.preview_url,
+            s.deezer_rank,
+            s.bpm,
+            s.times_played,
+            sa.role
+          FROM song_artists sa
+          JOIN songs s ON sa.song_id = s.id
+          WHERE sa.artist_name = ? OR sa.artist_name LIKE ?
+          ORDER BY s.year DESC, s.title ASC;
+        `,
+        args: [artist, `%${artist}%`],
       });
+
       return NextResponse.json({ artist, songs: res.rows });
     }
 
+    // -----------------------------------------------------------
+    // 5. SONGS BY ALBUM
+    // -----------------------------------------------------------
     if (type === "songs_by_album") {
       const artist = searchParams.get("artist") || "";
       const album = searchParams.get("album") || "";
@@ -213,13 +244,35 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action } = body;
 
-    // 1. RENAME ARTIST (Batch across all songs)
+    // 0. SINKRONISASI / SEED ARTISTS
+    if (action === "sync_artists") {
+      await seedArtists();
+      return NextResponse.json({
+        success: true,
+        message: "Sinkronisasi & Seeding Multi-Artis berhasil dilakukan!",
+      });
+    }
+
+    // 1. RENAME ARTIST (Batch across all songs and junction tables)
     if (action === "rename_artist") {
       const { oldName, newName } = body;
       if (!oldName?.trim() || !newName?.trim()) {
         return NextResponse.json({ error: "Nama lama dan nama baru wajib diisi!" }, { status: 400 });
       }
 
+      // Update artists table
+      await db.execute({
+        sql: "UPDATE artists SET name = ? WHERE name = ?;",
+        args: [newName.trim(), oldName.trim()],
+      });
+
+      // Update song_artists
+      await db.execute({
+        sql: "UPDATE song_artists SET artist_name = ? WHERE artist_name = ?;",
+        args: [newName.trim(), oldName.trim()],
+      });
+
+      // Update songs display string
       const updateRes = await db.execute({
         sql: "UPDATE songs SET artist = ?, search_query = title || ' ' || ? WHERE artist = ?;",
         args: [newName.trim(), newName.trim(), oldName.trim()],
@@ -238,8 +291,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Artis dan genre baru wajib diisi!" }, { status: 400 });
       }
 
+      // Update songs
       const updateRes = await db.execute({
         sql: "UPDATE songs SET category = ? WHERE artist = ?;",
+        args: [newCategory.trim(), artist.trim()],
+      });
+
+      // Update artists
+      await db.execute({
+        sql: "UPDATE artists SET category = ? WHERE name = ?;",
         args: [newCategory.trim(), artist.trim()],
       });
 
