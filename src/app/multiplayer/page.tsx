@@ -122,7 +122,6 @@ export default function MultiplayerPage() {
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const [cooldownTick, setCooldownTick] = useState<number>(0);
   const [lastRoundWinner, setLastRoundWinner] = useState<{ name: string; points: number; streak: number } | null>(null);
-  const [clueUnlockedAlert, setClueUnlockedAlert] = useState<{ stage: number; text: string; subtext: string } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -413,25 +412,9 @@ export default function MultiplayerPage() {
             sfx.playGong();
             setRoom(data.room);
 
-            const stageNum = data.stage || (data.room?.clueStage || 2);
-            const isTts = (data.room?.mode || room?.mode) === "tts";
-            const stageTitle = isTts
-              ? `Bait ${stageNum} Terbuka!`
-              : `Audio ${[5, 5, 9, 18, 30][stageNum] || 30}s Terbuka!`;
-            const stageSub = isTts
-              ? `Robot membacakan lirik hingga Bait ${stageNum}`
-              : `Potongan cuplikan musik diperpanjang hingga ${[5, 5, 9, 18, 30][stageNum] || 30} detik!`;
-
-            setClueUnlockedAlert({
-              stage: stageNum,
-              text: stageTitle,
-              subtext: stageSub,
-            });
-
             if (typeof navigator !== "undefined" && navigator.vibrate) {
               navigator.vibrate([60, 40, 90]);
             }
-            setTimeout(() => setClueUnlockedAlert(null), 3000);
 
             // Seamlessly auto-play the newly unlocked clue audio for all devices
             setTimeout(() => {
@@ -1470,33 +1453,8 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
-          {/* 🔓 Animated Clue Unlocked Floating Banner */}
-          {clueUnlockedAlert && (
-            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-bounce pointer-events-none px-4 w-full max-w-sm">
-              <div className="bg-gradient-to-r from-emerald-600/95 via-teal-600/95 to-emerald-700/95 text-white p-3 rounded-2xl shadow-2xl shadow-emerald-500/40 border border-emerald-300/60 backdrop-blur-xl flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0 border border-white/30 animate-pulse">
-                  🔓
-                </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-emerald-200 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-400/30">
-                      Tahap {clueUnlockedAlert.stage}/4 Terbuka
-                    </span>
-                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
-                  </div>
-                  <div className="text-sm font-black text-white truncate mt-0.5">
-                    {clueUnlockedAlert.text}
-                  </div>
-                  <div className="text-[11px] text-emerald-100 truncate">
-                    {clueUnlockedAlert.subtext}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ========================================================= */}
-          {/* 🌟 CLUE TIMELINE & INTERACTIVE 10S PROGRESS BAR */}
+          {/* 🌟 UNIFIED HERO ARENA DECK (VINYL + CLEAN TIMELINE) */}
           {/* ========================================================= */}
           {(room.status === "playing" || room.status === "buzzed") && (() => {
             const currentStage = room.clueStage || 1;
@@ -1505,30 +1463,54 @@ export default function MultiplayerPage() {
             const stageProgressPct = Math.max(0, Math.min(100, (secondsLeft / maxSecondsForStage) * 100));
 
             return (
-              <div className="flex flex-col gap-2.5 w-full bg-surfaceRaised/95 border border-surfaceBorder rounded-2xl p-3 sm:p-3.5 shadow-md">
-                {/* Header: Stage Label & Countdown Timer */}
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <span className="text-base">{room.mode === "tts" ? "🤖" : "⏱️"}</span>
-                    <span className="text-zinc-200">
-                      Progres Clue:{" "}
-                      <strong className="text-accent font-extrabold">Tahap {currentStage}/4</strong>
-                    </span>
+              <div className="bg-surface border border-surfaceBorder rounded-3xl p-4 sm:p-5 flex flex-col items-center gap-3.5 text-center shadow-lg relative overflow-hidden w-full">
+                {/* Header: Subtle Stage & Countdown Pill */}
+                <div className="w-full flex items-center justify-between text-xs font-mono px-0.5">
+                  <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full text-zinc-300 font-bold text-[11px]">
+                    <span>{room.mode === "tts" ? "🤖 Robot TTS" : "🎧 Heardle"}</span>
+                    <span className="text-zinc-500">·</span>
+                    <span className="text-accent font-extrabold">Tahap {currentStage}/4</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 font-semibold">
-                    <Timer className={`w-3.5 h-3.5 ${secondsLeft <= 3 ? "text-red-400 animate-bounce" : "text-amber-400 animate-pulse"}`} />
-                    <span className={`font-mono font-bold text-sm ${secondsLeft <= 3 ? "text-red-400 animate-pulse" : "text-amber-400"}`}>
-                      {secondsLeft}s
-                    </span>
-                    <span className="text-[10px] text-mutedDark font-normal">
-                      {currentStage < 4 ? "menuju tahap berikutnya" : "sisa ronde"}
-                    </span>
+                  <div
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-mono font-bold text-xs transition-colors ${
+                      secondsLeft <= 3
+                        ? "bg-red-500/15 border-red-500/40 text-red-400 animate-pulse"
+                        : "bg-surfaceRaised border-surfaceBorder text-amber-400"
+                    }`}
+                  >
+                    <Timer className="w-3.5 h-3.5" />
+                    <span>{secondsLeft}s</span>
                   </div>
                 </div>
 
-                {/* 4 Segmented Visual Stage Blocks */}
-                <div className="grid grid-cols-4 gap-1.5 h-8 w-full">
+                {/* Spinning Vinyl Record Deck */}
+                <div className="py-0.5">
+                  <VinylPlayer
+                    isPlaying={isPlayingAudio}
+                    coverUrl={room.status === "revealed" ? room.revealedSong?.albumCover : undefined}
+                    label={
+                      isPlayingAudio
+                        ? room.mode === "tts"
+                          ? "Robot Sedang Membacakan Lirik..."
+                          : "Audio Clue Sedang Berputar..."
+                        : "Audio Clue Siap"
+                    }
+                    size="sm"
+                  />
+                </div>
+
+                {/* Sleek Waveform Visualizer */}
+                <AudioWaveformVisualizer
+                  isPlaying={isPlayingAudio}
+                  variant="emerald"
+                  barCount={28}
+                  height={24}
+                  className="w-full max-w-xs opacity-90 my-0"
+                />
+
+                {/* 4 Clean Segmented Stage Pills (NO TEXT SPOILERS) */}
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full max-w-sm mt-0.5">
                   {[1, 2, 3, 4].map((stageNum) => {
                     const isCurrent = currentStage === stageNum;
                     const isUnlocked = currentStage >= stageNum;
@@ -1546,33 +1528,32 @@ export default function MultiplayerPage() {
                     return (
                       <div
                         key={stageNum}
-                        className={`relative h-full rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden border ${
+                        className={`relative h-8 rounded-xl flex items-center justify-center font-mono text-[11px] font-bold transition-all duration-300 overflow-hidden border ${
                           isCurrent
-                            ? "border-emerald-400/80 bg-zinc-900 shadow-md shadow-emerald-500/20"
+                            ? "border-emerald-400 bg-zinc-900 text-emerald-300 shadow-md shadow-emerald-500/20"
                             : isUnlocked
-                            ? "bg-emerald-950/80 border-emerald-700/60"
-                            : "bg-zinc-900/80 border-zinc-800"
+                            ? "border-emerald-700/60 bg-emerald-950/40 text-emerald-400"
+                            : "border-surfaceBorder bg-surfaceRaised/60 text-zinc-600"
                         }`}
                         title={`Tahap ${stageNum}: ${label}`}
                       >
-                        {/* Live countdown fill inside active segment */}
+                        {/* Smooth active countdown fill inside current pill */}
                         {isCurrent && (
                           <div
-                            className="absolute inset-0 bg-gradient-to-r from-emerald-600/40 via-teal-500/40 to-emerald-400/30 transition-all duration-1000 ease-linear"
+                            className="absolute inset-0 bg-emerald-500/20 transition-all duration-1000 ease-linear"
                             style={{ width: `${stageProgressPct}%` }}
                           />
                         )}
-
-                        <span
-                          className={`relative z-10 text-[10px] sm:text-xs font-mono font-black tracking-tight select-none flex items-center gap-1 ${
-                            isCurrent
-                              ? "text-emerald-300 drop-shadow-sm"
-                              : isUnlocked
-                              ? "text-emerald-400 font-bold"
-                              : "text-zinc-600"
-                          }`}
-                        >
-                          {isUnlocked ? (isCurrent ? "⚡" : "✓") : "🔒"}
+                        <span className="relative z-10 flex items-center gap-1 select-none">
+                          {isUnlocked ? (
+                            isCurrent ? (
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            ) : (
+                              <span className="text-[10px]">✓</span>
+                            )
+                          ) : (
+                            <span className="text-[9px]">🔒</span>
+                          )}
                           <span>{label}</span>
                         </span>
                       </div>
@@ -1580,86 +1561,73 @@ export default function MultiplayerPage() {
                   })}
                 </div>
 
-                {/* 🌟 Continuous 10-Second Countdown Neon Progress Bar */}
-                <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800/80 relative">
-                  <div
-                    className={`h-full transition-all duration-1000 ease-linear rounded-full ${
-                      secondsLeft <= 3
-                        ? "bg-gradient-to-r from-amber-500 to-red-500 shadow-sm shadow-red-500/50 animate-pulse"
-                        : "bg-gradient-to-r from-emerald-500 via-teal-400 to-accent shadow-sm shadow-emerald-500/40"
-                    }`}
-                    style={{ width: `${stageProgressPct}%` }}
-                  />
-                </div>
+                {/* Action Toolbar: Replay + Host + Voting */}
+                <div className="flex items-center justify-between w-full pt-2.5 border-t border-surfaceBorder/60 gap-2 flex-wrap">
+                  {/* Left: Replay & Host audio controls */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => playAudioLocal()}
+                      disabled={isAudioBuffering}
+                      className="flex items-center gap-1 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-300 px-2.5 py-1 rounded-lg text-xs font-medium transition active:scale-95 cursor-pointer shadow-sm"
+                      title="Dengarkan ulang clue di ponselmu"
+                    >
+                      {isAudioBuffering ? (
+                        <Loader2 className="w-3 h-3 text-accent animate-spin" />
+                      ) : isPlayingAudio ? (
+                        <Volume2 className="w-3 h-3 text-accent animate-pulse" />
+                      ) : (
+                        <RotateCcw className="w-3 h-3 text-accent" />
+                      )}
+                      <span className="text-[11px]">{isPlayingAudio ? "Berputar" : "Ulang"}</span>
+                    </button>
 
-                {/* TTS Lyrics Verse Display (When mode is TTS) */}
-                {room.mode === "tts" && room.currentSongClue?.lyricsClues && (
-                  <div className="mt-1 flex flex-col gap-1.5 bg-zinc-950/60 border border-surfaceBorder rounded-xl p-2.5 text-left">
-                    <div className="flex items-center justify-between text-[10px] font-mono text-muted uppercase tracking-wider font-bold">
-                      <span className="flex items-center gap-1">
-                        <span>📖</span>
-                        <span>Lirik yang Terbuka ({room.currentSongClue.lyricsClues.length} Bait):</span>
-                      </span>
-                      <span className="text-accent animate-pulse">Suara Robot Aktif 🤖</span>
-                    </div>
-
-                    <div className="flex flex-col gap-1 text-xs">
-                      {room.currentSongClue.lyricsClues.map((clueText: string, idx: number) => {
-                        const isLatest = idx === (room.currentSongClue.lyricsClues.length - 1);
-                        return (
-                          <div
-                            key={idx}
-                            className={`p-2 rounded-lg font-medium leading-relaxed transition-all ${
-                              isLatest
-                                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 animate-fade-in"
-                                : "bg-surface/50 border border-surfaceBorder/40 text-zinc-300"
-                            }`}
-                          >
-                            <span className="font-mono text-[10px] font-bold text-accent mr-1.5">
-                              [Bait {idx + 1}]
-                            </span>
-                            <span>&ldquo;{clueText}&rdquo;</span>
-                            {isLatest && (
-                              <span className="ml-1.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-bold">
-                                ✨ BARU
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {isHost && (
+                      <button
+                        onClick={handleToggleRoomAudio}
+                        disabled={isAudioBuffering}
+                        className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-medium transition active:scale-95 cursor-pointer"
+                        title="Kontrol Host: Jeda / Lanjut audio room"
+                      >
+                        {isPlayingAudio ? (
+                          <Pause className="w-3 h-3 text-amber-400" />
+                        ) : (
+                          <Play className="w-3 h-3 fill-current text-amber-400" />
+                        )}
+                        <span className="text-[11px]">{isPlayingAudio ? "Jeda" : "Putar"}</span>
+                      </button>
+                    )}
                   </div>
-                )}
 
-                {/* Action Buttons: Buka Clue Cepat & Vote Nyerah */}
-                <div className="flex items-center justify-between pt-1 gap-2 border-t border-surfaceBorder/60">
-                  <span className="text-[11px] text-muted leading-tight truncate">
-                    {room.mode === "tts"
-                      ? `Bait 1 s/d ${currentStage} terbuka`
-                      : `Audio terbuka hingga ${[5, 5, 9, 18, 30][currentStage]} detik`}
-                  </span>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Right: Buka Clue & Nyerah Buttons */}
+                  <div className="flex items-center gap-1.5">
                     {currentStage < 4 && (() => {
                       const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
-                      const requiredVotes = room.clueVotesRequired || (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
-                      const hasVoted = room.clueVotes?.includes(myPlayerId) || (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
+                      const requiredVotes =
+                        room.clueVotesRequired ||
+                        (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
+                      const hasVoted =
+                        room.clueVotes?.includes(myPlayerId) ||
+                        (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
                       const currentVotes = room.clueVotes?.length || 0;
 
                       return (
                         <button
                           onClick={handleAdvanceClue}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition active:scale-95 cursor-pointer ${
                             hasVoted
-                              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
-                              : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-bold animate-pulse"
+                              : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
                           }`}
-                          title={activeCount <= 2 ? "Butuh persetujuan kedua pemain untuk membuka clue lebih awal" : "Butuh >50% persetujuan pemain untuk membuka clue"}
+                          title={
+                            activeCount <= 2
+                              ? "Butuh persetujuan kedua pemain untuk membuka clue"
+                              : "Butuh >50% persetujuan pemain"
+                          }
                         >
                           <span>💡</span>
-                          <span>
+                          <span className="text-[11px]">
                             {hasVoted
-                              ? `✓ Menunggu (${currentVotes}/${requiredVotes})`
+                              ? `Menunggu (${currentVotes}/${requiredVotes})`
                               : `Buka Clue (${currentVotes}/${requiredVotes})`}
                           </span>
                         </button>
@@ -1668,14 +1636,14 @@ export default function MultiplayerPage() {
 
                     <button
                       onClick={handleSkipRound}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition active:scale-95 cursor-pointer ${
                         room.skipVotes?.includes(myPlayerId)
-                          ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
-                          : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
+                          ? "bg-red-500/20 text-red-300 border-red-500/50 font-bold"
+                          : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
                       }`}
                     >
                       <span>🏳️</span>
-                      <span>
+                      <span className="text-[11px]">
                         {room.skipVotes?.includes(myPlayerId) ? "Batal" : "Nyerah"}{" "}
                         ({room.skipVotes?.length || 0}/
                         {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
@@ -1683,119 +1651,38 @@ export default function MultiplayerPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Hidden native audio element */}
+                <audio
+                  ref={audioRef}
+                  preload="auto"
+                  onWaiting={() => setIsAudioBuffering(true)}
+                  onPlaying={() => {
+                    setIsAudioBuffering(false);
+                    setIsPlayingAudio(true);
+                  }}
+                  onPause={() => {
+                    setIsPlayingAudio(false);
+                    setIsAudioBuffering(false);
+                  }}
+                  onEnded={() => {
+                    setIsPlayingAudio(false);
+                    setIsAudioBuffering(false);
+                  }}
+                  onError={() => {
+                    setIsPlayingAudio(false);
+                    setIsAudioBuffering(false);
+                  }}
+                />
               </div>
             );
           })()}
-
-          {/* Central Vinyl Player & Clue Card */}
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col items-center gap-2 text-center shadow-sm relative overflow-hidden">
-            {/* Spinning Vinyl Record Deck */}
-            <VinylPlayer
-              isPlaying={isPlayingAudio}
-              coverUrl={room.status === "revealed" ? room.revealedSong?.albumCover : undefined}
-              label={isPlayingAudio ? "Memutar Audio Clue" : "Audio Clue Siap"}
-              size="sm"
-            />
-
-            {/* Audio Status & Interactive Playback Controls */}
-            <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
-              {/* Personal Replay Button for Every Player */}
-              <button
-                onClick={() => playAudioLocal()}
-                disabled={isAudioBuffering}
-                className="flex items-center gap-1.5 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
-                title="Dengarkan ulang potongan clue saat ini di ponselmu"
-              >
-                {isAudioBuffering ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
-                    <span>Memuat...</span>
-                  </>
-                ) : isPlayingAudio ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-accent animate-pulse" />
-                    <span className="text-accent font-bold">Sedang Berputar 🎶</span>
-                  </>
-                ) : (
-                  <>
-                    <RotateCcw className="w-3.5 h-3.5 text-accent" />
-                    <span>Putar Ulang Clue 🔁</span>
-                  </>
-                )}
-              </button>
-
-              {/* Host Emergency Room Play/Pause Toggle */}
-              {isHost && (
-                <button
-                  onClick={handleToggleRoomAudio}
-                  disabled={isAudioBuffering}
-                  className={`flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
-                    isAudioBuffering ? "opacity-75 cursor-wait" : ""
-                  }`}
-                  title="Kontrol Host: Jeda atau Putar audio untuk seluruh room"
-                >
-                  {isPlayingAudio ? (
-                    <>
-                      <Pause className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Jeda Room ⏸️</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5 fill-current text-amber-400" />
-                      <span>Lanjut Room ▶️</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Live Audio Waveform Visualizer */}
-            <AudioWaveformVisualizer
-              isPlaying={isPlayingAudio}
-              variant="emerald"
-              barCount={28}
-              height={32}
-              className="w-full max-w-xs my-0.5"
-            />
-
-            {/* Hidden native audio element with proactive buffering event listeners */}
-            <audio
-              ref={audioRef}
-              preload="auto"
-              onWaiting={() => setIsAudioBuffering(true)}
-              onPlaying={() => {
-                setIsAudioBuffering(false);
-                setIsPlayingAudio(true);
-              }}
-              onPause={() => {
-                setIsPlayingAudio(false);
-                setIsAudioBuffering(false);
-              }}
-              onEnded={() => {
-                setIsPlayingAudio(false);
-                setIsAudioBuffering(false);
-              }}
-              onError={() => {
-                setIsPlayingAudio(false);
-                setIsAudioBuffering(false);
-              }}
-            />
-          </div>
 
           {/* ======================================================== */}
           {/* THE GIANT 3D ARCADE BUZZER (Playing State) */}
           {/* ======================================================== */}
           {room.status === "playing" && (
             <div className="flex flex-col items-center justify-center py-4 gap-3">
-              {/* My Lives Indicator */}
-              <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-3.5 py-1.5 rounded-full text-xs font-mono font-bold shadow-sm">
-                <span className="text-muted">Sisa Nyawa Ronde Ini:</span>
-                <span className="text-red-400 font-bold">
-                  {(myPlayer?.lives ?? 3) > 0 ? "❤️".repeat(myPlayer?.lives ?? 3) : "💀"}
-                </span>
-                <span className="text-zinc-400">({myPlayer?.lives ?? 3}/3)</span>
-              </div>
-
               <button
                 onClick={handleBuzz}
                 disabled={(myPlayer?.lives ?? 3) <= 0 || isCooldown}
