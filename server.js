@@ -339,7 +339,7 @@ async function startRound(room) {
   if (room.matchQueue && room.matchQueue[room.currentRound - 1]) {
     chosenSong = room.matchQueue[room.currentRound - 1];
   } else {
-    chosenSong = await getRandomSong(room.category, room.difficulty);
+    chosenSong = await getRandomSong(room.category, room.difficulty, room.mode);
   }
 
   // Ensure TTS has valid real lyrics (never dummy text)
@@ -347,6 +347,12 @@ async function startRound(room) {
     let lyrics = await resolveLyrics(chosenSong);
     if (lyrics && lyrics.length > 0) {
       chosenSong.lyricsClues = lyrics;
+    } else {
+      // Fallback to guaranteed lyrics song
+      const safeSong = await getRandomSong(room.category, room.difficulty, "tts");
+      if (safeSong?.lyricsClues?.length >= 2) {
+        chosenSong = safeSong;
+      }
     }
   }
 
@@ -451,7 +457,7 @@ app.prepare().then(() => {
   });
 
   wss.on("connection", (ws) => {
-    const playerId = "p_" + Math.random().toString(36).substring(2, 9);
+    let playerId = "p_" + Math.random().toString(36).substring(2, 9);
     clientMeta.set(ws, { id: playerId, roomCode: null, name: "" });
 
     ws.on("message", async (raw) => {
@@ -605,7 +611,7 @@ app.prepare().then(() => {
 
           // Pre-roll distinct songs queue for the entire match (100% unique, zero duplicates!)
           try {
-            const queue = await getMatchSongsQueue(room.category, room.difficulty, room.maxRounds || 5);
+            const queue = await getMatchSongsQueue(room.category, room.difficulty, room.maxRounds || 5, room.mode);
             room.matchQueue = queue;
 
             // Pre-resolve lyrics for TTS mode in background
@@ -861,10 +867,10 @@ app.prepare().then(() => {
           }
 
           const activePlayers = room.players.filter((p) => !p.isDisconnected);
-          const totalRequired = Math.max(1, activePlayers.length);
+          const threshold = Math.max(1, Math.ceil(activePlayers.length / 2));
           const isHost = room.hostId === playerId;
 
-          if (isHost || room.clueVotes.size >= totalRequired) {
+          if (isHost || room.clueVotes.size >= threshold) {
             room.clueVotes = new Set();
             room.clueStage += 1;
             room.clueSecondsLeft = room.clueStage === 4 ? 90 : 30;
@@ -880,8 +886,8 @@ app.prepare().then(() => {
             broadcast(room, {
               type: "clue_vote_updated",
               votesCount: room.clueVotes.size,
-              totalRequired,
-              message: `${meta.name} vote buka clue (${room.clueVotes.size}/${totalRequired})`,
+              totalRequired: threshold,
+              message: `${meta.name} vote buka clue (${room.clueVotes.size}/${threshold})`,
               room: getSanitizedRoom(room),
             });
           }
@@ -901,8 +907,21 @@ app.prepare().then(() => {
               }
               player.isDisconnected = false;
               player.ws = ws;
+              playerId = player.id; // UPDATE CLOSURE ID
+              meta.id = player.id;
               meta.roomCode = code;
               meta.name = player.name;
+
+              // Ensure player lives are properly initialized and never undefined
+              if (!room.buzzState) room.buzzState = { playerLives: {} };
+              if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
+              if (room.buzzState.playerLives[player.id] === undefined) {
+                room.buzzState.playerLives[player.id] = 3;
+              }
+              // Un-lockout player on reconnect if they still have lives
+              if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[player.id] > 0) {
+                room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== player.id);
+              }
 
               ws.send(
                 JSON.stringify({

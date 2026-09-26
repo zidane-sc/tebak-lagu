@@ -217,7 +217,7 @@ async function initDb() {
   }
 }
 
-async function getRandomSong(category, difficulty) {
+async function getRandomSong(category, difficulty, mode = null) {
   let sql = "SELECT * FROM songs WHERE 1=1";
   const args = [];
 
@@ -231,11 +231,18 @@ async function getRandomSong(category, difficulty) {
     args.push(difficulty);
   }
 
+  if (mode === "tts") {
+    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]'";
+  }
+
   sql += " ORDER BY RANDOM() LIMIT 1;";
 
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
-    const fallback = await db.execute("SELECT * FROM songs ORDER BY RANDOM() LIMIT 1;");
+    const fallbackSql = mode === "tts"
+      ? "SELECT * FROM songs WHERE lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]' ORDER BY RANDOM() LIMIT 1;"
+      : "SELECT * FROM songs ORDER BY RANDOM() LIMIT 1;";
+    const fallback = await db.execute(fallbackSql);
     return rowToSong(fallback.rows[0]);
   }
 
@@ -261,7 +268,7 @@ async function getCatalogStats() {
   return { total, byDifficulty, byCategory };
 }
 
-async function getMatchSongsQueue(category, difficulty, count = 5) {
+async function getMatchSongsQueue(category, difficulty, count = 5, mode = null) {
   let sql = "SELECT * FROM songs WHERE 1=1";
   const args = [];
 
@@ -273,6 +280,10 @@ async function getMatchSongsQueue(category, difficulty, count = 5) {
   if (difficulty && difficulty !== "all") {
     sql += " AND difficulty = ?";
     args.push(difficulty);
+  }
+
+  if (mode === "tts") {
+    sql += " AND lyrics_clues IS NOT NULL AND length(lyrics_clues) > 15 AND lyrics_clues != '[]'";
   }
 
   // Fetch a larger sample pool to guarantee unique selections

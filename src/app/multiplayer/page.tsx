@@ -1287,59 +1287,121 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
-          {/* Clue Stage & Vote Skip Bar */}
+          {/* ========================================================= */}
+          {/* 🌟 CLUE TIMELINE & PROGRESS BAR (HEARDLE / TTS TRACK) */}
+          {/* ========================================================= */}
           {(room.status === "playing" || room.status === "buzzed") && (
-            <div className="flex items-center justify-between w-full bg-surfaceRaised/90 border border-surfaceBorder rounded-xl p-2.5 px-3 text-xs font-mono shadow-sm">
-              <div className="flex items-center gap-1.5 font-bold">
-                <Timer className="w-3.5 h-3.5 text-accent animate-pulse" />
-                <span className="text-zinc-200">
-                  Tahap Clue:{" "}
-                  <strong className="text-accent">{room.clueStage || 1}/4</strong>
-                </span>
-                <span className="text-zinc-500">•</span>
-                <span className="text-amber-400 font-bold">
-                  {room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30}s
-                </span>
+            <div className="flex flex-col gap-2.5 w-full bg-surfaceRaised/95 border border-surfaceBorder rounded-2xl p-3 sm:p-3.5 shadow-md">
+              {/* Header: Stage Label & Countdown Timer */}
+              <div className="flex items-center justify-between text-xs font-mono">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <span className="text-base">{room.mode === "tts" ? "🤖" : "⏱️"}</span>
+                  <span className="text-zinc-200">
+                    Progres Clue:{" "}
+                    <strong className="text-accent font-extrabold">Tahap {room.clueStage || 1}/4</strong>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 font-semibold">
+                  <Timer className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span className="text-amber-400">
+                    {room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30}s
+                  </span>
+                  <span className="text-[10px] text-mutedDark font-normal">
+                    {room.clueStage < 4 ? "menuju tahap berikutnya" : "sisa ronde"}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Advance Clue Button (Consensus or Host Fast-Track) */}
-                {room.clueStage < 4 && (
+              {/* 4 Segmented Progress Bar Track */}
+              <div className="grid grid-cols-4 gap-1.5 h-3 w-full">
+                {[1, 2, 3, 4].map((stageNum) => {
+                  const isCurrent = (room.clueStage || 1) === stageNum;
+                  const isUnlocked = (room.clueStage || 1) >= stageNum;
+                  const label =
+                    room.mode === "tts"
+                      ? `Bait ${stageNum}`
+                      : stageNum === 1
+                      ? "5s"
+                      : stageNum === 2
+                      ? "9s"
+                      : stageNum === 3
+                      ? "18s"
+                      : "30s";
+
+                  return (
+                    <div
+                      key={stageNum}
+                      className={`relative h-full rounded-md flex items-center justify-center transition-all duration-300 overflow-hidden ${
+                        isCurrent
+                          ? "bg-accent shadow-sm shadow-accent/40 border border-emerald-300/40"
+                          : isUnlocked
+                          ? "bg-emerald-800/80 border border-emerald-700/40"
+                          : "bg-zinc-800/80 border border-zinc-700/30"
+                      }`}
+                      title={`Tahap ${stageNum}: ${label}`}
+                    >
+                      <span
+                        className={`text-[9px] font-mono font-bold tracking-tight select-none ${
+                          isCurrent
+                            ? "text-zinc-950 font-black"
+                            : isUnlocked
+                            ? "text-emerald-300"
+                            : "text-zinc-500"
+                        }`}
+                      >
+                        {label} {isUnlocked ? "✓" : "🔒"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Action Buttons: Buka Clue Cepat & Vote Nyerah */}
+              <div className="flex items-center justify-between pt-1 gap-2 border-t border-surfaceBorder/60">
+                <span className="text-[11px] text-muted leading-tight truncate">
+                  {room.mode === "tts"
+                    ? `Bait 1 s/d ${room.clueStage || 1} dibacakan robot`
+                    : `Audio terbuka hingga ${[5, 5, 9, 18, 30][room.clueStage || 1]} detik`}
+                </span>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {room.clueStage < 4 && (
+                    <button
+                      onClick={handleAdvanceClue}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                        room.clueVotes?.includes(myPlayerId)
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
+                          : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                      }`}
+                    >
+                      <span>💡</span>
+                      <span>
+                        {isHost
+                          ? "Buka Clue ➔"
+                          : `Buka Clue (${room.clueVotes?.length || 0}/${
+                              Math.max(1, Math.ceil((room.players?.filter((p: any) => !p.isDisconnected).length || 1) / 2))
+                            })`}
+                      </span>
+                    </button>
+                  )}
+
                   <button
-                    onClick={handleAdvanceClue}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                      room.clueVotes?.includes(myPlayerId)
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
-                        : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                    onClick={handleSkipRound}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                      room.skipVotes?.includes(myPlayerId)
+                        ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
+                        : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
                     }`}
                   >
-                    <span>💡</span>
+                    <span>🏳️</span>
                     <span>
-                      {isHost
-                        ? "Buka Clue ➔"
-                        : `Buka Clue (${room.clueVotes?.length || 0}/${
-                            room.players?.filter((p: any) => !p.isDisconnected).length || 1
-                          })`}
+                      {room.skipVotes?.includes(myPlayerId) ? "Batal" : "Nyerah"}{" "}
+                      ({room.skipVotes?.length || 0}/
+                      {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
                     </span>
                   </button>
-                )}
-
-                {/* Vote Skip Button */}
-                <button
-                  onClick={handleSkipRound}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                    room.skipVotes?.includes(myPlayerId)
-                      ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
-                      : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
-                  }`}
-                >
-                  <span>🏳️</span>
-                  <span>
-                    {room.skipVotes?.includes(myPlayerId) ? "Batal Nyerah" : "Vote Nyerah"}{" "}
-                    ({room.skipVotes?.length || 0}/
-                    {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
-                  </span>
-                </button>
+                </div>
               </div>
             </div>
           )}
@@ -1779,6 +1841,23 @@ export default function MultiplayerPage() {
           onClose={() => setShowQrModal(false)}
           roomCode={room.code}
         />
+      )}
+
+      {/* Disconnect Reconnecting Overlay */}
+      {!isConnected && (view === "room" || view === "game") && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface border border-surfaceBorder rounded-3xl p-6 max-w-xs w-full text-center flex flex-col items-center gap-3.5 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-white text-base">Menghubungkan Kembali...</h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Koneksi terputus sejenak. Menyambungkan ulang ke room tanpa membatalkan permainan...
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
