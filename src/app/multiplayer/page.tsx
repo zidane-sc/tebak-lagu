@@ -100,6 +100,7 @@ export default function MultiplayerPage() {
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(15);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const [cooldownTick, setCooldownTick] = useState<number>(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,6 +109,11 @@ export default function MultiplayerPage() {
 
   const playAudioRef = useRef<(customRoom?: any) => void>(() => {});
   const pauseAudioRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    const timer = setInterval(() => setCooldownTick((t) => t + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     synthRef.current = new HummingSynth();
@@ -656,8 +662,19 @@ export default function MultiplayerPage() {
     setShowExitConfirm(false);
   };
 
+  const myPlayer = room?.players?.find((p: any) => p.id === myPlayerId);
+  const isHost = myPlayer?.isHost;
+  const isMyTurnToGuess = room?.buzzedPlayer?.id === myPlayerId;
+
+  const isCooldown = (myPlayer?.buzzCooldownUntil || 0) > Date.now();
+  const cooldownSeconds = Math.max(0, Math.ceil(((myPlayer?.buzzCooldownUntil || 0) - Date.now()) / 1000));
+
   const handleBuzz = () => {
     if (!ws || !room || room.status !== "playing") return;
+    if (isCooldown) {
+      sfx.playWrong();
+      return;
+    }
     sfx.playBuzzer();
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate([90]);
@@ -736,10 +753,6 @@ export default function MultiplayerPage() {
   const toggleAudioPlay = () => {
     handleToggleRoomAudio();
   };
-
-  const myPlayer = room?.players?.find((p: any) => p.id === myPlayerId);
-  const isHost = myPlayer?.isHost;
-  const isMyTurnToGuess = room?.buzzedPlayer?.id === myPlayerId;
 
   // Sorted players for leaderboard
   const sortedPlayers = room?.players ? [...room.players].sort((a: any, b: any) => b.score - a.score) : [];
@@ -1492,37 +1505,53 @@ export default function MultiplayerPage() {
               size="sm"
             />
 
-            {/* Clue Prompt */}
-            <button
-              onClick={handleToggleRoomAudio}
-              disabled={isAudioBuffering}
-              className={`mt-1 flex items-center gap-2 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
-                isAudioBuffering ? "opacity-75 cursor-wait" : ""
-              }`}
-            >
-              {isAudioBuffering ? (
-                <>
-                  <Loader2 className="w-4 h-4 text-accent animate-spin" />
-                  <span>Menyiapkan Audio...</span>
-                </>
-              ) : isPlayingAudio ? (
-                <>
-                  <Pause className="w-4 h-4 text-accent animate-pulse" />
-                  <span>
-                    Jeda Audio Bersama ({room.mode === "heardle" ? `${[5, 5, 9, 18, 30][room.clueStage || 1]}s` : "TTS"})
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current text-accent" />
-                  <span>
-                    {room.mode === "heardle"
-                      ? `Putar Cuplikan Bersama (${[5, 5, 9, 18, 30][room.clueStage || 1]}s) ▶️`
-                      : "Putar Robot Bersama ▶️"}
-                  </span>
-                </>
-              )}
-            </button>
+            {/* Audio Status & Host Controls */}
+            {isHost ? (
+              <button
+                onClick={handleToggleRoomAudio}
+                disabled={isAudioBuffering}
+                className={`mt-1 flex items-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
+                  isAudioBuffering ? "opacity-75 cursor-wait" : ""
+                }`}
+                title="Kontrol Host: Jeda atau Putar audio untuk seluruh room"
+              >
+                {isAudioBuffering ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                    <span>Menyiapkan Audio...</span>
+                  </>
+                ) : isPlayingAudio ? (
+                  <>
+                    <Pause className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                    <span>👑 Host: Jeda Audio ⏸️</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current text-amber-400" />
+                    <span>👑 Host: Lanjut Audio ▶️</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="mt-1 flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-surfaceRaised/80 border border-surfaceBorder text-xs font-mono text-zinc-300">
+                {isAudioBuffering ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+                    <span>Sinkronisasi Audio...</span>
+                  </>
+                ) : isPlayingAudio ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-accent animate-pulse" />
+                    <span className="text-accent font-bold">Musik Sedang Berputar 🎶</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-mutedDark" />
+                    <span className="text-muted">Audio Dijeda ⏸️</span>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Live Audio Waveform Visualizer */}
             <AudioWaveformVisualizer
@@ -1573,22 +1602,36 @@ export default function MultiplayerPage() {
 
               <button
                 onClick={handleBuzz}
-                disabled={(myPlayer?.lives ?? 3) <= 0}
+                disabled={(myPlayer?.lives ?? 3) <= 0 || isCooldown}
                 className={`w-44 h-44 rounded-full text-white font-black text-3xl tracking-wider flex flex-col items-center justify-center select-none transition-all ${
-                  (myPlayer?.lives ?? 3) > 0
-                    ? "btn-buzzer-3d cursor-pointer active:scale-95"
-                    : "bg-zinc-800 border-4 border-zinc-700 opacity-40 cursor-not-allowed text-zinc-500 shadow-none"
+                  (myPlayer?.lives ?? 3) <= 0
+                    ? "bg-zinc-800 border-4 border-zinc-700 opacity-40 cursor-not-allowed text-zinc-500 shadow-none"
+                    : isCooldown
+                    ? "bg-amber-950/40 border-4 border-amber-500/60 text-amber-300 cursor-not-allowed shadow-lg shadow-amber-500/10 animate-pulse"
+                    : "btn-buzzer-3d cursor-pointer active:scale-95 animate-pulse"
                 }`}
               >
-                <span>{(myPlayer?.lives ?? 3) > 0 ? "BUZZ!" : "HABIS!"}</span>
+                <span>
+                  {(myPlayer?.lives ?? 3) <= 0
+                    ? "HABIS!"
+                    : isCooldown
+                    ? `${cooldownSeconds}s`
+                    : "BUZZ!"}
+                </span>
                 <span className="text-[10px] font-mono font-bold tracking-widest uppercase opacity-90 mt-1">
-                  {(myPlayer?.lives ?? 3) > 0 ? "TEKAN JIKA TAHU" : "NYAWA (0/3)"}
+                  {(myPlayer?.lives ?? 3) <= 0
+                    ? "NYAWA (0/3)"
+                    : isCooldown
+                    ? "PENALTI SALAH"
+                    : "TEKAN JIKA TAHU"}
                 </span>
               </button>
               <p className="text-xs text-muted font-mono text-center mt-1">
-                {(myPlayer?.lives ?? 3) > 0
-                  ? "Pencet tombol buzzer di atas begitu kamu tahu lagunya! (Maks 3x salah per ronde)"
-                  : "Nyawamu di ronde ini sudah habis! Menunggu ronde selanjutnya..."}
+                {(myPlayer?.lives ?? 3) <= 0
+                  ? "💀 Nyawamu di ronde ini sudah habis! Menunggu ronde selanjutnya..."
+                  : isCooldown
+                  ? `⏳ Penalti salah tebak! Tunggu ${cooldownSeconds} detik sebelum boleh buzz lagi.`
+                  : "⚡ Tekan tombol buzzer di atas begitu kamu tahu lagunya!"}
               </p>
             </div>
           )}

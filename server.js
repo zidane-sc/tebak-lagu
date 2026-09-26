@@ -163,6 +163,7 @@ function getSanitizedRoom(room) {
         room.buzzState && room.buzzState.playerLives && room.buzzState.playerLives[p.id] !== undefined
           ? room.buzzState.playerLives[p.id]
           : 3,
+      buzzCooldownUntil: room.buzzCooldowns && room.buzzCooldowns[p.id] ? room.buzzCooldowns[p.id] : 0,
     })),
     buzzedPlayer: room.buzzState?.buzzedPlayerId
       ? {
@@ -262,6 +263,7 @@ async function startRound(room) {
   room.nextRoundCountdown = null;
   room.clueStage = 1;
   room.clueSecondsLeft = 10; // Snappy 10s per stage!
+  room.buzzCooldowns = {};
 
   if (room.autoNextTimer) {
     clearInterval(room.autoNextTimer);
@@ -391,6 +393,11 @@ function handleBuzzTimeout(room) {
       : 3;
   const newLives = Math.max(0, currentLives - 1);
   room.buzzState.playerLives[penaltyPlayerId] = newLives;
+
+  if (!room.buzzCooldowns) room.buzzCooldowns = {};
+  if (newLives > 0) {
+    room.buzzCooldowns[penaltyPlayerId] = Date.now() + 5000; // 5-second penalty
+  }
 
   if (newLives <= 0 && !room.buzzState.lockedOutPlayerIds.includes(penaltyPlayerId)) {
     room.buzzState.lockedOutPlayerIds.push(penaltyPlayerId);
@@ -655,6 +662,18 @@ app.prepare().then(() => {
           const room = rooms.get(meta.roomCode);
           if (!room || room.status !== "playing") return;
 
+          // Check if this player is in penalty cooldown
+          if (room.buzzCooldowns && room.buzzCooldowns[playerId] && room.buzzCooldowns[playerId] > Date.now()) {
+            const secLeft = Math.ceil((room.buzzCooldowns[playerId] - Date.now()) / 1000);
+            ws.send(
+              JSON.stringify({
+                type: "buzz_rejected",
+                message: `Kamu terkena penalti cooldown (${secLeft}s)! Beri kesempatan pemain lain.`,
+              })
+            );
+            return;
+          }
+
           // Check if this player has lives remaining in this round
           if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
           if (room.buzzState.playerLives[playerId] === undefined) {
@@ -743,6 +762,11 @@ app.prepare().then(() => {
             const newLives = Math.max(0, currentLives - 1);
             room.buzzState.playerLives[playerId] = newLives;
 
+            if (!room.buzzCooldowns) room.buzzCooldowns = {};
+            if (newLives > 0) {
+              room.buzzCooldowns[playerId] = Date.now() + 5000; // 5-second penalty
+            }
+
             if (newLives <= 0 && !room.buzzState.lockedOutPlayerIds.includes(playerId)) {
               room.buzzState.lockedOutPlayerIds.push(playerId);
             }
@@ -830,10 +854,14 @@ app.prepare().then(() => {
           });
         }
 
-        // 8.6. SYNCHRONIZED ROOM AUDIO (Sinkronisasi play / pause audio seluruh pemain)
+        // 8.6. SYNCHRONIZED ROOM AUDIO (HANYA HOST YANG DAPAT MENGONTROL MANUAL!)
         else if (data.type === "toggle_room_audio") {
           const room = rooms.get(meta.roomCode);
           if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
+          if (room.hostId !== playerId) {
+            ws.send(JSON.stringify({ type: "error", message: "Hanya Host room yang dapat mengontrol audio secara manual!" }));
+            return;
+          }
           broadcast(room, {
             type: "room_audio_sync",
             action: data.action || "play",
