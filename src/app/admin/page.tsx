@@ -39,8 +39,12 @@ import {
   XCircle,
   Activity,
   Trophy,
+  Disc3,
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
+import { ArtistsManager } from "@/components/admin/ArtistsManager";
+import { GenresManager } from "@/components/admin/GenresManager";
+import { AlbumsManager } from "@/components/admin/AlbumsManager";
 
 export default function AdminDashboardPage() {
   // Authentication PIN
@@ -48,8 +52,10 @@ export default function AdminDashboardPage() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
-  // Active Tab: "catalog" | "analytics" | "voicelab" | "settings"
-  const [activeTab, setActiveTab] = useState<"catalog" | "analytics" | "voicelab" | "settings">("catalog");
+  // Active Tab: "catalog" | "artists" | "genres" | "albums" | "analytics" | "voicelab" | "settings"
+  const [activeTab, setActiveTab] = useState<
+    "catalog" | "artists" | "genres" | "albums" | "analytics" | "voicelab" | "settings"
+  >("catalog");
 
   // Analytics & Deezer State
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -678,53 +684,89 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-surfaceBorder pb-3 mt-2">
+      <div className="flex items-center gap-2 border-b border-surfaceBorder pb-3 mt-2 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab("catalog")}
-          className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "catalog"
               ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
               : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
           }`}
         >
           <Music className="w-4 h-4" />
-          <span>Katalog Musik ({filteredTotal})</span>
+          <span>Katalog Lagu ({filteredTotal})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("artists")}
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+            activeTab === "artists"
+              ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
+              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+          }`}
+        >
+          <Users className="w-4 h-4 text-purple-400" />
+          <span>Penyanyi & Artis</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("genres")}
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+            activeTab === "genres"
+              ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
+              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+          }`}
+        >
+          <Layers className="w-4 h-4 text-amber-400" />
+          <span>Kategori & Genre</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("albums")}
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+            activeTab === "albums"
+              ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
+              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+          }`}
+        >
+          <Disc3 className="w-4 h-4 text-sky-400" />
+          <span>Album Musik</span>
         </button>
 
         <button
           onClick={() => setActiveTab("analytics")}
-          className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "analytics"
               ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
               : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
           }`}
         >
           <BarChart3 className="w-4 h-4 text-accent" />
-          <span>Statistik & Analitik Game</span>
+          <span>Statistik & Deezer</span>
         </button>
 
         <button
           onClick={() => setActiveTab("voicelab")}
-          className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "voicelab"
               ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
               : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
           }`}
         >
           <Volume2 className="w-4 h-4" />
-          <span>Audio & Voice Lab</span>
+          <span>Audio Lab</span>
         </button>
 
         <button
           onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-semibold transition cursor-pointer ${
+          className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
             activeTab === "settings"
               ? "bg-zinc-100 text-zinc-950 font-bold shadow-sm"
               : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
           }`}
         >
           <Settings className="w-4 h-4" />
-          <span>Pengaturan Game</span>
+          <span>Pengaturan</span>
         </button>
       </div>
 
@@ -967,7 +1009,28 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ============================================================= */}
-      {/* TAB 2: VOICE & AUDIO LAB */}
+      {/* TAB 2: ARTISTS & SINGERS MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === "artists" && (
+        <ArtistsManager onNotification={showToast} />
+      )}
+
+      {/* ============================================================= */}
+      {/* TAB 3: GENRES & CATEGORIES MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === "genres" && (
+        <GenresManager onNotification={showToast} />
+      )}
+
+      {/* ============================================================= */}
+      {/* TAB 4: ALBUMS MANAGER */}
+      {/* ============================================================= */}
+      {activeTab === "albums" && (
+        <AlbumsManager onNotification={showToast} />
+      )}
+
+      {/* ============================================================= */}
+      {/* TAB 5: VOICE & AUDIO LAB */}
       {/* ============================================================= */}
       {activeTab === "voicelab" && (
         <section className="flex flex-col gap-4 my-4 max-w-2xl mx-auto w-full">

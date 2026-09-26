@@ -59,6 +59,7 @@ export function rowToSong(row: any) {
     previewUrl: row.preview_url || "",
     previewResolved: row.preview_url || "",
     albumCover: row.album_cover || "",
+    album: row.album || "",
     lyricsClues,
     hummingMelody,
     searchQuery: row.search_query || `${row.title} ${row.artist}`,
@@ -86,6 +87,7 @@ export async function initDb() {
       bpm REAL DEFAULT 0,
       preview_url TEXT,
       album_cover TEXT,
+      album TEXT,
       lyrics_clues TEXT,
       humming_melody TEXT,
       search_query TEXT,
@@ -99,6 +101,13 @@ export async function initDb() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_songs_category ON songs(category);`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_songs_difficulty ON songs(difficulty);`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs(artist);`);
+
+  // Ensure 'album' column exists
+  try {
+    await db.execute("ALTER TABLE songs ADD COLUMN album TEXT;");
+  } catch (e) {
+    // Column already exists
+  }
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
