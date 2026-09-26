@@ -802,3 +802,127 @@ export async function getAnalyticsData() {
     recentMatches,
   };
 }
+
+// -------------------------------------------------------------
+// DEEZER ENRICHMENT ENGINE
+// -------------------------------------------------------------
+export async function getDeezerEnrichmentStats() {
+  const countRes = await db.execute(`
+    SELECT 
+      COUNT(*) as total,
+      SUM(CASE WHEN deezer_rank > 0 THEN 1 ELSE 0 END) as enriched,
+      SUM(CASE WHEN bpm > 0 THEN 1 ELSE 0 END) as with_bpm,
+      AVG(CASE WHEN deezer_rank > 0 THEN deezer_rank ELSE NULL END) as avg_rank
+    FROM songs;
+  `);
+
+  const total = Number(countRes.rows[0]?.total || 0);
+  const enriched = Number(countRes.rows[0]?.enriched || 0);
+  const withBpm = Number(countRes.rows[0]?.with_bpm || 0);
+  const avgRank = Math.round(Number(countRes.rows[0]?.avg_rank || 0));
+  const percentage = total > 0 ? Math.round((enriched / total) * 100) : 0;
+
+  const topRankedRes = await db.execute(`
+    SELECT id, title, artist, category, difficulty, deezer_rank, bpm, album_cover
+    FROM songs
+    WHERE deezer_rank > 0
+    ORDER BY deezer_rank DESC
+    LIMIT 6;
+  `);
+
+  const topRanked = topRankedRes.rows.map((r: any) => ({
+    id: String(r.id),
+    title: String(r.title),
+    artist: String(r.artist),
+    category: String(r.category),
+    difficulty: String(r.difficulty),
+    deezer_rank: Number(r.deezer_rank || 0),
+    bpm: Number(r.bpm || 0),
+    album_cover: r.album_cover,
+  }));
+
+  return {
+    total,
+    enriched,
+    pending: total - enriched,
+    withBpm,
+    avgRank,
+    percentage,
+    topRanked,
+  };
+}
+
+function cleanStringForDeezer(str: string) {
+  if (!str) return "";
+  return str
+    .replace(/\s*[\(\[].*?[\)\]]/g, "")
+    .replace(/\s*-\s*Single/gi, "")
+    .replace(/\s*-\s*EP/gi, "")
+    .replace(/\s*-\s*Remastered/gi, "")
+    .replace(/\s*-\s*Live/gi, "")
+    .trim();
+}
+
+function calculateDifficultyFromRank(rank: number) {
+  if (rank >= 350000) return "easy";
+  if (rank >= 120000) return "medium";
+  return "hard";
+}
+
+export async function enrichDeezerBatch(batchSize = 30) {
+  const songsRes = await db.execute({
+    sql: "SELECT id, title, artist, difficulty FROM songs WHERE deezer_rank = 0 OR deezer_rank IS NULL ORDER BY id ASC LIMIT ?;",
+    args: [batchSize],
+  });
+
+  const pendingSongs = songsRes.rows;
+  let processed = 0;
+  let matched = 0;
+
+  for (const song of pendingSongs) {
+    const cleanT = cleanStringForDeezer(String(song.title));
+    const cleanA = cleanStringForDeezer(String(song.artist).split(/feat\.|,|&/i)[0]);
+    const query = `${cleanA} ${cleanT}`;
+
+    let deezerRank = 0;
+    let bpm = 0;
+
+    try {
+      const searchRes = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=3`, {
+        headers: { "User-Agent": "TebakLaguEngine/1.0" },
+      });
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        if (searchData.data && searchData.data.length > 0) {
+          const track = searchData.data[0];
+          deezerRank = track.rank || 0;
+          matched++;
+
+          if (track.id && deezerRank >= 100000) {
+            try {
+              const trkRes = await fetch(`https://api.deezer.com/track/${track.id}`, {
+                headers: { "User-Agent": "TebakLaguEngine/1.0" },
+              });
+              if (trkRes.ok) {
+                const trkData = await trkRes.json();
+                if (trkData.bpm) bpm = Number(trkData.bpm) || 0;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (e) {}
+
+    const newDifficulty = deezerRank > 0 ? calculateDifficultyFromRank(deezerRank) : song.difficulty;
+
+    await db.execute({
+      sql: "UPDATE songs SET deezer_rank = ?, bpm = ?, difficulty = ? WHERE id = ?;",
+      args: [deezerRank, bpm, newDifficulty, song.id],
+    });
+
+    processed++;
+    await new Promise((r) => setTimeout(r, 120));
+  }
+
+  return { processed, matched };
+}

@@ -51,9 +51,11 @@ export default function AdminDashboardPage() {
   // Active Tab: "catalog" | "analytics" | "voicelab" | "settings"
   const [activeTab, setActiveTab] = useState<"catalog" | "analytics" | "voicelab" | "settings">("catalog");
 
-  // Analytics State
+  // Analytics & Deezer State
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [deezerStats, setDeezerStats] = useState<any>(null);
+  const [isEnriching, setIsEnriching] = useState(false);
 
   // Catalog State
   const [songs, setSongs] = useState<any[]>([]);
@@ -212,6 +214,39 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const fetchDeezerStats = async () => {
+    try {
+      const res = await fetch("/api/admin/enrich");
+      if (res.ok) {
+        const data = await res.json();
+        setDeezerStats(data);
+      }
+    } catch (err) {
+      console.error("Fetch Deezer stats error:", err);
+    }
+  };
+
+  const handleEnrichBatch = async () => {
+    setIsEnriching(true);
+    try {
+      const res = await fetch("/api/admin/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batchSize: 50 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeezerStats(data.stats);
+        fetchAnalytics();
+        showToast(`Berhasil sinkronisasi 50 lagu via Deezer API!`, "success");
+      }
+    } catch (err) {
+      showToast("Gagal menjalankan sinkronisasi Deezer.", "error");
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
   useEffect(() => {
     if (isUnlocked) {
       fetchSongs();
@@ -224,6 +259,7 @@ export default function AdminDashboardPage() {
     }
     if (isUnlocked && activeTab === "analytics") {
       fetchAnalytics();
+      fetchDeezerStats();
     }
   }, [isUnlocked, activeTab]);
 
@@ -1245,6 +1281,126 @@ export default function AdminDashboardPage() {
                   </span>
                   <span className="text-[10px] text-mutedDark font-mono">Pertandingan tuntas tercatat</span>
                 </div>
+              </div>
+
+              {/* 📻 DEEZER METADATA & STREAMING ENRICHMENT CARD */}
+              <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-surfaceBorder">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <Radio className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-sm sm:text-base text-white">
+                          Deezer API Streaming Enrichment
+                        </h4>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold">
+                          BPM & TRUE POPULARITY
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted mt-0.5">
+                        Sinkronisasi metrik streaming global Deezer (Rank 0 - 1.000.000 & BPM) untuk kalibrasi kesulitan dinamis.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleEnrichBatch}
+                    disabled={isEnriching}
+                    className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-md shadow-purple-600/20"
+                  >
+                    {isEnriching ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    <span>{isEnriching ? "Menyinkronkan 50 Lagu..." : "Sinkronkan 50 Lagu Berikutnya"}</span>
+                  </button>
+                </div>
+
+                {/* Progress bar and metrics */}
+                {deezerStats && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="text-muted">Progres Katalog Ter-enrich:</span>
+                      <span className="text-purple-300 font-bold">
+                        {deezerStats.enriched?.toLocaleString()} / {deezerStats.total?.toLocaleString()} Lagu ({deezerStats.percentage}%)
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-purple-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(2, deezerStats.percentage)}%` }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                      <div className="bg-surfaceRaised p-2.5 rounded-xl border border-surfaceBorder flex flex-col">
+                        <span className="text-muted text-[10px]">RATA-RATA RANK</span>
+                        <span className="text-sm font-bold text-white mt-0.5">
+                          {deezerStats.avgRank?.toLocaleString() || 0}
+                        </span>
+                      </div>
+
+                      <div className="bg-surfaceRaised p-2.5 rounded-xl border border-surfaceBorder flex flex-col">
+                        <span className="text-muted text-[10px]">DENGAN TEMPO (BPM)</span>
+                        <span className="text-sm font-bold text-emerald-400 mt-0.5">
+                          {deezerStats.withBpm?.toLocaleString() || 0} Lagu
+                        </span>
+                      </div>
+
+                      <div className="bg-surfaceRaised p-2.5 rounded-xl border border-surfaceBorder flex flex-col">
+                        <span className="text-muted text-[10px]">PENDING SINKRONISASI</span>
+                        <span className="text-sm font-bold text-amber-400 mt-0.5">
+                          {deezerStats.pending?.toLocaleString() || 0} Lagu
+                        </span>
+                      </div>
+
+                      <div className="bg-surfaceRaised p-2.5 rounded-xl border border-surfaceBorder flex flex-col">
+                        <span className="text-muted text-[10px]">DIFFICULTY ENGINE</span>
+                        <span className="text-sm font-bold text-accent mt-0.5">
+                          Auto 3-Tier
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Top 6 Ranked songs preview */}
+                    {deezerStats.topRanked?.length > 0 && (
+                      <div className="mt-1 pt-3 border-t border-surfaceBorder/60">
+                        <span className="text-[10px] font-mono text-muted uppercase block mb-2">
+                          Contoh Lagu dengan Deezer Rank Tertinggi:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {deezerStats.topRanked.map((trk: any) => (
+                            <div key={trk.id} className="bg-surfaceRaised/60 border border-surfaceBorder rounded-xl p-2 flex items-center gap-2.5">
+                              {trk.album_cover ? (
+                                <img src={trk.album_cover} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                  <Music className="w-3.5 h-3.5" />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-white truncate">{trk.title}</p>
+                                <p className="text-[10px] text-muted truncate">{trk.artist}</p>
+                              </div>
+                              <div className="text-right font-mono shrink-0">
+                                <span className="text-[11px] font-bold text-purple-300 block">
+                                  {(trk.deezer_rank / 1000).toFixed(0)}k
+                                </span>
+                                <span className="text-[9px] text-muted">
+                                  {trk.bpm ? `${trk.bpm} BPM` : trk.difficulty}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 2-Column: Easiest vs Hardest Songs */}
