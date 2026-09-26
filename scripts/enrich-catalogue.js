@@ -13,9 +13,11 @@
  */
 
 const path = require("path");
+const fs = require("fs");
 const { createClient } = require("@libsql/client");
 
 const dbPath = path.resolve(__dirname, "../data/tebak_lagu.db");
+const statusPath = path.resolve(__dirname, "../data/enrich_status.json");
 const db = createClient({ url: `file:${dbPath}` });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -275,6 +277,26 @@ async function main() {
     });
 
     console.log(`${progress} "${s.title}" - ${s.artist} | ${deezerLog} | ${lyricsLog}`);
+
+    if (i % 10 === 0 || i === songs.length - 1) {
+      try {
+        fs.writeFileSync(
+          statusPath,
+          JSON.stringify(
+            {
+              processed: i + 1,
+              total: songs.length,
+              deezerSuccess,
+              lyricsSuccess,
+              lastSong: `${s.title} - ${s.artist}`,
+              updatedAt: new Date().toISOString(),
+            },
+            null,
+            2
+          )
+        );
+      } catch (err) {}
+    }
 
     if (i < songs.length - 1) {
       await sleep(delayMs);
