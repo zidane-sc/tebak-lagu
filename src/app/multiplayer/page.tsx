@@ -206,6 +206,23 @@ export default function MultiplayerPage() {
         try {
           const data = JSON.parse(event.data);
 
+          if (data.type === "ping") {
+            try {
+              socket?.send(JSON.stringify({ type: "pong" }));
+            } catch (e) {}
+            return;
+          }
+
+          if (data.type === "state_synced") {
+            setRoom(data.room);
+            if (data.room.status === "lobby") {
+              setView("room");
+            } else {
+              setView("game");
+            }
+            return;
+          }
+
           if (data.type === "room_created" || data.type === "room_joined" || data.type === "reconnected") {
             sfx.playClick();
             setMyPlayerId(data.playerId);
@@ -427,6 +444,16 @@ export default function MultiplayerPage() {
       if (document.visibilityState === "visible") {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           connect();
+        } else {
+          try {
+            const raw = sessionStorage.getItem(SESSION_KEY);
+            if (raw) {
+              const sess = JSON.parse(raw);
+              if (sess.roomCode) {
+                socket.send(JSON.stringify({ type: "sync_state", roomCode: sess.roomCode }));
+              }
+            }
+          } catch {}
         }
       }
     };

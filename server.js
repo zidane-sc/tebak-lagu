@@ -457,6 +457,11 @@ app.prepare().then(() => {
   });
 
   wss.on("connection", (ws) => {
+    ws.isAlive = true;
+    ws.on("pong", () => {
+      ws.isAlive = true;
+    });
+
     let playerId = "p_" + Math.random().toString(36).substring(2, 9);
     clientMeta.set(ws, { id: playerId, roomCode: null, name: "" });
 
@@ -464,6 +469,18 @@ app.prepare().then(() => {
       try {
         const data = JSON.parse(raw.toString());
         const meta = clientMeta.get(ws);
+
+        if (data.type === "pong") {
+          ws.isAlive = true;
+          return;
+        }
+        if (data.type === "ping") {
+          ws.isAlive = true;
+          try {
+            ws.send(JSON.stringify({ type: "pong" }));
+          } catch (e) {}
+          return;
+        }
 
         // 1. CREATE ROOM
         if (data.type === "create_room") {
@@ -951,6 +968,20 @@ app.prepare().then(() => {
           ws.send(JSON.stringify({ type: "reconnect_failed" }));
         }
 
+        // 11b. SYNC CURRENT ROOM STATE (Tab focus / phone unlock resync)
+        else if (data.type === "sync_state") {
+          const code = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
+          const room = rooms.get(code);
+          if (room) {
+            ws.send(
+              JSON.stringify({
+                type: "state_synced",
+                room: getSanitizedRoom(room),
+              })
+            );
+          }
+        }
+
         // 12. LEAVE ROOM (Pemain keluar secara sadar / klik tombol Exit)
         else if (data.type === "leave_room") {
           const roomCode = meta.roomCode;
@@ -1053,6 +1084,24 @@ app.prepare().then(() => {
         }
       }
     });
+  });
+
+  // Heartbeat ping interval every 15s to detect dead mobile sockets
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      if (ws.isAlive === false) {
+        return ws.terminate();
+      }
+      ws.isAlive = false;
+      try {
+        ws.ping();
+        ws.send(JSON.stringify({ type: "ping" }));
+      } catch (e) {}
+    });
+  }, 15000);
+
+  server.on("close", () => {
+    clearInterval(heartbeatInterval);
   });
 
   server.listen(port, () => {
