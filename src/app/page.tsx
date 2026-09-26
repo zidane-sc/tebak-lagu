@@ -102,28 +102,28 @@ export default function HomePage() {
     <div className="min-h-[100dvh] text-zinc-100 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-4xl mx-auto selection:bg-accentDim selection:text-accent relative">
       {/* Top Floating Glass Header */}
       <header className="w-full flex items-center justify-between p-3 sm:p-4 rounded-2xl glass-panel shadow-lg shadow-black/20 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-teal-400/30 border border-emerald-500/40 flex items-center justify-center text-accent shadow-md shadow-emerald-500/10">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500/20 to-teal-400/30 border border-emerald-500/40 flex items-center justify-center text-accent shadow-md shadow-emerald-500/10 shrink-0">
             <Disc3 className="w-5 h-5 animate-spin [animation-duration:8s] text-accent" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="font-extrabold text-base sm:text-lg tracking-tight neon-shimmer">
                 TEBAK LAGU
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30 text-accent font-bold">
+              <span className="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30 text-accent font-bold shrink-0">
                 LIVE
               </span>
             </div>
-            <p className="text-[11px] text-muted">Jukebox Trivia & Blind Test</p>
+            <p className="text-[11px] text-muted leading-none mt-0.5">Jukebox Audio Trivia</p>
           </div>
         </div>
 
         {/* Global Player Stats & Google Login */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setShowShareModal(true)}
-            className="p-2.5 rounded-xl bg-surfaceRaised/80 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-white transition active:scale-95 cursor-pointer shadow-sm"
+            className="w-10 h-10 rounded-xl bg-surfaceRaised/80 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-white flex items-center justify-center transition active:scale-95 cursor-pointer shadow-sm shrink-0"
             title="Bagikan ke Teman (WA, IG, TikTok)"
           >
             <Share2 className="w-4 h-4" />
@@ -133,50 +133,50 @@ export default function HomePage() {
       </header>
 
       {/* Main Content Area */}
-      <main className="w-full my-auto py-6 sm:py-8 flex flex-col gap-6 sm:gap-7 z-10">
+      <main className="w-full my-auto py-5 sm:py-8 flex flex-col gap-5 sm:gap-7 z-10">
         {/* Eye-Catching Hero Section with Audio Waveform */}
-        <div className="flex flex-col items-center text-center gap-3 pt-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/15 via-purple-500/15 to-amber-500/15 border border-white/10 text-zinc-300 text-xs font-mono font-medium shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span>4.619+ Lagu Hits & Kolaborasi Indonesia/Barat</span>
+        <div className="flex flex-col items-center text-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/15 via-purple-500/15 to-amber-500/15 border border-white/10 text-zinc-300 text-[11px] sm:text-xs font-mono font-medium shadow-inner max-w-full text-center">
+            <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" />
+            <span className="truncate">4.619+ Lagu Hits & Kolaborasi</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white max-w-2xl leading-[1.15]">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-white max-w-2xl leading-[1.2]">
             Adu Telinga Dewa, <br className="hidden sm:inline" />
             <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
               Tebak Lagu Tercepat!
             </span>
           </h1>
 
-          <p className="text-xs sm:text-sm text-zinc-400 max-w-lg leading-relaxed">
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-lg leading-relaxed px-1">
             Kenali musik lewat potongan audio detik bertahap, bait puisi robotik datar, dan adu cepat tombol buzzer real-time bareng teman!
           </p>
 
           {/* Micro Equalizer Preview Deck */}
-          <div className="w-full max-w-xs bg-surfaceRaised/50 border border-surfaceBorder rounded-2xl p-2.5 px-4 flex items-center justify-between mt-1 shadow-inner">
-            <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 text-accent animate-pulse" />
+          <div className="w-full max-w-[280px] sm:max-w-xs bg-surfaceRaised/50 border border-surfaceBorder rounded-2xl p-2 px-3 sm:px-4 flex items-center justify-between mt-0.5 shadow-inner">
+            <span className="text-[10px] font-mono text-zinc-400 flex items-center gap-1.5 shrink-0">
+              <Radio className="w-3 h-3 text-accent animate-pulse" />
               <span>FREKUENSI AUDIO</span>
             </span>
-            <AudioWaveformVisualizer isPlaying={true} variant="cyberpunk" barCount={18} height={22} />
+            <AudioWaveformVisualizer isPlaying={true} variant="cyberpunk" barCount={16} height={20} />
           </div>
         </div>
 
         {/* 🌟 HERO CARD: MULTIPLAYER LIVE BUZZER (VIP GOLD CARD) */}
         <Link
           href="/multiplayer"
-          className="group relative bg-gradient-to-r from-amber-500/15 via-surface to-orange-500/10 hover:from-amber-500/25 hover:via-surfaceRaised hover:to-orange-500/20 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shadow-amber-500/10 glow-amber cursor-pointer active:scale-[0.99]"
+          className="group relative bg-gradient-to-r from-amber-500/15 via-surface to-orange-500/10 hover:from-amber-500/25 hover:via-surfaceRaised hover:to-orange-500/20 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-5 transition-all duration-300 flex flex-col gap-4 shadow-xl shadow-amber-500/10 glow-amber cursor-pointer active:scale-[0.99] overflow-hidden"
         >
-          <div className="flex items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3.5">
             {/* 3D Buzzer Arcade Icon */}
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 border border-amber-300/60 flex items-center justify-center text-zinc-950 shadow-lg shadow-amber-500/30 shrink-0 group-hover:scale-105 transition-transform">
-              <Zap className="w-7 h-7 fill-current" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 border border-amber-300/60 flex items-center justify-center text-zinc-950 shadow-lg shadow-amber-500/30 shrink-0 group-hover:scale-105 transition-transform">
+              <Zap className="w-6 h-6 sm:w-7 sm:h-7 fill-current" />
             </div>
 
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-amber-400 text-zinc-950 uppercase tracking-wider shadow-sm">
-                  LIVE BUZZER MULTIPLAYER
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-amber-400 text-zinc-950 uppercase tracking-wider shadow-sm shrink-0">
+                  LIVE BUZZER
                 </span>
                 <span className="text-xs font-mono text-amber-300/90 font-semibold">
                   Mabar 2-8 Orang 👥
@@ -185,22 +185,23 @@ export default function HomePage() {
               <h3 className="text-lg sm:text-xl font-black text-white tracking-tight group-hover:text-amber-300 transition-colors">
                 Ruangan Tanding Real-Time
               </h3>
-              <p className="text-xs text-zinc-300 max-w-md leading-relaxed">
-                Pencet tombol buzzer fisik, ledek teman dengan SFX meme soundboard, dan adu podium juara!
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-            <span className="py-2.5 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/30 transition group-hover:translate-x-1">
-              <span>Masuk Room</span>
+          <p className="text-xs text-zinc-300 leading-relaxed">
+            Pencet tombol buzzer fisik, ledek teman dengan SFX meme soundboard, dan adu podium juara!
+          </p>
+
+          <div className="w-full pt-1">
+            <span className="w-full py-3 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 transition group-hover:translate-x-1">
+              <span>Masuk Room Mabar</span>
               <ArrowRight className="w-4 h-4" />
             </span>
           </div>
         </Link>
 
-        {/* 2-Column: SOLO GAME MODES (JUICY ARCADE CARDS) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* SOLO GAME MODES (JUICY ARCADE CARDS: STACKED ON MOBILE, 2-COL ON DESKTOP) */}
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
           {GAME_MODES.map((mode) => {
             const Icon = mode.icon;
 
@@ -209,45 +210,45 @@ export default function HomePage() {
                 type="button"
                 key={mode.id}
                 onClick={() => setConfigModalMode(mode)}
-                className={`group relative bg-gradient-to-br ${mode.bgGradient} border ${mode.borderColor} rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between gap-5 text-left cursor-pointer shadow-lg hover:shadow-2xl ${mode.glowClass} active:scale-[0.99]`}
+                className={`group relative bg-gradient-to-br ${mode.bgGradient} border ${mode.borderColor} rounded-3xl p-5 transition-all duration-300 flex flex-col justify-between gap-4 text-left cursor-pointer shadow-lg hover:shadow-2xl ${mode.glowClass} active:scale-[0.99] overflow-hidden`}
               >
                 {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-surfaceRaised/90 border border-white/10 flex items-center justify-center text-white group-hover:scale-105 transition-transform shadow-md">
+                <div className="flex flex-col gap-2.5 w-full">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-[10px] text-mutedDark font-bold uppercase tracking-wider">
+                      SOLO MODE {mode.index}
+                    </span>
+                    <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 ${mode.accentText} shrink-0`}>
+                      {mode.badge}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-surfaceRaised/90 border border-white/10 flex items-center justify-center text-white group-hover:scale-105 transition-transform shadow-md shrink-0">
                       <Icon className={`w-6 h-6 ${mode.accentText}`} />
                     </div>
-                    <div>
-                      <span className="font-mono text-[10px] text-mutedDark font-bold block uppercase tracking-wider">
-                        SOLO MODE {mode.index}
-                      </span>
+                    <div className="min-w-0">
                       <h3 className="text-base sm:text-lg font-black text-white tracking-tight group-hover:text-accent transition-colors">
                         {mode.title}
                       </h3>
+                      <p className="text-xs font-semibold text-zinc-300">
+                        {mode.tagline}
+                      </p>
                     </div>
                   </div>
-
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 ${mode.accentText}`}>
-                    {mode.badge}
-                  </span>
                 </div>
 
                 {/* Body Description */}
-                <div>
-                  <p className="text-xs font-semibold text-zinc-200 mb-1">
-                    {mode.tagline}
-                  </p>
-                  <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
-                    {mode.description}
-                  </p>
-                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {mode.description}
+                </p>
 
                 {/* Action CTA */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-                  <span className="font-mono text-[11px] text-zinc-400">
-                    Pilih Kategori & Ronde
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs w-full gap-2">
+                  <span className="font-mono text-[11px] text-zinc-400 truncate">
+                    Atur Kategori & Ronde
                   </span>
-                  <div className="flex items-center gap-1.5 font-bold text-white group-hover:translate-x-1 transition-transform">
+                  <div className="flex items-center gap-1.5 font-bold text-white group-hover:translate-x-1 transition-transform shrink-0">
                     <span>Mainkan</span>
                     <ArrowRight className={`w-4 h-4 ${mode.accentText}`} />
                   </div>
@@ -262,27 +263,26 @@ export default function HomePage() {
           href="/leaderboard"
           className="w-full bg-surface/70 hover:bg-surfaceRaised border border-surfaceBorder hover:border-amber-400/40 rounded-2xl p-4 transition-all flex items-center justify-between gap-3 shadow-sm group"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
               <Trophy className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-bold text-white tracking-tight">
                   Papan Peringkat Nasional
                 </h4>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold shrink-0">
                   TOP SKOR
                 </span>
               </div>
-              <p className="text-xs text-muted mt-0.5">
-                Lihat pemain juara dengan telinga dewa dan peringkat mingguan!
+              <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                Lihat pemain juara dengan telinga dewa dan rekor mingguan!
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-amber-400 font-mono pr-1 transition-colors">
-            <span>Lihat Peringkat</span>
-            <ArrowUpRight className="w-4 h-4" />
+          <div className="flex items-center gap-1 text-xs font-semibold text-muted group-hover:text-amber-400 font-mono pr-1 transition-colors shrink-0">
+            <ArrowUpRight className="w-5 h-5" />
           </div>
         </Link>
       </main>
@@ -454,20 +454,20 @@ export default function HomePage() {
       )}
 
       {/* Minimal Editorial Footer */}
-      <footer className="w-full pt-6 pb-2 border-t border-surfaceBorder/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-mutedDark font-mono z-10">
+      <footer className="w-full pt-6 pb-4 border-t border-surfaceBorder/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-mutedDark font-mono z-10 text-center sm:text-left">
         <p>Tebak Lagu · Audio Trivia Engine</p>
-        <div className="flex items-center gap-3">
-          <Link href="/leaderboard" className="hover:text-amber-400 flex items-center gap-1 transition-colors text-zinc-400">
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
+          <Link href="/leaderboard" className="hover:text-amber-400 flex items-center gap-1 transition-colors text-zinc-400 py-1 px-1.5">
             <Trophy className="w-3.5 h-3.5" />
             <span>Papan Peringkat</span>
           </Link>
           <span>•</span>
-          <Link href="/admin" className="hover:text-accent flex items-center gap-1 transition-colors text-zinc-400">
+          <Link href="/admin" className="hover:text-accent flex items-center gap-1 transition-colors text-zinc-400 py-1 px-1.5">
             <Settings className="w-3.5 h-3.5" />
             <span>Studio Admin</span>
           </Link>
           <span>•</span>
-          <p>Komunitas Pecinta Musik 🎧</p>
+          <p className="text-zinc-500 py-1">Komunitas Musik 🎧</p>
         </div>
       </footer>
 
