@@ -261,7 +261,7 @@ async function startRound(room) {
   room.nextRoundVotes = new Set();
   room.nextRoundCountdown = null;
   room.clueStage = 1;
-  room.clueSecondsLeft = 30;
+  room.clueSecondsLeft = 10; // Snappy 10s per stage!
 
   if (room.autoNextTimer) {
     clearInterval(room.autoNextTimer);
@@ -284,7 +284,7 @@ async function startRound(room) {
     playerLives,
   };
 
-  // Stage timer: 30s (Tahap 1) -> 30s (Tahap 2) -> 30s (Tahap 3) -> 90s (Tahap 4) -> Hangus!
+  // Stage timer: 10s (Tahap 1) -> 10s (Tahap 2) -> 10s (Tahap 3) -> 15s (Tahap 4) -> Hangus! (~45 detik total)
   room.stageTimer = setInterval(() => {
     if (room.status === "playing") {
       room.clueSecondsLeft -= 1;
@@ -292,42 +292,42 @@ async function startRound(room) {
       if (room.clueSecondsLeft <= 0) {
         if (room.clueStage === 1) {
           room.clueStage = 2;
-          room.clueSecondsLeft = 30;
+          room.clueSecondsLeft = 10;
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 2,
-            secondsLeft: 30,
-            message: "⏰ 30 detik berlalu! Clue diperpanjang...",
+            secondsLeft: 10,
+            message: "💡 Tahap 2: Clue diperpanjang!",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 2) {
           room.clueStage = 3;
-          room.clueSecondsLeft = 30;
+          room.clueSecondsLeft = 10;
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 3,
-            secondsLeft: 30,
-            message: "⏰ 60 detik berlalu! Clue diperpanjang lagi...",
+            secondsLeft: 10,
+            message: "💡 Tahap 3: Clue dibuka lebih lengkap!",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 3) {
           room.clueStage = 4;
-          room.clueSecondsLeft = 90; // Tahap terakhir 90 detik!
+          room.clueSecondsLeft = 15; // Tahap terakhir 15 detik!
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 4,
-            secondsLeft: 90,
-            message: "🚨 Tahap Terakhir (90 detik)! Jika tidak ada yang menjawab, ronde hangus!",
+            secondsLeft: 15,
+            message: "🚨 Tahap Terakhir (15s)! Segera Buzz sebelum hangus!",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 4) {
-          // 90 detik terakhir habis -> Ronde Hangus!
+          // Waktu ronde habis -> Ronde Hangus!
           triggerRoundRevealed(room, {
             type: "round_revealed",
-            message: `Waktu ronde habis (180 detik)! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+            message: `Waktu habis (45 detik)! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
           });
         }
       }
@@ -373,6 +373,7 @@ async function startRound(room) {
 
   broadcast(room, {
     type: "round_started",
+    autoPlay: true,
     room: getSanitizedRoom(room),
   });
 }
@@ -422,6 +423,7 @@ function handleBuzzTimeout(room) {
         : `Waktu ${penaltyPlayerName} habis dan nyawanya habis (0/3)! Pemain lain silakan memencet Buzzer!`;
     broadcast(room, {
       type: "buzz_resumed",
+      resumeAudio: true,
       message: msg,
       room: getSanitizedRoom(room),
     });
@@ -677,17 +679,17 @@ app.prepare().then(() => {
           room.buzzState.buzzedPlayerId = playerId;
           room.buzzState.buzzedPlayerName = player.name;
 
-          // Start 20-second guess countdown (20 DETIK)
+          // Start 15-second guess countdown
           if (room.buzzState.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
           room.buzzState.buzzTimer = setTimeout(() => {
             handleBuzzTimeout(room);
-          }, 20000);
+          }, 15000);
 
           broadcast(room, {
             type: "player_buzzed",
             buzzedPlayerId: playerId,
             buzzedPlayerName: player.name,
-            secondsAllowed: 20,
+            secondsAllowed: 15,
             room: getSanitizedRoom(room),
           });
         }
@@ -772,6 +774,7 @@ app.prepare().then(() => {
                 type: "guess_result",
                 isCorrect: false,
                 guesserName: player.name,
+                resumeAudio: true,
                 message: msg,
                 room: getSanitizedRoom(room),
               });
@@ -824,6 +827,18 @@ app.prepare().then(() => {
             playerId,
             playerName: meta.name,
             sfxId: data.sfxId,
+          });
+        }
+
+        // 8.6. SYNCHRONIZED ROOM AUDIO (Sinkronisasi play / pause audio seluruh pemain)
+        else if (data.type === "toggle_room_audio") {
+          const room = rooms.get(meta.roomCode);
+          if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
+          broadcast(room, {
+            type: "room_audio_sync",
+            action: data.action || "play",
+            senderId: playerId,
+            senderName: meta.name,
           });
         }
 

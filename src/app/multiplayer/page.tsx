@@ -10,6 +10,7 @@ import {
   Copy,
   Check,
   Play,
+  Pause,
   RotateCcw,
   Sparkles,
   Zap,
@@ -93,9 +94,10 @@ export default function MultiplayerPage() {
   const [isAudioBuffering, setIsAudioBuffering] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [roundKickoff, setRoundKickoff] = useState<number | null>(null);
   const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
-  const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(20);
+  const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(15);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
 
@@ -103,6 +105,9 @@ export default function MultiplayerPage() {
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sliceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const synthRef = useRef<HummingSynth | null>(null);
+
+  const playAudioRef = useRef<(customRoom?: any) => void>(() => {});
+  const pauseAudioRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     synthRef.current = new HummingSynth();
@@ -162,6 +167,89 @@ export default function MultiplayerPage() {
     if (synthRef.current) synthRef.current.stop();
     setIsPlayingAudio(false);
     setIsAudioBuffering(false);
+  };
+
+  const pauseAudioLocal = () => {
+    if (sliceTimerRef.current) {
+      clearTimeout(sliceTimerRef.current);
+      sliceTimerRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (synthRef.current) synthRef.current.stop();
+    setIsPlayingAudio(false);
+    setIsAudioBuffering(false);
+  };
+
+  const playAudioLocal = (customRoom?: any) => {
+    const r = customRoom || room;
+    if (!r?.currentSongClue || !audioRef.current) return;
+
+    if (sliceTimerRef.current) {
+      clearTimeout(sliceTimerRef.current);
+      sliceTimerRef.current = null;
+    }
+
+    const profile = r.audioProfile || "normal";
+
+    if (r.mode === "tts") {
+      const clues = r.currentSongClue?.lyricsClues || [];
+      const fullLyrics = clues.join(". \n");
+      const speedParam = profile === "fast" ? "1.25" : profile === "bass" ? "0.8" : "1";
+      const langParam = r.currentSongClue?.lang || "id";
+      const ttsUrl = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik")}&speed=${speedParam}&lang=${langParam}`;
+      if (audioRef.current.src !== ttsUrl) {
+        audioRef.current.src = ttsUrl;
+      }
+    } else {
+      const stageLimits = [5, 5, 9, 18, 30];
+      const maxDuration = stageLimits[r.clueStage || 1] || 5;
+
+      const previewUrl = r.currentSongClue?.previewUrl || "";
+      if (audioRef.current.src !== previewUrl) {
+        audioRef.current.src = previewUrl;
+      }
+
+      if (r.currentSongClue?.startSecond) {
+        audioRef.current.currentTime = r.currentSongClue.startSecond;
+      }
+
+      sliceTimerRef.current = setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          setIsPlayingAudio(false);
+        }
+      }, maxDuration * 1000);
+    }
+
+    if (profile === "fast") audioRef.current.playbackRate = 1.3;
+    else if (profile === "bass") audioRef.current.playbackRate = 0.85;
+    else audioRef.current.playbackRate = 1.0;
+
+    setIsAudioBuffering(true);
+    audioRef.current
+      .play()
+      .then(() => {
+        setIsAudioBuffering(false);
+        setIsPlayingAudio(true);
+      })
+      .catch((err) => {
+        console.warn("Audio autoplay blocked by browser policy:", err);
+        setIsAudioBuffering(false);
+        setIsPlayingAudio(false);
+      });
+  };
+
+  useEffect(() => {
+    playAudioRef.current = playAudioLocal;
+    pauseAudioRef.current = pauseAudioLocal;
+  });
+
+  const handleToggleRoomAudio = () => {
+    if (!ws || !room) return;
+    const nextAction = isPlayingAudio ? "pause" : "play";
+    ws.send(JSON.stringify({ type: "toggle_room_audio", action: nextAction }));
   };
 
   // Session storage key
@@ -260,12 +348,15 @@ export default function MultiplayerPage() {
           } else if (data.type === "clue_extended") {
             sfx.playGong();
             setRoom(data.room);
+            if (isPlayingAudio) {
+              setTimeout(() => playAudioRef.current(data.room), 200);
+            }
           } else if (data.type === "round_started") {
-            sfx.playGong();
             stopAndResetAudio();
             setRoom(data.room);
             setView("game");
             setBuzzCountdown(0);
+            setRoundKickoff(3); // 3-second tension countdown!
 
             // Preload audio immediately in background so first click plays with 0ms lag!
             setTimeout(() => {
@@ -279,29 +370,31 @@ export default function MultiplayerPage() {
                   audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik")}&speed=${speedParam}&lang=${langParam}`;
                 } else {
                   audioRef.current.src = r.currentSongClue?.previewUrl || "";
+                  audioRef.current.currentTime = r.currentSongClue?.startSecond || 0;
                 }
                 audioRef.current.preload = "auto";
                 audioRef.current.load();
               }
             }, 100);
+          } else if (data.type === "room_audio_sync") {
+            if (data.action === "play") {
+              playAudioRef.current(data.room || room);
+            } else {
+              pauseAudioRef.current();
+            }
           } else if (data.type === "player_buzzed") {
             sfx.playBuzzer();
             if (typeof navigator !== "undefined" && navigator.vibrate) {
               navigator.vibrate([100]);
             }
-            stopAndResetAudio();
+            pauseAudioRef.current();
             setScreenFlash("buzz");
             setTimeout(() => setScreenFlash(null), 300);
 
             setRoom(data.room);
-            const allowed = data.secondsAllowed || 20;
+            const allowed = data.secondsAllowed || 15;
             setMaxAllowedSeconds(allowed);
             setBuzzCountdown(allowed);
-
-            // Audio & Synth stops on buzz
-            if (audioRef.current) audioRef.current.pause();
-            if (synthRef.current) synthRef.current.stop();
-            setIsPlayingAudio(false);
 
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
             buzzTimerRef.current = setInterval(() => {
@@ -325,12 +418,16 @@ export default function MultiplayerPage() {
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
+            if (data.resumeAudio) {
+              setTimeout(() => playAudioRef.current(data.room), 250);
+            }
           } else if (data.type === "guess_result") {
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
 
             if (data.isCorrect) {
+              pauseAudioRef.current();
               sfx.playCorrect();
               if (typeof navigator !== "undefined" && navigator.vibrate) {
                 navigator.vibrate([40, 50, 120]);
@@ -351,6 +448,9 @@ export default function MultiplayerPage() {
               }
               setScreenFlash("wrong");
               setTimeout(() => setScreenFlash(null), 350);
+              if (data.resumeAudio) {
+                setTimeout(() => playAudioRef.current(data.room), 400);
+              }
             }
           } else if (data.type === "round_revealed") {
             stopAndResetAudio();
@@ -467,6 +567,25 @@ export default function MultiplayerPage() {
       if (socket) socket.close();
     };
   }, []);
+
+  // Round Kickoff Countdown Timer (3.. 2.. 1.. DENGARKAN!)
+  useEffect(() => {
+    if (roundKickoff === null) return;
+    if (roundKickoff > 0) {
+      sfx.playTick(true);
+      const timer = setTimeout(() => {
+        setRoundKickoff(roundKickoff - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (roundKickoff === 0) {
+      sfx.playGong();
+      const timer = setTimeout(() => {
+        setRoundKickoff(null);
+        playAudioRef.current();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [roundKickoff]);
 
   const savePlayerName = (name: string) => {
     setPlayerName(name);
@@ -615,77 +734,7 @@ export default function MultiplayerPage() {
   };
 
   const toggleAudioPlay = () => {
-    // 1. Humming Mode Synthesizer
-    if (room?.mode === "humming") {
-      if (!synthRef.current) return;
-      if (isPlayingAudio) {
-        synthRef.current.stop();
-        setIsPlayingAudio(false);
-      } else {
-        sfx.playClick();
-        setIsPlayingAudio(true);
-        synthRef.current.playMelody(
-          room?.currentSongClue?.hummingMelody || [],
-          undefined,
-          () => setIsPlayingAudio(false)
-        );
-      }
-      return;
-    }
-
-    // 2. Audio file playback (TTS / Heardle)
-    if (!audioRef.current) return;
-    if (isPlayingAudio) {
-      if (sliceTimerRef.current) clearTimeout(sliceTimerRef.current);
-      audioRef.current.pause();
-      setIsPlayingAudio(false);
-    } else {
-      sfx.playClick();
-      const profile = room?.audioProfile || "normal";
-      if (room?.mode === "tts") {
-        const clues = room.currentSongClue?.lyricsClues || [];
-        const fullLyrics = clues.join(". \n");
-        const speedParam = profile === "fast" ? "1.25" : profile === "bass" ? "0.8" : "1";
-        const langParam = room.currentSongClue?.lang || "id";
-        audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik lagu ini")}&speed=${speedParam}&lang=${langParam}`;
-      } else {
-        // Time Slice (Heardle): 5s (tahap 1), 9s (tahap 2), 18s (tahap 3), 30s penuh (tahap 4)
-        const stageLimits = [5, 5, 9, 18, 30];
-        const maxDuration = stageLimits[room?.clueStage || 1] || 5;
-
-        audioRef.current.src = room?.currentSongClue?.previewUrl || "";
-        audioRef.current.currentTime = 0;
-
-        if (sliceTimerRef.current) clearTimeout(sliceTimerRef.current);
-        sliceTimerRef.current = setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.pause();
-            setIsPlayingAudio(false);
-          }
-        }, maxDuration * 1000);
-      }
-
-      if (profile === "fast") {
-        audioRef.current.playbackRate = 1.3;
-      } else if (profile === "bass") {
-        audioRef.current.playbackRate = 0.85;
-      } else {
-        audioRef.current.playbackRate = 1.0;
-      }
-
-      setIsAudioBuffering(true);
-      audioRef.current
-        .play()
-        .then(() => {
-          setIsAudioBuffering(false);
-          setIsPlayingAudio(true);
-        })
-        .catch((err) => {
-          console.warn("Audio play notice:", err);
-          setIsAudioBuffering(false);
-          setIsPlayingAudio(false);
-        });
-    }
+    handleToggleRoomAudio();
   };
 
   const myPlayer = room?.players?.find((p: any) => p.id === myPlayerId);
@@ -1445,7 +1494,7 @@ export default function MultiplayerPage() {
 
             {/* Clue Prompt */}
             <button
-              onClick={toggleAudioPlay}
+              onClick={handleToggleRoomAudio}
               disabled={isAudioBuffering}
               className={`mt-1 flex items-center gap-2 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer ${
                 isAudioBuffering ? "opacity-75 cursor-wait" : ""
@@ -1458,9 +1507,9 @@ export default function MultiplayerPage() {
                 </>
               ) : isPlayingAudio ? (
                 <>
-                  <Volume2 className="w-4 h-4 text-accent animate-pulse" />
+                  <Pause className="w-4 h-4 text-accent animate-pulse" />
                   <span>
-                    Hentikan ({room.mode === "heardle" ? `${[5, 5, 9, 18, 30][room.clueStage || 1]}s` : "Audio"})
+                    Jeda Audio Bersama ({room.mode === "heardle" ? `${[5, 5, 9, 18, 30][room.clueStage || 1]}s` : "TTS"})
                   </span>
                 </>
               ) : (
@@ -1468,8 +1517,8 @@ export default function MultiplayerPage() {
                   <Play className="w-4 h-4 fill-current text-accent" />
                   <span>
                     {room.mode === "heardle"
-                      ? `Putar Cuplikan (${[5, 5, 9, 18, 30][room.clueStage || 1]} Detik) ⏱️`
-                      : "Dengarkan Robot Bacakan Lirik 🤖"}
+                      ? `Putar Cuplikan Bersama (${[5, 5, 9, 18, 30][room.clueStage || 1]}s) ▶️`
+                      : "Putar Robot Bersama ▶️"}
                   </span>
                 </>
               )}
@@ -1868,6 +1917,28 @@ export default function MultiplayerPage() {
           onClose={() => setShowQrModal(false)}
           roomCode={room.code}
         />
+      )}
+
+      {/* Round Kickoff Tension Countdown Overlay */}
+      {roundKickoff !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in pointer-events-none">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="text-xs font-mono text-emerald-400 font-bold tracking-widest uppercase">
+              RONDE {room?.currentRound} DARI {room?.maxRounds}
+            </span>
+            <div className="w-24 h-24 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 font-black text-5xl shadow-2xl shadow-emerald-500/40 animate-pulse">
+              {roundKickoff > 0 ? roundKickoff : "🎧"}
+            </div>
+            <h3 className="text-xl font-black text-white mt-1">
+              {roundKickoff > 0 ? "PASANG TELINGAMU!" : "DENGARKAN & TEBAK!"}
+            </h3>
+            <p className="text-xs text-muted max-w-xs">
+              {room?.mode === "tts"
+                ? "Robot akan segera membacakan bait lirik secara serentak..."
+                : "Cuplikan musik akan berputar serentak di semua perangkat!"}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Disconnect Reconnecting Overlay */}
