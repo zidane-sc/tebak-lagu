@@ -269,3 +269,29 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    await initDb();
+    const body = await request.json();
+    const { id, is_active } = body;
+    if (!id) {
+      return NextResponse.json({ error: "Parameter ID lagu wajib diisi!" }, { status: 400 });
+    }
+
+    const newActive = is_active ? 1 : 0;
+    await db.execute({
+      sql: "UPDATE songs SET is_active = ? WHERE id = ?;",
+      args: [newActive, id],
+    });
+
+    return NextResponse.json({
+      success: true,
+      is_active: newActive,
+      message: `Status lagu berhasil diubah menjadi ${newActive ? "Aktif 🟢" : "Nonaktif 🔴"}`,
+    });
+  } catch (err: any) {
+    console.error("Admin songs PATCH error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

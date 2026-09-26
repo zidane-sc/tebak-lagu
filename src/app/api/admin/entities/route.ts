@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, initDb } from "@/lib/db";
+import { db, initDb, getSettingsFromDb, saveSettingToDb } from "@/lib/db";
 import { seedArtists } from "@/scripts/seed-artists";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +52,7 @@ export async function GET(request: Request) {
             a.image as sample_cover,
             a.category as primary_category,
             a.song_count,
+            COALESCE(a.is_active, 1) as is_active,
             COALESCE(SUM(s.times_played), 0) as total_plays,
             COALESCE(SUM(s.times_guessed), 0) as total_guesses,
             GROUP_CONCAT(DISTINCT s.category) as categories,
@@ -73,6 +74,7 @@ export async function GET(request: Request) {
         id: String(r.id),
         artist: String(r.artist),
         song_count: Number(r.song_count || 0),
+        is_active: Number(r.is_active ?? 1) === 1,
         total_plays: Number(r.total_plays || 0),
         total_guesses: Number(r.total_guesses || 0),
         sample_cover: r.sample_cover || "",
@@ -95,6 +97,9 @@ export async function GET(request: Request) {
     // 2. GENRES LIST
     // -----------------------------------------------------------
     if (type === "genres") {
+      const settings = await getSettingsFromDb();
+      const disabledGenres: string[] = Array.isArray(settings.disabled_genres) ? settings.disabled_genres : [];
+
       const genresRes = await db.execute(`
         SELECT 
           category,
@@ -119,9 +124,10 @@ export async function GET(request: Request) {
         medium_count: Number(r.medium_count || 0),
         hard_count: Number(r.hard_count || 0),
         sample_cover: r.sample_cover || "",
+        is_active: !disabledGenres.includes(String(r.category)),
       }));
 
-      return NextResponse.json({ type: "genres", genres });
+      return NextResponse.json({ type: "genres", genres, disabled_genres: disabledGenres });
     }
 
     // -----------------------------------------------------------
@@ -262,6 +268,54 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         message: "Sinkronisasi & Seeding Multi-Artis berhasil dilakukan!",
+      });
+    }
+
+    // 0.1 TOGGLE ARTIST ACTIVE STATUS
+    if (action === "toggle_artist_status") {
+      const { artistId, is_active } = body;
+      if (!artistId) {
+        return NextResponse.json({ error: "Parameter artistId wajib diisi!" }, { status: 400 });
+      }
+
+      const newActive = is_active ? 1 : 0;
+      await db.execute({
+        sql: "UPDATE artists SET is_active = ? WHERE id = ? OR name = ?;",
+        args: [newActive, artistId, artistId],
+      });
+
+      return NextResponse.json({
+        success: true,
+        is_active: newActive === 1,
+        message: `Status artis berhasil diubah menjadi ${newActive ? "Aktif 🟢" : "Nonaktif 🔴"}`,
+      });
+    }
+
+    // 0.2 TOGGLE GENRE ACTIVE STATUS
+    if (action === "toggle_genre_status") {
+      const { genre, is_active } = body;
+      if (!genre) {
+        return NextResponse.json({ error: "Parameter genre wajib diisi!" }, { status: 400 });
+      }
+
+      const settings = await getSettingsFromDb();
+      let disabledGenres: string[] = Array.isArray(settings.disabled_genres) ? settings.disabled_genres : [];
+
+      if (!is_active) {
+        if (!disabledGenres.includes(genre)) {
+          disabledGenres.push(genre);
+        }
+      } else {
+        disabledGenres = disabledGenres.filter((g) => g !== genre);
+      }
+
+      await saveSettingToDb("disabled_genres", disabledGenres);
+
+      return NextResponse.json({
+        success: true,
+        is_active: !!is_active,
+        disabled_genres: disabledGenres,
+        message: `Genre "${genre}" berhasil diubah menjadi ${is_active ? "Aktif 🟢" : "Nonaktif 🔴 (Tidak muncul di kuis)"}`,
       });
     }
 

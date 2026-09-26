@@ -42,7 +42,9 @@ export default function PlayArenaPage() {
 
   // Single player config from sessionStorage (clean URL without query params)
   const [gameConfig, setGameConfig] = useState({
+    filterType: "category" as "category" | "artists",
     category: "Semua Genre",
+    selectedArtists: [] as string[],
     difficulty: "easy",
     audioProfile: "normal",
     maxRounds: 5,
@@ -77,14 +79,18 @@ export default function PlayArenaPage() {
       if (saved) {
         const parsed = JSON.parse(saved);
         setGameConfig({
+          filterType: parsed.filterType || "category",
           category: parsed.category || "Semua Genre",
+          selectedArtists: Array.isArray(parsed.selectedArtists) ? parsed.selectedArtists : [],
           difficulty: parsed.difficulty || "easy",
           audioProfile: parsed.audioProfile || "normal",
           maxRounds: parsed.maxRounds || 5,
         });
       } else {
         setGameConfig({
+          filterType: "category",
           category: searchParams.get("category") || "Semua Genre",
+          selectedArtists: [],
           difficulty: searchParams.get("difficulty") || "easy",
           audioProfile: searchParams.get("audioProfile") || "normal",
           maxRounds: parseInt(searchParams.get("rounds") || "5", 10),
@@ -122,9 +128,15 @@ export default function PlayArenaPage() {
 
     const q = new URLSearchParams({
       mode: modeKey,
-      category: gameConfig.category,
       difficulty: gameConfig.difficulty,
     });
+
+    if (gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0) {
+      q.set("filterType", "artists");
+      q.set("artists", gameConfig.selectedArtists.join(","));
+    } else {
+      q.set("category", gameConfig.category);
+    }
 
     fetch(`/api/songs/random?${q.toString()}`)
       .then((r) => r.json())
@@ -142,7 +154,7 @@ export default function PlayArenaPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [modeKey, gameConfig.category, gameConfig.difficulty]);
+  }, [modeKey, gameConfig.category, gameConfig.difficulty, gameConfig.filterType, gameConfig.selectedArtists]);
 
   useEffect(() => {
     loadNewSong();
@@ -333,7 +345,9 @@ export default function PlayArenaPage() {
         {/* Genre & Difficulty Tags */}
         <div className="flex items-center gap-2 flex-wrap justify-center">
           <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-accent">
-            🎯 {gameConfig.category}
+            🎯 {gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0
+              ? `${gameConfig.selectedArtists.length} Artis Pilihan`
+              : gameConfig.category}
           </span>
           <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-zinc-300">
             {gameConfig.difficulty === "easy"

@@ -24,16 +24,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function cleanStringForSearch(str) {
   return (str || "")
-    .replace(/\s*\(feat\..*?\)/gi, "")
-    .replace(/\s*\[feat\..*?\]/gi, "")
-    .replace(/\s*\(with.*?\)/gi, "")
-    .replace(/\s*\(from.*?\)/gi, "")
-    .replace(/\s*\(remastered.*?\)/gi, "")
-    .replace(/\s*\[remastered.*?\]/gi, "")
-    .replace(/\s*\(live.*?\)/gi, "")
-    .replace(/\s*\[live.*?\]/gi, "")
+    .replace(/\s*[\(\[].*?[\)\]]/g, "")
     .replace(/\s*-\s*single/gi, "")
     .replace(/\s*-\s*ep/gi, "")
+    .replace(/['"\.,]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -209,7 +204,7 @@ async function main() {
       SELECT id, title, artist, category, difficulty, deezer_rank, album, lyrics_clues
       FROM songs
       WHERE ${whereClause}
-      ORDER BY times_played DESC, id ASC
+      ORDER BY times_played DESC, RANDOM()
       LIMIT ?;
     `,
     args: [queryLimit],

@@ -29,6 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { CATEGORIES } from "@/data/songs";
+import { ArtistSelector } from "@/components/game/ArtistSelector";
 
 const GAME_MODES = [
   {
@@ -72,7 +73,9 @@ export default function HomePage() {
 
   // Single Player Mode Configuration Modal State
   const [configModalMode, setConfigModalMode] = useState<any>(null);
+  const [modalFilterType, setModalFilterType] = useState<"category" | "artists">("category");
   const [modalCategory, setModalCategory] = useState("Semua Genre");
+  const [modalSelectedArtists, setModalSelectedArtists] = useState<string[]>([]);
   const [modalDifficulty, setModalDifficulty] = useState("easy");
   const [modalAudioProfile, setModalAudioProfile] = useState("normal");
   const [modalRounds, setModalRounds] = useState(5);
@@ -90,7 +93,9 @@ export default function HomePage() {
       sessionStorage.setItem(
         "tebak_lagu_single_config",
         JSON.stringify({
+          filterType: modalFilterType,
           category: modalCategory,
+          selectedArtists: modalSelectedArtists,
           difficulty: modalDifficulty,
           audioProfile: modalAudioProfile,
           maxRounds: modalRounds,
@@ -323,35 +328,68 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* 1. Pilih Genre */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
-                <span>1. PILIH GENRE</span>
-                <span className="text-accent font-bold">{modalCategory}</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  "Semua Genre",
-                  "Galau Hits",
-                  "Nostalgia 2000s",
-                  "Anthem Tongkrongan",
-                  "Pop Jawa & Koplo",
-                  "Western Hits",
-                ].map((cat) => (
+            {/* 1. Pilih Genre atau Penyanyi Favorit */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                  1. PILIH LAGU DARI
+                </label>
+                <div className="flex items-center gap-1 bg-surfaceRaised p-0.5 rounded-xl border border-surfaceBorder">
                   <button
-                    key={cat}
                     type="button"
-                    onClick={() => setModalCategory(cat)}
-                    className={`py-2 px-2.5 rounded-xl text-left transition text-xs font-semibold truncate ${
-                      modalCategory === cat
+                    onClick={() => setModalFilterType("category")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      modalFilterType === "category"
                         ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    {cat}
+                    📁 Genre
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setModalFilterType("artists")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      modalFilterType === "artists"
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    🎤 Pilih Penyanyi
+                  </button>
+                </div>
               </div>
+
+              {modalFilterType === "category" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    "Semua Genre",
+                    "Galau Hits",
+                    "Nostalgia 2000s",
+                    "Anthem Tongkrongan",
+                    "Pop Jawa & Koplo",
+                    "Western Hits",
+                  ].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setModalCategory(cat)}
+                      className={`py-2 px-2.5 rounded-xl text-left transition text-xs font-semibold truncate ${
+                        modalCategory === cat
+                          ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                          : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <ArtistSelector
+                  selectedArtists={modalSelectedArtists}
+                  onChange={setModalSelectedArtists}
+                />
+              )}
             </div>
 
             {/* 2. Tingkat Kesulitan */}
@@ -453,10 +491,15 @@ export default function HomePage() {
             {/* Action CTA Button */}
             <button
               onClick={handleStartGame}
-              className="w-full mt-2 bg-accent hover:bg-green-500 text-zinc-950 font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-xl shadow-accent/25 cursor-pointer"
+              disabled={modalFilterType === "artists" && modalSelectedArtists.length === 0}
+              className="w-full mt-2 bg-accent hover:bg-green-500 disabled:opacity-40 disabled:pointer-events-none text-zinc-950 font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-xl shadow-accent/25 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Mulai Main Sekarang ➔</span>
+              <span>
+                {modalFilterType === "artists" && modalSelectedArtists.length === 0
+                  ? "Pilih Minimal 1 Penyanyi 🎤"
+                  : "Mulai Main Sekarang ➔"}
+              </span>
             </button>
           </div>
         </div>

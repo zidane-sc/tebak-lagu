@@ -40,6 +40,8 @@ import {
   Activity,
   Trophy,
   Disc3,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
 import { ArtistsManager } from "@/components/admin/ArtistsManager";
@@ -738,6 +740,29 @@ export default function AdminDashboardPage() {
     setShowDeleteModal(true);
   };
 
+  // Toggle Song Active / Inactive
+  const handleToggleSongStatus = async (song: any) => {
+    const newStatus = song.isActive === false;
+    try {
+      const res = await fetch("/api/admin/songs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: song.id, is_active: newStatus }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || `Lagu berhasil ${newStatus ? "diaktifkan 🟢" : "dinonaktifkan 🔴"}`);
+        setSongs((prev) =>
+          prev.map((s) => (s.id === song.id ? { ...s, isActive: newStatus } : s))
+        );
+      } else {
+        showToast(data.error || "Gagal mengubah status lagu", "error");
+      }
+    } catch {
+      showToast("Terjadi kesalahan jaringan", "error");
+    }
+  };
+
   // Submit Add Song
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1284,9 +1309,16 @@ export default function AdminDashboardPage() {
                                 </div>
                               )}
                               <div className="flex flex-col min-w-0">
-                                <span className="font-bold text-white truncate max-w-xs sm:max-w-sm">
-                                  {song.title}
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`font-bold truncate max-w-xs sm:max-w-sm ${song.isActive === false ? "text-zinc-500 line-through" : "text-white"}`}>
+                                    {song.title}
+                                  </span>
+                                  {song.isActive === false && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold shrink-0">
+                                      NONAKTIF
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[11px] text-muted truncate max-w-xs">
                                   {song.artist}
                                 </span>
@@ -1328,6 +1360,17 @@ export default function AdminDashboardPage() {
                           {/* Actions */}
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleToggleSongStatus(song)}
+                                className={`p-1.5 rounded-lg transition ${
+                                  song.isActive === false
+                                    ? "text-rose-400 bg-rose-500/10 hover:bg-rose-500/20"
+                                    : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                }`}
+                                title={song.isActive === false ? "Aktifkan Lagu untuk Kuis" : "Nonaktifkan Lagu dari Kuis"}
+                              >
+                                {song.isActive === false ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
                               <button
                                 onClick={() => openEditModal(song)}
                                 className="p-1.5 rounded-lg text-muted hover:text-white hover:bg-surfaceRaised transition"

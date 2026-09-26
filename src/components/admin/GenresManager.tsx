@@ -11,6 +11,8 @@ import {
   X,
   Loader2,
   TrendingUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { EntitySongsModal } from "./EntitySongsModal";
 

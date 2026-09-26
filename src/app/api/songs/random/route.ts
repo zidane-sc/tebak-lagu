@@ -10,9 +10,14 @@ export async function GET(request: Request) {
     const category = searchParams.get("category");
     const difficulty = searchParams.get("difficulty");
     const mode = searchParams.get("mode");
+    const artists = searchParams.get("artists");
+    const filterType = searchParams.get("filterType");
+
+    const effectiveCategory = filterType === "artists" ? null : category;
+    const effectiveArtists = filterType === "artists" ? artists : null;
 
     // Query database directly
-    let baseSong = await getRandomSong(category, difficulty);
+    let baseSong = await getRandomSong(effectiveCategory, difficulty, effectiveArtists, mode);
 
     if (!baseSong) {
       return NextResponse.json({ error: "Lagu tidak ditemukan" }, { status: 404 });
@@ -70,7 +75,7 @@ export async function GET(request: Request) {
         } catch (e) {}
 
         // Pick another song from DB
-        const next = await getRandomSong(category, difficulty);
+        const next = await getRandomSong(effectiveCategory, difficulty, effectiveArtists, mode);
         if (next) baseSong = next;
         attempts++;
       }

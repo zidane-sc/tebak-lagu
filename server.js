@@ -155,6 +155,8 @@ function getSanitizedRoom(room) {
     hostId: room.hostId,
     mode: room.mode,
     category: room.category,
+    selectedArtists: room.selectedArtists || [],
+    filterType: room.filterType || "category",
     difficulty: room.difficulty || "easy",
     audioProfile: room.audioProfile || "normal",
     maxRounds: room.maxRounds,
@@ -374,7 +376,12 @@ async function startRound(room) {
   if (room.matchQueue && room.matchQueue[room.currentRound - 1]) {
     chosenSong = room.matchQueue[room.currentRound - 1];
   } else {
-    chosenSong = await getRandomSong(room.category, room.difficulty, room.mode);
+    chosenSong = await getRandomSong(
+      room.filterType === "artists" ? null : room.category,
+      room.difficulty,
+      room.mode,
+      room.filterType === "artists" ? room.selectedArtists : null
+    );
   }
 
   // Ensure TTS has valid real lyrics (never dummy text)
@@ -384,7 +391,12 @@ async function startRound(room) {
       chosenSong.lyricsClues = lyrics;
     } else {
       // Fallback to guaranteed lyrics song
-      const safeSong = await getRandomSong(room.category, room.difficulty, "tts");
+      const safeSong = await getRandomSong(
+        room.filterType === "artists" ? null : room.category,
+        room.difficulty,
+        "tts",
+        room.filterType === "artists" ? room.selectedArtists : null
+      );
       if (safeSong?.lyricsClues?.length >= 2) {
         chosenSong = safeSong;
       }
@@ -527,6 +539,8 @@ app.prepare().then(() => {
             hostId: playerId,
             mode: data.mode || "heardle",
             category: data.category || "Semua Genre",
+            selectedArtists: Array.isArray(data.selectedArtists) ? data.selectedArtists : [],
+            filterType: data.filterType || "category",
             difficulty: data.difficulty || "easy",
             audioProfile: data.audioProfile || "normal",
             maxRounds: data.maxRounds || 5,
@@ -704,7 +718,13 @@ app.prepare().then(() => {
 
           // Pre-roll distinct songs queue for the entire match (100% unique, zero duplicates!)
           try {
-            const queue = await getMatchSongsQueue(room.category, room.difficulty, room.maxRounds || 5, room.mode);
+            const queue = await getMatchSongsQueue(
+              room.filterType === "artists" ? null : room.category,
+              room.difficulty,
+              room.maxRounds || 5,
+              room.mode,
+              room.filterType === "artists" ? room.selectedArtists : null
+            );
             room.matchQueue = queue;
 
             // Pre-resolve lyrics for TTS mode in background

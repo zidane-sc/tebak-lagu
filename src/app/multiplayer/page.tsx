@@ -33,6 +33,7 @@ import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { SocialShareModal } from "@/components/SocialShareModal";
 import { RoomQrCodeModal } from "@/components/RoomQrCodeModal";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
+import { ArtistSelector } from "@/components/game/ArtistSelector";
 import { useAuth } from "@/lib/auth-context";
 import { HummingSynth } from "@/lib/audio-synth";
 import { sfx } from "@/lib/sound-fx";
@@ -88,7 +89,9 @@ export default function MultiplayerPage() {
 
   // Room config (Create)
   const [selectedMode, setSelectedMode] = useState("heardle");
+  const [selectedFilterType, setSelectedFilterType] = useState<"category" | "artists">("category");
   const [selectedCategory, setSelectedCategory] = useState("Semua Genre");
+  const [selectedArtists, setSelectedArtists] = useState<string[]>([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
   const [selectedAudioProfile, setSelectedAudioProfile] = useState("normal");
   const [maxRounds, setMaxRounds] = useState(5);
@@ -675,7 +678,9 @@ export default function MultiplayerPage() {
         playerName: playerName.trim(),
         avatar,
         mode: selectedMode,
+        filterType: selectedFilterType,
         category: selectedCategory,
+        selectedArtists,
         difficulty: selectedDifficulty,
         audioProfile: selectedAudioProfile,
         maxRounds,
@@ -1064,37 +1069,76 @@ export default function MultiplayerPage() {
               </div>
             </div>
 
-            {/* Genre / Kategori Picker */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
-                <span>PILIH GENRE / KATEGORI</span>
-                <span className="text-accent">{selectedCategory}</span>
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "Semua Genre", label: "Semua Genre 🔀" },
-                  { id: "Galau Hits", label: "Galau Hits 💔" },
-                  { id: "Nostalgia 2000s", label: "Nostalgia 2000s 🎸" },
-                  { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
-                  { id: "Pop Jawa & Koplo", label: "Jawa & Koplo 💃" },
-                  { id: "Western Hits", label: "Western Hits 🌎" },
-                ].map((c) => (
+            {/* Genre atau Pilih Penyanyi */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                  PILIH LAGU DARI
+                </label>
+                <div className="flex items-center gap-1 bg-surfaceRaised p-0.5 rounded-xl border border-surfaceBorder">
                   <button
-                    key={c.id}
+                    type="button"
                     onClick={() => {
                       sfx.playClick();
-                      setSelectedCategory(c.id);
+                      setSelectedFilterType("category");
                     }}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition ${
-                      selectedCategory === c.id
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      selectedFilterType === "category"
                         ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                        : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    {c.label}
+                    📁 Genre
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sfx.playClick();
+                      setSelectedFilterType("artists");
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      selectedFilterType === "artists"
+                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    🎤 Pilih Penyanyi
+                  </button>
+                </div>
               </div>
+
+              {selectedFilterType === "category" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "Semua Genre", label: "Semua Genre 🔀" },
+                    { id: "Galau Hits", label: "Galau Hits 💔" },
+                    { id: "Nostalgia 2000s", label: "Nostalgia 2000s 🎸" },
+                    { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
+                    { id: "Pop Jawa & Koplo", label: "Jawa & Koplo 💃" },
+                    { id: "Western Hits", label: "Western Hits 🌎" },
+                  ].map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        sfx.playClick();
+                        setSelectedCategory(c.id);
+                      }}
+                      className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition ${
+                        selectedCategory === c.id
+                          ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                          : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <ArtistSelector
+                  selectedArtists={selectedArtists}
+                  onChange={setSelectedArtists}
+                />
+              )}
             </div>
 
             {/* Tingkat Kesulitan / Popularitas */}
@@ -1202,10 +1246,15 @@ export default function MultiplayerPage() {
             {/* Submit create */}
             <button
               onClick={handleCreateRoom}
-              className="w-full mt-2 bg-accent hover:bg-green-500 text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md shadow-accent/20 cursor-pointer"
+              disabled={selectedFilterType === "artists" && selectedArtists.length === 0}
+              className="w-full mt-2 bg-accent hover:bg-green-500 disabled:opacity-40 disabled:pointer-events-none text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md shadow-accent/20 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Buka Room Sekarang</span>
+              <span>
+                {selectedFilterType === "artists" && selectedArtists.length === 0
+                  ? "Pilih Minimal 1 Penyanyi 🎤"
+                  : "Buka Room Sekarang"}
+              </span>
             </button>
           </div>
         </main>
@@ -1304,7 +1353,11 @@ export default function MultiplayerPage() {
             <div className="flex items-center justify-between text-[11px] font-mono text-mutedDark font-semibold">
               <span>PEMAIN TERGABUNG ({room.players.length}/8)</span>
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="text-accent font-semibold">🎯 {room.category || "Semua Genre"}</span>
+                <span className="text-accent font-semibold">
+                  🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
+                    ? `${room.selectedArtists.length} Artis Pilihan`
+                    : room.category || "Semua Genre"}
+                </span>
                 <span>•</span>
                 <span className="text-emerald-400 font-semibold">
                   {room.difficulty === "easy"
@@ -1409,7 +1462,9 @@ export default function MultiplayerPage() {
                 Ronde {room.currentRound} / {room.maxRounds}
               </span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-surfaceBorder text-accent font-semibold">
-                🎯 {room.category || "Semua Genre"} ·{" "}
+                🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
+                  ? `${room.selectedArtists.length} Artis Pilihan`
+                  : room.category || "Semua Genre"} ·{" "}
                 {room.difficulty === "easy"
                   ? "🟢 Mudah"
                   : room.difficulty === "medium"

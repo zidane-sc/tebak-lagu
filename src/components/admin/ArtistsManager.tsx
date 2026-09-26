@@ -16,6 +16,8 @@ import {
   X,
   Layers,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { EntitySongsModal } from "./EntitySongsModal";
 import { CATEGORIES } from "@/data/songs";
@@ -110,6 +112,32 @@ export const ArtistsManager: React.FC<{
   useEffect(() => {
     fetchArtists();
   }, [page, debouncedSearch, selectedCategory, minSongsFilter]);
+
+  const handleToggleArtistStatus = async (item: any) => {
+    const newStatus = item.is_active === false;
+    try {
+      const res = await fetch("/api/admin/entities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "toggle_artist_status",
+          artistId: item.id || item.artist,
+          is_active: newStatus,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        onNotification?.(data.message || "Status penyanyi berhasil diperbarui!", "success");
+        setArtists((prev) =>
+          prev.map((a) => (a.id === item.id ? { ...a, is_active: newStatus } : a))
+        );
+      } else {
+        onNotification?.(data.error || "Gagal mengubah status artis.", "error");
+      }
+    } catch {
+      onNotification?.("Terjadi kesalahan jaringan.", "error");
+    }
+  };
 
   const handleRenameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,7 +303,11 @@ export const ArtistsManager: React.FC<{
           {artists.map((item) => (
             <div
               key={item.artist}
-              className="bg-surface hover:bg-surfaceRaised border border-surfaceBorder hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm transition group"
+              className={`bg-surface hover:bg-surfaceRaised border rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm transition group ${
+                item.is_active === false
+                  ? "border-rose-500/30 opacity-70 bg-rose-950/10"
+                  : "border-surfaceBorder hover:border-zinc-700"
+              }`}
             >
               <div className="flex items-start gap-3">
                 {item.sample_cover ? (
@@ -292,9 +324,18 @@ export const ArtistsManager: React.FC<{
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-sm text-white truncate group-hover:text-accent transition-colors">
-                    {item.artist}
-                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className={`font-bold text-sm truncate transition-colors ${
+                      item.is_active === false ? "text-zinc-400 line-through" : "text-white group-hover:text-accent"
+                    }`}>
+                      {item.artist}
+                    </h4>
+                    {item.is_active === false && (
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold shrink-0">
+                        NONAKTIF
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-muted font-mono mt-0.5">
                     <span className="text-accent font-bold">{item.song_count} Lagu</span>
                     {item.min_year && (
@@ -332,6 +373,18 @@ export const ArtistsManager: React.FC<{
                 >
                   <Disc className="w-3 h-3 text-accent" />
                   <span>Lihat Lagu</span>
+                </button>
+
+                <button
+                  onClick={() => handleToggleArtistStatus(item)}
+                  className={`py-1.5 px-2 rounded-lg border text-[11px] transition ${
+                    item.is_active === false
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-400 hover:bg-rose-500/20"
+                      : "bg-surfaceRaised border-surfaceBorder text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                  }`}
+                  title={item.is_active === false ? "Aktifkan Penyanyi di Kuis" : "Nonaktifkan Penyanyi dari Kuis"}
+                >
+                  {item.is_active === false ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
 
                 <button

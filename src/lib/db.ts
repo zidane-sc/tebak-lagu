@@ -68,6 +68,7 @@ export function rowToSong(row: any) {
     timesPlayed: row.times_played || 0,
     timesGuessed: row.times_guessed || 0,
     timesFailed: row.times_failed || 0,
+    isActive: row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true,
   };
 }
 
@@ -111,6 +112,18 @@ export async function initDb() {
 
   try {
     await db.execute("ALTER TABLE songs ADD COLUMN start_second INTEGER DEFAULT 0;");
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    await db.execute("ALTER TABLE songs ADD COLUMN is_active INTEGER DEFAULT 1;");
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    await db.execute("ALTER TABLE artists ADD COLUMN is_active INTEGER DEFAULT 1;");
   } catch (e) {
     // Column already exists
   }
@@ -226,27 +239,56 @@ export async function initDb() {
   }
 }
 
-// Query random song matching category & difficulty
-export async function getRandomSong(category?: string | null, difficulty?: string | null) {
-  let sql = "SELECT * FROM songs WHERE 1=1";
+// Query random song matching category, difficulty, artists, and mode
+export async function getRandomSong(
+  category?: string | null,
+  difficulty?: string | null,
+  artists?: string[] | string | null,
+  mode?: string | null
+) {
+  let sql = "SELECT s.* FROM songs s WHERE (s.is_active = 1 OR s.is_active IS NULL)";
   const args: any[] = [];
 
-  if (category && category !== "all" && category !== "Semua Genre") {
-    sql += " AND category = ?";
+  // Exclude disabled artists
+  sql += " AND s.id NOT IN (SELECT sa.song_id FROM song_artists sa JOIN artists a ON sa.artist_id = a.id WHERE a.is_active = 0)";
+
+  // If specific artists selected
+  if (artists) {
+    const artistList = Array.isArray(artists)
+      ? artists
+      : String(artists).split(",").map((a) => a.trim()).filter(Boolean);
+    if (artistList.length > 0) {
+      const placeholders = artistList.map(() => "?").join(",");
+      sql += ` AND s.id IN (
+        SELECT sa.song_id FROM song_artists sa 
+        JOIN artists a ON sa.artist_id = a.id 
+        WHERE a.id IN (${placeholders}) OR a.name IN (${placeholders})
+      )`;
+      args.push(...artistList, ...artistList);
+    }
+  } else if (category && category !== "all" && category !== "Semua Genre") {
+    sql += " AND s.category = ?";
     args.push(category);
   }
 
   if (difficulty && difficulty !== "all") {
-    sql += " AND difficulty = ?";
+    sql += " AND s.difficulty = ?";
     args.push(difficulty);
+  }
+
+  if (mode === "tts") {
+    sql += " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
   }
 
   sql += " ORDER BY RANDOM() LIMIT 1;";
 
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
-    // Fallback: pick any song
-    const fallback = await db.execute("SELECT * FROM songs ORDER BY RANDOM() LIMIT 1;");
+    // Fallback: pick any active song
+    const fallbackSql = mode === "tts"
+      ? "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) AND lyrics_clues IS NOT NULL AND json_array_length(lyrics_clues) >= 4 ORDER BY RANDOM() LIMIT 1;"
+      : "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;";
+    const fallback = await db.execute(fallbackSql);
     return rowToSong(fallback.rows[0]);
   }
 
@@ -254,18 +296,44 @@ export async function getRandomSong(category?: string | null, difficulty?: strin
 }
 
 // Pre-roll a queue of distinct songs for a match
-export async function getMatchSongsQueue(category?: string | null, difficulty?: string | null, count: number = 5) {
-  let sql = "SELECT * FROM songs WHERE 1=1";
+export async function getMatchSongsQueue(
+  category?: string | null,
+  difficulty?: string | null,
+  count: number = 5,
+  mode?: string | null,
+  artists?: string[] | string | null
+) {
+  let sql = "SELECT s.* FROM songs s WHERE (s.is_active = 1 OR s.is_active IS NULL)";
   const args: any[] = [];
 
-  if (category && category !== "all" && category !== "Semua Genre") {
-    sql += " AND category = ?";
+  // Exclude disabled artists
+  sql += " AND s.id NOT IN (SELECT sa.song_id FROM song_artists sa JOIN artists a ON sa.artist_id = a.id WHERE a.is_active = 0)";
+
+  if (artists) {
+    const artistList = Array.isArray(artists)
+      ? artists
+      : String(artists).split(",").map((a) => a.trim()).filter(Boolean);
+    if (artistList.length > 0) {
+      const placeholders = artistList.map(() => "?").join(",");
+      sql += ` AND s.id IN (
+        SELECT sa.song_id FROM song_artists sa 
+        JOIN artists a ON sa.artist_id = a.id 
+        WHERE a.id IN (${placeholders}) OR a.name IN (${placeholders})
+      )`;
+      args.push(...artistList, ...artistList);
+    }
+  } else if (category && category !== "all" && category !== "Semua Genre") {
+    sql += " AND s.category = ?";
     args.push(category);
   }
 
   if (difficulty && difficulty !== "all") {
-    sql += " AND difficulty = ?";
+    sql += " AND s.difficulty = ?";
     args.push(difficulty);
+  }
+
+  if (mode === "tts") {
+    sql += " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
   }
 
   sql += " ORDER BY RANDOM() LIMIT ?;";

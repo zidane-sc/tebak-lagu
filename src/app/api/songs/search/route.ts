@@ -71,11 +71,12 @@ export async function GET(request: Request) {
     }
 
     const sql = `
-      SELECT *,
+      SELECT id, title, artist, album_cover,
         ${relevanceSql}
       FROM songs
-      WHERE ${whereConditions}
-      ORDER BY relevance DESC, popularity DESC, deezer_rank DESC
+      WHERE (is_active = 1 OR is_active IS NULL)
+        AND (${whereConditions})
+      ORDER BY relevance DESC, deezer_rank DESC, times_played DESC
       LIMIT 10;
     `;
 
@@ -84,75 +85,20 @@ export async function GET(request: Request) {
       args: [...relevanceArgs, ...tokenArgs],
     });
 
-    const localMatches = localRes.rows.map(rowToSong);
+    const results = localRes.rows.map((r: any) => ({
+      id: String(r.id),
+      title: String(r.title),
+      artist: String(r.artist),
+      albumCover: r.album_cover || "",
+    }));
 
-    // 2. Fast background search from online directory with strict 1.2s timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
-
-    const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(
-      q
-    )}&entity=song&limit=10`;
-
-    const res = await fetch(itunesUrl, {
-      headers: { "User-Agent": "TebakLagu/2.0" },
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-
-    let onlineResults: any[] = [];
-    if (res.ok) {
-      const data = await res.json();
-      onlineResults = (data.results || []).map((r: any) => ({
-        id: `itunes-${r.trackId}`,
-        title: r.trackName,
-        artist: r.artistName,
-        year: r.releaseDate ? new Date(r.releaseDate).getFullYear() : 2020,
-        category: r.primaryGenreName || "Music",
-        albumCover: r.artworkUrl100,
-        previewUrl: r.previewUrl,
-        searchQuery: `${r.trackName} ${r.artistName}`,
-      }));
-    }
-
-    // Merge: local DB matches first, then online results (deduped by title + artist)
-    const seen = new Set<string>();
-    const combined: any[] = [];
-
-    for (const s of localMatches) {
-      if (!s) continue;
-      const key = `${s.title.toLowerCase().trim()}::${s.artist.toLowerCase().trim()}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        combined.push({
-          id: s.id,
-          title: s.title,
-          artist: s.artist,
-          year: s.year,
-          category: s.category,
-          albumCover: s.albumCover,
-          previewUrl: s.previewUrl,
-          searchQuery: s.searchQuery,
-          source: "local_db",
-        });
-      }
-    }
-
-    for (const s of onlineResults) {
-      const key = `${s.title.toLowerCase().trim()}::${s.artist.toLowerCase().trim()}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        combined.push({ ...s, source: "itunes" });
-      }
-    }
-
-    if (searchCache.size > 200) {
+    if (searchCache.size > 300) {
       const firstKey = searchCache.keys().next().value;
       if (firstKey) searchCache.delete(firstKey);
     }
-    searchCache.set(queryLower, combined);
+    searchCache.set(queryLower, results);
 
-    return NextResponse.json({ results: combined });
+    return NextResponse.json({ results });
   } catch (err: any) {
     console.error("Search error:", err);
     return NextResponse.json({ results: [] });

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Send, SkipForward, X, Loader2 } from "lucide-react";
+import { Search, Send, SkipForward, X, Loader2, Music } from "lucide-react";
 import { Song, SONGS_CATALOG } from "@/data/songs";
 
 interface GuessInputProps {
@@ -28,57 +28,16 @@ export const GuessInput: React.FC<GuessInputProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. Instant local search (0ms) + background global search
+  // 1. Snappy live search with database API + local cache
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed || trimmed.length < 2) {
       setSuggestions([]);
       setIsOpen(false);
+      setIsSearching(false);
       return;
     }
 
-    const q = trimmed.toLowerCase();
-    const tokens = q.split(/\s+/).filter((t) => t.length > 0);
-
-    // Instant ranked match: all tokens must be present in title + artist + searchQuery
-    const ranked = SONGS_CATALOG.filter((s) => {
-      const fullText = `${s.title} ${s.artist} ${s.searchQuery || ""}`.toLowerCase();
-      return tokens.every((token) => fullText.includes(token));
-    });
-
-    ranked.sort((a, b) => {
-      const aTitle = a.title.toLowerCase();
-      const bTitle = b.title.toLowerCase();
-      const aArtist = a.artist.toLowerCase();
-      const bArtist = b.artist.toLowerCase();
-
-      const getRelevance = (song: typeof a, title: string, artist: string) => {
-        if (title === q) return 1000;
-        if (artist === q) return 800;
-        if (title.startsWith(q)) return 700;
-        if (title.includes(" " + q)) return 650;
-        // Cross-match: words matched across both title AND artist (e.g. "bernadya satu bulan")
-        if (tokens.length > 1) {
-          const titleHit = tokens.some((t) => title.includes(t));
-          const artistHit = tokens.some((t) => artist.includes(t) || (song.searchQuery && song.searchQuery.toLowerCase().includes(t)));
-          if (titleHit && artistHit) return 950;
-        }
-        if (artist.startsWith(q)) return 500;
-        return 200;
-      };
-
-      const aRel = getRelevance(a, aTitle, aArtist);
-      const bRel = getRelevance(b, bTitle, bArtist);
-
-      if (bRel !== aRel) return bRel - aRel;
-      return (b.popularity || 50) - (a.popularity || 50);
-    });
-
-    const localMatches = ranked.slice(0, 8);
-    setSuggestions(localMatches);
-    setIsOpen(localMatches.length > 0);
-
-    // Debounced background search for global directory (non-blocking)
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     setIsSearching(true);
 
@@ -86,14 +45,14 @@ export const GuessInput: React.FC<GuessInputProps> = ({
       fetch(`/api/songs/search?q=${encodeURIComponent(trimmed)}`)
         .then((r) => r.json())
         .then((data) => {
-          if (data.results && data.results.length > 0) {
+          if (data.results) {
             setSuggestions(data.results);
-            setIsOpen(true);
+            setIsOpen(data.results.length > 0);
           }
         })
         .catch(() => {})
         .finally(() => setIsSearching(false));
-    }, 150);
+    }, 60);
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
@@ -226,33 +185,42 @@ export const GuessInput: React.FC<GuessInputProps> = ({
           </button>
         </div>
 
-        {/* Dropdown Suggestions (Clamped Mobile Height with Smooth Scroll) */}
+        {/* Dropdown Suggestions (ZERO GENRE LEAK, CLEAN ARTWORK & TITLE) */}
         {isOpen && suggestions.length > 0 && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 right-0 top-full mt-2 bg-surfaceRaised border border-surfaceBorder rounded-2xl overflow-hidden shadow-2xl z-50 divide-y divide-zinc-800/80 max-h-56 overflow-y-auto"
+            className="absolute left-0 right-0 top-full mt-2 bg-surfaceRaised/95 backdrop-blur-md border border-surfaceBorder rounded-2xl overflow-hidden shadow-2xl z-50 divide-y divide-zinc-800/60 max-h-60 overflow-y-auto"
           >
             {suggestions.map((item, idx) => (
               <div
-                key={`${item.title}-${item.artist}-${idx}`}
+                key={`${item.id || item.title}-${idx}`}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setSelectedIndex(idx)}
-                className={`p-3 cursor-pointer flex items-center justify-between text-xs sm:text-sm transition-colors active:bg-zinc-800 ${
+                className={`p-2.5 px-3 cursor-pointer flex items-center justify-between text-xs sm:text-sm transition-colors active:bg-zinc-800 ${
                   idx === selectedIndex
-                    ? "bg-zinc-800 text-white"
-                    : "text-zinc-200 hover:bg-zinc-800/50"
+                    ? "bg-zinc-800/90 text-white"
+                    : "text-zinc-200 hover:bg-zinc-800/40"
                 }`}
               >
-                <div className="min-w-0 pr-2">
-                  <p className="font-semibold text-white truncate">{item.title}</p>
-                  <p className="text-muted text-xs truncate mt-0.5">
-                    {item.artist} ·{" "}
-                    <span className="text-[10px] text-mutedDark font-mono">
-                      {item.category}
-                    </span>
-                  </p>
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  {item.albumCover ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.albumCover}
+                      alt={item.title}
+                      className="w-9 h-9 rounded-lg object-cover border border-surfaceBorder shrink-0"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-lg bg-surface border border-surfaceBorder flex items-center justify-center text-mutedDark shrink-0">
+                      <Music className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex flex-col">
+                    <p className="font-bold text-white truncate text-xs sm:text-sm">{item.title}</p>
+                    <p className="text-muted text-[11px] truncate mt-0.5">{item.artist}</p>
+                  </div>
                 </div>
-                <span className="text-xs text-accent font-mono shrink-0 pl-1">
+                <span className="text-[11px] text-accent font-mono font-bold shrink-0 pl-1">
                   Pilih ↵
                 </span>
               </div>
