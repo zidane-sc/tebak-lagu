@@ -130,7 +130,7 @@ async function fetchAndValidateLyrics(artist, title) {
     cleanedLines.append ? null : cleanedLines.push(cleanL);
   }
 
-  if (cleanedLines.length < 6) return null;
+  if (cleanedLines.length < 8) return null;
 
   // Stanza chunking into 4 progressive clues (2 lines each)
   const step = Math.max(1, Math.floor(cleanedLines.length / 5));
@@ -145,7 +145,8 @@ async function fetchAndValidateLyrics(artist, title) {
     }
   }
 
-  if (candidateStanzas.length < 2) return null;
+  // Enforce strictly 4 full stanzas for the 4 in-game stages!
+  if (candidateStanzas.length < 4) return null;
 
   // Anti-Spoiler Check:
   // If Bait 1 contains the exact title word (length > 3), swap with a non-spoiler stanza if available
