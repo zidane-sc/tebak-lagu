@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#181a29"/>
+      <stop offset="60%" stop-color="#090a10"/>
+      <stop offset="100%" stop-color="#040507"/>
+    </radialGradient>
+
+    <!-- Neon Rings Gradient -->
+    <linearGradient id="neonEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+
+    <linearGradient id="centerVinyl" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <!-- Ambient Shadow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- App Rounded Base -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" stroke="#27272a" stroke-width="4"/>
+
+  <!-- Glowing Aura -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="url(#neonEmerald)" stroke-width="6" opacity="0.4" filter="url(#glow)"/>
+
+  <!-- Vinyl Outer Body -->
+  <circle cx="256" cy="256" r="175" fill="#0d0e14" stroke="#222" stroke-width="2"/>
+
+  <!-- Vinyl Grooves -->
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#272935" stroke-width="1.5" opacity="0.8"/>
+  <circle cx="256" cy="256" r="132" fill="none" stroke="#272935" stroke-width="1.5" opacity="0.6"/>
+  <circle cx="256" cy="256" r="114" fill="none" stroke="#272935" stroke-width="1.5" opacity="0.7"/>
+  <circle cx="256" cy="256" r="96" fill="none" stroke="#272935" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Center Label Deck -->
+  <circle cx="256" cy="256" r="68" fill="url(#centerVinyl)" filter="url(#glow)"/>
+
+  <!-- Center Spindle Hole -->
+  <circle cx="256" cy="256" r="18" fill="#040507" stroke="#333" stroke-width="2"/>
+
+  <!-- Stylus Needle Arm -->
+  <path d="M 370 120 L 330 200 L 290 230" fill="none" stroke="#f4f4f5" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="370" cy="120" r="14" fill="#a1a1aa" stroke="#f4f4f5" stroke-width="3"/>
+  <polygon points="286,226 294,234 282,238" fill="#22c55e"/>
+
+  <!-- Floating Music Note -->
+  <path d="M 140 170 C 140 155, 175 145, 175 130 L 175 175 C 175 185, 160 190, 150 190 C 140 190, 130 182, 130 175 C 130 167, 138 160, 150 160 C 155 160, 160 162, 165 165 L 165 145 C 150 150, 140 160, 140 170 Z" fill="#22c55e" opacity="0.85" filter="url(#glow)"/>
+</svg>
