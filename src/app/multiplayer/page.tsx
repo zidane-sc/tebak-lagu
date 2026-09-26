@@ -122,6 +122,7 @@ export default function MultiplayerPage() {
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const [cooldownTick, setCooldownTick] = useState<number>(0);
   const [lastRoundWinner, setLastRoundWinner] = useState<{ name: string; points: number; streak: number } | null>(null);
+  const [clueUnlockedAlert, setClueUnlockedAlert] = useState<{ stage: number; text: string; subtext: string } | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -411,6 +412,27 @@ export default function MultiplayerPage() {
           } else if (data.type === "clue_extended") {
             sfx.playGong();
             setRoom(data.room);
+
+            const stageNum = data.stage || (data.room?.clueStage || 2);
+            const isTts = (data.room?.mode || room?.mode) === "tts";
+            const stageTitle = isTts
+              ? `Bait ${stageNum} Terbuka!`
+              : `Audio ${[5, 5, 9, 18, 30][stageNum] || 30}s Terbuka!`;
+            const stageSub = isTts
+              ? `Robot membacakan lirik hingga Bait ${stageNum}`
+              : `Potongan cuplikan musik diperpanjang hingga ${[5, 5, 9, 18, 30][stageNum] || 30} detik!`;
+
+            setClueUnlockedAlert({
+              stage: stageNum,
+              text: stageTitle,
+              subtext: stageSub,
+            });
+
+            if (typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate([60, 40, 90]);
+            }
+            setTimeout(() => setClueUnlockedAlert(null), 3000);
+
             // Seamlessly auto-play the newly unlocked clue audio for all devices
             setTimeout(() => {
               playAudioRef.current(data.room);
@@ -1448,130 +1470,222 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
-          {/* ========================================================= */}
-          {/* 🌟 CLUE TIMELINE & PROGRESS BAR (HEARDLE / TTS TRACK) */}
-          {/* ========================================================= */}
-          {(room.status === "playing" || room.status === "buzzed") && (
-            <div className="flex flex-col gap-2.5 w-full bg-surfaceRaised/95 border border-surfaceBorder rounded-2xl p-3 sm:p-3.5 shadow-md">
-              {/* Header: Stage Label & Countdown Timer */}
-              <div className="flex items-center justify-between text-xs font-mono">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <span className="text-base">{room.mode === "tts" ? "🤖" : "⏱️"}</span>
-                  <span className="text-zinc-200">
-                    Progres Clue:{" "}
-                    <strong className="text-accent font-extrabold">Tahap {room.clueStage || 1}/4</strong>
-                  </span>
+          {/* 🔓 Animated Clue Unlocked Floating Banner */}
+          {clueUnlockedAlert && (
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-bounce pointer-events-none px-4 w-full max-w-sm">
+              <div className="bg-gradient-to-r from-emerald-600/95 via-teal-600/95 to-emerald-700/95 text-white p-3 rounded-2xl shadow-2xl shadow-emerald-500/40 border border-emerald-300/60 backdrop-blur-xl flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0 border border-white/30 animate-pulse">
+                  🔓
                 </div>
-
-                <div className="flex items-center gap-1 font-semibold">
-                  <Timer className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span className="text-amber-400">
-                    {room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : 30}s
-                  </span>
-                  <span className="text-[10px] text-mutedDark font-normal">
-                    {room.clueStage < 4 ? "menuju tahap berikutnya" : "sisa ronde"}
-                  </span>
-                </div>
-              </div>
-
-              {/* 4 Segmented Progress Bar Track */}
-              <div className="grid grid-cols-4 gap-1.5 h-3 w-full">
-                {[1, 2, 3, 4].map((stageNum) => {
-                  const isCurrent = (room.clueStage || 1) === stageNum;
-                  const isUnlocked = (room.clueStage || 1) >= stageNum;
-                  const label =
-                    room.mode === "tts"
-                      ? `Bait ${stageNum}`
-                      : stageNum === 1
-                      ? "5s"
-                      : stageNum === 2
-                      ? "9s"
-                      : stageNum === 3
-                      ? "18s"
-                      : "30s";
-
-                  return (
-                    <div
-                      key={stageNum}
-                      className={`relative h-full rounded-md flex items-center justify-center transition-all duration-300 overflow-hidden ${
-                        isCurrent
-                          ? "bg-accent shadow-sm shadow-accent/40 border border-emerald-300/40"
-                          : isUnlocked
-                          ? "bg-emerald-800/80 border border-emerald-700/40"
-                          : "bg-zinc-800/80 border border-zinc-700/30"
-                      }`}
-                      title={`Tahap ${stageNum}: ${label}`}
-                    >
-                      <span
-                        className={`text-[9px] font-mono font-bold tracking-tight select-none ${
-                          isCurrent
-                            ? "text-zinc-950 font-black"
-                            : isUnlocked
-                            ? "text-emerald-300"
-                            : "text-zinc-500"
-                        }`}
-                      >
-                        {label} {isUnlocked ? "✓" : "🔒"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Action Buttons: Buka Clue Cepat & Vote Nyerah */}
-              <div className="flex items-center justify-between pt-1 gap-2 border-t border-surfaceBorder/60">
-                <span className="text-[11px] text-muted leading-tight truncate">
-                  {room.mode === "tts"
-                    ? `Bait 1 s/d ${room.clueStage || 1} dibacakan robot`
-                    : `Audio terbuka hingga ${[5, 5, 9, 18, 30][room.clueStage || 1]} detik`}
-                </span>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {room.clueStage < 4 && (() => {
-                    const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
-                    const requiredVotes = room.clueVotesRequired || (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
-                    const hasVoted = room.clueVotes?.includes(myPlayerId) || (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
-                    const currentVotes = room.clueVotes?.length || 0;
-
-                    return (
-                      <button
-                        onClick={handleAdvanceClue}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                          hasVoted
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
-                            : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
-                        }`}
-                        title={activeCount <= 2 ? "Butuh persetujuan kedua pemain untuk membuka clue lebih awal" : "Butuh >50% persetujuan pemain untuk membuka clue"}
-                      >
-                        <span>💡</span>
-                        <span>
-                          {hasVoted
-                            ? `✓ Menunggu (${currentVotes}/${requiredVotes})`
-                            : `Buka Clue (${currentVotes}/${requiredVotes})`}
-                        </span>
-                      </button>
-                    );
-                  })()}
-
-                  <button
-                    onClick={handleSkipRound}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
-                      room.skipVotes?.includes(myPlayerId)
-                        ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
-                        : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
-                    }`}
-                  >
-                    <span>🏳️</span>
-                    <span>
-                      {room.skipVotes?.includes(myPlayerId) ? "Batal" : "Nyerah"}{" "}
-                      ({room.skipVotes?.length || 0}/
-                      {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-emerald-200 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                      Tahap {clueUnlockedAlert.stage}/4 Terbuka
                     </span>
-                  </button>
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                  </div>
+                  <div className="text-sm font-black text-white truncate mt-0.5">
+                    {clueUnlockedAlert.text}
+                  </div>
+                  <div className="text-[11px] text-emerald-100 truncate">
+                    {clueUnlockedAlert.subtext}
+                  </div>
                 </div>
               </div>
             </div>
           )}
+
+          {/* ========================================================= */}
+          {/* 🌟 CLUE TIMELINE & INTERACTIVE 10S PROGRESS BAR */}
+          {/* ========================================================= */}
+          {(room.status === "playing" || room.status === "buzzed") && (() => {
+            const currentStage = room.clueStage || 1;
+            const maxSecondsForStage = currentStage === 4 ? 15 : 10;
+            const secondsLeft = room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : maxSecondsForStage;
+            const stageProgressPct = Math.max(0, Math.min(100, (secondsLeft / maxSecondsForStage) * 100));
+
+            return (
+              <div className="flex flex-col gap-2.5 w-full bg-surfaceRaised/95 border border-surfaceBorder rounded-2xl p-3 sm:p-3.5 shadow-md">
+                {/* Header: Stage Label & Countdown Timer */}
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <span className="text-base">{room.mode === "tts" ? "🤖" : "⏱️"}</span>
+                    <span className="text-zinc-200">
+                      Progres Clue:{" "}
+                      <strong className="text-accent font-extrabold">Tahap {currentStage}/4</strong>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <Timer className={`w-3.5 h-3.5 ${secondsLeft <= 3 ? "text-red-400 animate-bounce" : "text-amber-400 animate-pulse"}`} />
+                    <span className={`font-mono font-bold text-sm ${secondsLeft <= 3 ? "text-red-400 animate-pulse" : "text-amber-400"}`}>
+                      {secondsLeft}s
+                    </span>
+                    <span className="text-[10px] text-mutedDark font-normal">
+                      {currentStage < 4 ? "menuju tahap berikutnya" : "sisa ronde"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4 Segmented Visual Stage Blocks */}
+                <div className="grid grid-cols-4 gap-1.5 h-8 w-full">
+                  {[1, 2, 3, 4].map((stageNum) => {
+                    const isCurrent = currentStage === stageNum;
+                    const isUnlocked = currentStage >= stageNum;
+                    const label =
+                      room.mode === "tts"
+                        ? `Bait ${stageNum}`
+                        : stageNum === 1
+                        ? "5s"
+                        : stageNum === 2
+                        ? "9s"
+                        : stageNum === 3
+                        ? "18s"
+                        : "30s";
+
+                    return (
+                      <div
+                        key={stageNum}
+                        className={`relative h-full rounded-xl flex items-center justify-center transition-all duration-300 overflow-hidden border ${
+                          isCurrent
+                            ? "border-emerald-400/80 bg-zinc-900 shadow-md shadow-emerald-500/20"
+                            : isUnlocked
+                            ? "bg-emerald-950/80 border-emerald-700/60"
+                            : "bg-zinc-900/80 border-zinc-800"
+                        }`}
+                        title={`Tahap ${stageNum}: ${label}`}
+                      >
+                        {/* Live countdown fill inside active segment */}
+                        {isCurrent && (
+                          <div
+                            className="absolute inset-0 bg-gradient-to-r from-emerald-600/40 via-teal-500/40 to-emerald-400/30 transition-all duration-1000 ease-linear"
+                            style={{ width: `${stageProgressPct}%` }}
+                          />
+                        )}
+
+                        <span
+                          className={`relative z-10 text-[10px] sm:text-xs font-mono font-black tracking-tight select-none flex items-center gap-1 ${
+                            isCurrent
+                              ? "text-emerald-300 drop-shadow-sm"
+                              : isUnlocked
+                              ? "text-emerald-400 font-bold"
+                              : "text-zinc-600"
+                          }`}
+                        >
+                          {isUnlocked ? (isCurrent ? "⚡" : "✓") : "🔒"}
+                          <span>{label}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* 🌟 Continuous 10-Second Countdown Neon Progress Bar */}
+                <div className="w-full bg-zinc-900 h-2 rounded-full overflow-hidden border border-zinc-800/80 relative">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+                      secondsLeft <= 3
+                        ? "bg-gradient-to-r from-amber-500 to-red-500 shadow-sm shadow-red-500/50 animate-pulse"
+                        : "bg-gradient-to-r from-emerald-500 via-teal-400 to-accent shadow-sm shadow-emerald-500/40"
+                    }`}
+                    style={{ width: `${stageProgressPct}%` }}
+                  />
+                </div>
+
+                {/* TTS Lyrics Verse Display (When mode is TTS) */}
+                {room.mode === "tts" && room.currentSongClue?.lyricsClues && (
+                  <div className="mt-1 flex flex-col gap-1.5 bg-zinc-950/60 border border-surfaceBorder rounded-xl p-2.5 text-left">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-muted uppercase tracking-wider font-bold">
+                      <span className="flex items-center gap-1">
+                        <span>📖</span>
+                        <span>Lirik yang Terbuka ({room.currentSongClue.lyricsClues.length} Bait):</span>
+                      </span>
+                      <span className="text-accent animate-pulse">Suara Robot Aktif 🤖</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1 text-xs">
+                      {room.currentSongClue.lyricsClues.map((clueText: string, idx: number) => {
+                        const isLatest = idx === (room.currentSongClue.lyricsClues.length - 1);
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-2 rounded-lg font-medium leading-relaxed transition-all ${
+                              isLatest
+                                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 animate-fade-in"
+                                : "bg-surface/50 border border-surfaceBorder/40 text-zinc-300"
+                            }`}
+                          >
+                            <span className="font-mono text-[10px] font-bold text-accent mr-1.5">
+                              [Bait {idx + 1}]
+                            </span>
+                            <span>&ldquo;{clueText}&rdquo;</span>
+                            {isLatest && (
+                              <span className="ml-1.5 text-[9px] font-mono bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded font-bold">
+                                ✨ BARU
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons: Buka Clue Cepat & Vote Nyerah */}
+                <div className="flex items-center justify-between pt-1 gap-2 border-t border-surfaceBorder/60">
+                  <span className="text-[11px] text-muted leading-tight truncate">
+                    {room.mode === "tts"
+                      ? `Bait 1 s/d ${currentStage} terbuka`
+                      : `Audio terbuka hingga ${[5, 5, 9, 18, 30][currentStage]} detik`}
+                  </span>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {currentStage < 4 && (() => {
+                      const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
+                      const requiredVotes = room.clueVotesRequired || (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
+                      const hasVoted = room.clueVotes?.includes(myPlayerId) || (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
+                      const currentVotes = room.clueVotes?.length || 0;
+
+                      return (
+                        <button
+                          onClick={handleAdvanceClue}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                            hasVoted
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse font-bold"
+                              : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
+                          }`}
+                          title={activeCount <= 2 ? "Butuh persetujuan kedua pemain untuk membuka clue lebih awal" : "Butuh >50% persetujuan pemain untuk membuka clue"}
+                        >
+                          <span>💡</span>
+                          <span>
+                            {hasVoted
+                              ? `✓ Menunggu (${currentVotes}/${requiredVotes})`
+                              : `Buka Clue (${currentVotes}/${requiredVotes})`}
+                          </span>
+                        </button>
+                      );
+                    })()}
+
+                    <button
+                      onClick={handleSkipRound}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+                        room.skipVotes?.includes(myPlayerId)
+                          ? "bg-red-500/20 text-red-300 border-red-500/50 animate-pulse font-bold"
+                          : "bg-surface hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
+                      }`}
+                    >
+                      <span>🏳️</span>
+                      <span>
+                        {room.skipVotes?.includes(myPlayerId) ? "Batal" : "Nyerah"}{" "}
+                        ({room.skipVotes?.length || 0}/
+                        {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Central Vinyl Player & Clue Card */}
           <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col items-center gap-2 text-center shadow-sm relative overflow-hidden">
