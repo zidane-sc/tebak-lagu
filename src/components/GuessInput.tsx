@@ -38,39 +38,37 @@ export const GuessInput: React.FC<GuessInputProps> = ({
     }
 
     const q = trimmed.toLowerCase();
-    // Instant ranked match: Exact title > starts with title > word in title > artist match > popularity
-    const ranked = SONGS_CATALOG.filter(
-      (s) =>
-        s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
-    );
+    const tokens = q.split(/\s+/).filter((t) => t.length > 0);
+
+    // Instant ranked match: all tokens must be present in title + artist + searchQuery
+    const ranked = SONGS_CATALOG.filter((s) => {
+      const fullText = `${s.title} ${s.artist} ${s.searchQuery || ""}`.toLowerCase();
+      return tokens.every((token) => fullText.includes(token));
+    });
 
     ranked.sort((a, b) => {
       const aTitle = a.title.toLowerCase();
       const bTitle = b.title.toLowerCase();
-      const aRel =
-        aTitle === q
-          ? 1000
-          : aTitle.startsWith(q)
-          ? 500
-          : aTitle.includes(" " + q)
-          ? 300
-          : a.artist.toLowerCase() === q
-          ? 200
-          : a.artist.toLowerCase().startsWith(q)
-          ? 100
-          : 10;
-      const bRel =
-        bTitle === q
-          ? 1000
-          : bTitle.startsWith(q)
-          ? 500
-          : bTitle.includes(" " + q)
-          ? 300
-          : b.artist.toLowerCase() === q
-          ? 200
-          : b.artist.toLowerCase().startsWith(q)
-          ? 100
-          : 10;
+      const aArtist = a.artist.toLowerCase();
+      const bArtist = b.artist.toLowerCase();
+
+      const getRelevance = (song: typeof a, title: string, artist: string) => {
+        if (title === q) return 1000;
+        if (artist === q) return 800;
+        if (title.startsWith(q)) return 700;
+        if (title.includes(" " + q)) return 650;
+        // Cross-match: words matched across both title AND artist (e.g. "bernadya satu bulan")
+        if (tokens.length > 1) {
+          const titleHit = tokens.some((t) => title.includes(t));
+          const artistHit = tokens.some((t) => artist.includes(t) || (song.searchQuery && song.searchQuery.toLowerCase().includes(t)));
+          if (titleHit && artistHit) return 950;
+        }
+        if (artist.startsWith(q)) return 500;
+        return 200;
+      };
+
+      const aRel = getRelevance(a, aTitle, aArtist);
+      const bRel = getRelevance(b, bTitle, bArtist);
 
       if (bRel !== aRel) return bRel - aRel;
       return (b.popularity || 50) - (a.popularity || 50);

@@ -22,12 +22,41 @@ export async function GET(request: Request) {
   try {
     await initDb();
     // 1. Instant local DB matches ranked by relevance and popularity
+    const tokens = queryLower.split(/\s+/).filter((t) => t.length > 0);
     const starts = `${queryLower}%`;
     const word = `% ${queryLower}%`;
     const contains = `%${queryLower}%`;
 
-    const sql = `
-      SELECT *,
+    // Multi-token AND conditions across title, artist, and search_query
+    const whereConditions = tokens
+      .map(() => "(LOWER(title || ' ' || artist || ' ' || COALESCE(search_query, '')) LIKE ?)")
+      .join(" AND ");
+    const tokenArgs = tokens.map((t) => `%${t}%`);
+
+    let relevanceSql = "";
+    let relevanceArgs: any[] = [];
+
+    if (tokens.length > 1) {
+      // Cross-match bonus: words match across title & artist (e.g. "bernadya satu bulan")
+      const titleMatches = tokens.map(() => "LOWER(title) LIKE ?").join(" OR ");
+      const artistMatches = tokens.map(() => "LOWER(artist || ' ' || COALESCE(search_query, '')) LIKE ?").join(" OR ");
+      const titleArgs = tokens.map((t) => `%${t}%`);
+      const artistArgs = tokens.map((t) => `%${t}%`);
+
+      relevanceSql = `
+        CASE 
+          WHEN LOWER(title) = ? THEN 1000
+          WHEN LOWER(artist) = ? THEN 800
+          WHEN LOWER(title) LIKE ? THEN 700
+          WHEN LOWER(artist) LIKE ? THEN 600
+          WHEN (${titleMatches}) AND (${artistMatches}) THEN 950
+          WHEN LOWER(search_query) LIKE ? THEN 850
+          ELSE 300
+        END as relevance
+      `;
+      relevanceArgs = [queryLower, queryLower, starts, starts, ...titleArgs, ...artistArgs, contains];
+    } else {
+      relevanceSql = `
         CASE 
           WHEN LOWER(title) = ? THEN 1000
           WHEN LOWER(title) LIKE ? THEN 500
@@ -37,15 +66,22 @@ export async function GET(request: Request) {
           WHEN LOWER(search_query) LIKE ? THEN 80
           ELSE 10
         END as relevance
+      `;
+      relevanceArgs = [queryLower, starts, word, queryLower, starts, contains];
+    }
+
+    const sql = `
+      SELECT *,
+        ${relevanceSql}
       FROM songs
-      WHERE title LIKE ? OR artist LIKE ? OR search_query LIKE ?
+      WHERE ${whereConditions}
       ORDER BY relevance DESC, popularity DESC, deezer_rank DESC
       LIMIT 10;
     `;
 
     const localRes = await db.execute({
       sql,
-      args: [queryLower, starts, word, queryLower, starts, contains, contains, contains, contains],
+      args: [...relevanceArgs, ...tokenArgs],
     });
 
     const localMatches = localRes.rows.map(rowToSong);
