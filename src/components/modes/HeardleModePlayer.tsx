@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Timer, Play, Square, Loader2, Shuffle } from "lucide-react";
 import { SoundBars } from "@/components/SoundBars";
 import { VinylPlayer } from "@/components/VinylPlayer";
+import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { sfx } from "@/lib/sound-fx";
 
 interface HeardleModePlayerProps {
@@ -140,6 +141,8 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
             </>
           )}
         </button>
+
+        <AudioWaveformVisualizer isPlaying={isPlaying} variant="emerald" barCount={26} height={32} />
       </div>
 
       {/* Hardware-Style Segmented Timeline Bar */}

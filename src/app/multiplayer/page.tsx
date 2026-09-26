@@ -21,11 +21,15 @@ import {
   Radio,
   LogOut,
   Loader2,
+  QrCode,
+  Volume1,
 } from "lucide-react";
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { SocialShareModal } from "@/components/SocialShareModal";
+import { RoomQrCodeModal } from "@/components/RoomQrCodeModal";
+import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { useAuth } from "@/lib/auth-context";
 import { HummingSynth } from "@/lib/audio-synth";
 import { sfx } from "@/lib/sound-fx";
@@ -33,6 +37,13 @@ import confetti from "canvas-confetti";
 
 const AVATARS = ["👑", "🎧", "🎤", "🎸", "🎹", "🥁", "🎷", "⚡", "🕶️", "🚀"];
 const REACTION_EMOJIS = ["🔥", "😂", "😱", "👏", "👑", "💀"];
+const MEME_SOUNDS = [
+  { id: "airhorn", label: "Horn", icon: "🎺", title: "Airhorn" },
+  { id: "drumroll", label: "Drum", icon: "🥁", title: "Drumroll" },
+  { id: "zonk", label: "Zonk", icon: "💀", title: "Sad Zonk" },
+  { id: "laugh", label: "Haha", icon: "🤡", title: "Laugh" },
+  { id: "applause", label: "Clap", icon: "👏", title: "Applause" },
+];
 const FUN_NICKNAMES = [
   "Raja Musik",
   "Koplo Master",
@@ -81,6 +92,8 @@ export default function MultiplayerPage() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAudioBuffering, setIsAudioBuffering] = useState(false);
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(20);
   const [screenFlash, setScreenFlash] = useState<"buzz" | "correct" | "wrong" | null>(null);
@@ -99,6 +112,18 @@ export default function MultiplayerPage() {
   }, []);
 
   const { user } = useAuth();
+
+  // Auto-detect room code from URL query (?room=CODE) for instant QR / Invite join
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlRoom = params.get("room") || params.get("code");
+      if (urlRoom) {
+        setRoomCodeInput(urlRoom.toUpperCase().trim());
+        setView("join");
+      }
+    }
+  }, []);
 
   // Load saved name or auto-sync with logged in Google User
   useEffect(() => {
@@ -353,6 +378,18 @@ export default function MultiplayerPage() {
             setTimeout(() => {
               setFloatingReactions((prev) => prev.filter((r) => r.id !== reactionId));
             }, 1800);
+          } else if (data.type === "room_sfx") {
+            // Trigger sound effects for entire room
+            if (data.sfxId === "airhorn") sfx.playAirhorn();
+            else if (data.sfxId === "drumroll") sfx.playDrumRoll();
+            else if (data.sfxId === "zonk") sfx.playSadTrombone();
+            else if (data.sfxId === "laugh") sfx.playCartoonLaugh();
+            else if (data.sfxId === "applause") sfx.playApplause();
+
+            const soundObj = MEME_SOUNDS.find((m) => m.id === data.sfxId);
+            const alertText = `${soundObj?.icon || "🔊"} ${data.playerName || "Pemain"} membunyikan ${soundObj?.title || "SFX"}!`;
+            setActiveSfxAlert({ id: Date.now().toString(), text: alertText });
+            setTimeout(() => setActiveSfxAlert(null), 2400);
           } else if (data.type === "error") {
             sfx.playWrong();
             setErrorMsg(data.message);
@@ -516,6 +553,16 @@ export default function MultiplayerPage() {
     );
   };
 
+  const sendSfx = (sfxId: string) => {
+    if (!ws || !room) return;
+    ws.send(
+      JSON.stringify({
+        type: "trigger_sfx",
+        sfxId,
+      })
+    );
+  };
+
   const copyRoomCode = () => {
     if (!room) return;
     sfx.playClick();
@@ -631,6 +678,15 @@ export default function MultiplayerPage() {
             </span>
           </div>
         ))}
+
+        {/* Floating Active SFX Soundboard Notification */}
+        {activeSfxAlert && (
+          <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none animate-bounce">
+            <div className="bg-surface/95 backdrop-blur-md border border-accent/40 rounded-full px-4 py-1.5 shadow-2xl flex items-center gap-2">
+              <span className="text-xs font-bold text-white font-mono">{activeSfxAlert.text}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Top Header */}
@@ -1037,22 +1093,33 @@ export default function MultiplayerPage() {
               </span>
             </div>
 
-            <button
-              onClick={copyRoomCode}
-              className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-surface border border-surfaceBorder hover:bg-zinc-800 text-xs font-mono transition active:scale-95 cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-accent" />
-                  <span className="text-accent font-semibold">Tersalin!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-muted" />
-                  <span>Salin Kode</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowQrModal(true)}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent text-xs font-mono font-semibold transition active:scale-95 cursor-pointer"
+                title="Buka QR Code untuk di-scan teman"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR Code</span>
+              </button>
+
+              <button
+                onClick={copyRoomCode}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-surface border border-surfaceBorder hover:bg-zinc-800 text-xs font-mono transition active:scale-95 cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-accent" />
+                    <span className="text-accent font-semibold">Tersalin!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-muted" />
+                    <span>Salin Kode</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Players in Room */}
@@ -1302,6 +1369,15 @@ export default function MultiplayerPage() {
                 </>
               )}
             </button>
+
+            {/* Live Audio Waveform Visualizer */}
+            <AudioWaveformVisualizer
+              isPlaying={isPlayingAudio}
+              variant="emerald"
+              barCount={28}
+              height={32}
+              className="w-full max-w-xs my-0.5"
+            />
 
             {/* Hidden native audio element with proactive buffering event listeners */}
             <audio
@@ -1567,19 +1643,41 @@ export default function MultiplayerPage() {
             </div>
           )}
 
-          {/* Quick Emoji Reaction Floating Bar */}
-          <div className="flex items-center justify-center gap-2 py-1 bg-surfaceRaised/60 border border-surfaceBorder rounded-2xl px-3 mt-1">
-            <span className="text-[10px] font-mono text-mutedDark">Reaksi:</span>
-            {REACTION_EMOJIS.map((emoji) => (
-              <button
-                key={emoji}
-                onClick={() => sendReaction(emoji)}
-                className="text-lg p-1 hover:scale-125 active:scale-90 transition-transform cursor-pointer"
-                title={`Kirim ${emoji}`}
-              >
-                {emoji}
-              </button>
-            ))}
+          {/* Quick Reaction & Meme Soundboard Bar */}
+          <div className="flex flex-col gap-1.5 mt-1 bg-surfaceRaised/60 border border-surfaceBorder rounded-2xl p-2 px-3">
+            {/* Emojis */}
+            <div className="flex items-center justify-center gap-2">
+              <span className="text-[10px] font-mono text-mutedDark">Emoji:</span>
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => sendReaction(emoji)}
+                  className="text-lg p-0.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer"
+                  title={`Kirim ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Meme Soundboard Buttons */}
+            <div className="flex items-center justify-center gap-1.5 pt-1 border-t border-surfaceBorder/40">
+              <span className="text-[10px] font-mono text-accent font-semibold flex items-center gap-0.5">
+                <Volume1 className="w-3 h-3" />
+                <span>SFX:</span>
+              </span>
+              {MEME_SOUNDS.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => sendSfx(s.id)}
+                  className="px-2 py-1 rounded-lg bg-surface border border-surfaceBorder hover:border-accent/40 text-[11px] font-mono font-medium text-zinc-300 hover:text-white flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-sm"
+                  title={s.title}
+                >
+                  <span>{s.icon}</span>
+                  <span className="hidden sm:inline">{s.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </main>
       )}
@@ -1657,6 +1755,15 @@ export default function MultiplayerPage() {
         modeTitle={`Multiplayer Room (${room?.players?.length || 2} Pemain)`}
         shareUrl="https://tebak-lagu-live.fly.dev/multiplayer"
       />
+
+      {/* Room QR Code Modal */}
+      {room && (
+        <RoomQrCodeModal
+          isOpen={showQrModal}
+          onClose={() => setShowQrModal(false)}
+          roomCode={room.code}
+        />
+      )}
     </div>
   );
 }

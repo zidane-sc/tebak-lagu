@@ -792,6 +792,18 @@ app.prepare().then(() => {
           });
         }
 
+        // 8.5. LIVE SFX SOUNDBOARD REACTION (Airhorn, Drumroll, Laugh, Zonk, Applause)
+        else if (data.type === "trigger_sfx") {
+          const room = rooms.get(meta.roomCode);
+          if (!room) return;
+          broadcast(room, {
+            type: "room_sfx",
+            playerId,
+            playerName: meta.name,
+            sfxId: data.sfxId,
+          });
+        }
+
         // 9. VOTE SKIP ROUND (Seluruh player harus vote skip agar ronde diskip)
         else if (data.type === "skip_round" || data.type === "vote_skip") {
           const room = rooms.get(meta.roomCode);

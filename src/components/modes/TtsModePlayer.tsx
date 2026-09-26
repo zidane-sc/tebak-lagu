@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Volume2, VolumeX, AudioWaveform, Loader2, Ear, Sparkles } from "lucide-react";
 import { SoundBars } from "@/components/SoundBars";
+import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 
 interface TtsModePlayerProps {
   clues?: string[];
@@ -119,7 +120,7 @@ export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
           )}
         </button>
 
-        <SoundBars isPlaying={isPlaying} color="bg-accent" />
+        <AudioWaveformVisualizer isPlaying={isPlaying} variant="cyberpunk" barCount={26} height={32} />
       </div>
 
       {/* Pure Blind Listening Audio Deck (NO TEXT REVEALED!) */}

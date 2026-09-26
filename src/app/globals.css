@@ -22,8 +22,50 @@ body {
   min-height: 100dvh;
   letter-spacing: -0.01em;
   background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 197, 94, 0.08), transparent),
-    radial-gradient(ellipse 60% 40% at 50% 120%, rgba(59, 130, 246, 0.05), transparent);
+    radial-gradient(ellipse 70% 45% at 50% -10%, rgba(34, 197, 94, 0.15), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 20%, rgba(139, 92, 246, 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 15% 75%, rgba(56, 189, 248, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 115%, rgba(245, 158, 11, 0.07), transparent 70%);
+}
+
+/* Glassmorphism & Neon Glow Styles */
+.glass-panel {
+  background: rgba(18, 20, 29, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(24, 27, 39, 0.85);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+.neon-shimmer {
+  background: linear-gradient(135deg, #ffffff 20%, #a7f3d0 45%, #c084fc 70%, #ffffff 90%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 6s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.glow-emerald {
+  box-shadow: 0 0 25px -5px rgba(34, 197, 94, 0.35);
+}
+
+.glow-purple {
+  box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.35);
+}
+
+.glow-amber {
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.35);
 }
 
 button, a, input {
