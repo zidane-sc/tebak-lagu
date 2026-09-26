@@ -307,6 +307,37 @@ async function getMatchSongsQueue(category, difficulty, count = 5, mode = null) 
   return uniqueSongs;
 }
 
+const DEFAULT_SETTINGS = {
+  buzzerTimerSeconds: 15,
+  playerLivesPerRound: 3,
+  clueExtensionIntervalSeconds: 10,
+  finalStageSeconds: 15,
+  disconnectGracePeriodSeconds: 45,
+  defaultRounds: 5,
+  defaultDifficulty: "easy",
+  defaultAudioProfile: "normal",
+  heardleDurations: [5, 9, 18, 30],
+  ttsCluesProgression: [1, 2, 3, 4],
+};
+
+async function getSettingsFromDb() {
+  try {
+    const res = await db.execute("SELECT key, value FROM app_settings;");
+    const settings = { ...DEFAULT_SETTINGS };
+    for (const r of res.rows) {
+      try {
+        settings[String(r.key)] = JSON.parse(String(r.value));
+      } catch {
+        settings[String(r.key)] = r.value;
+      }
+    }
+    return settings;
+  } catch (err) {
+    console.error("Error reading settings from DB:", err);
+    return DEFAULT_SETTINGS;
+  }
+}
+
 module.exports = {
   db,
   initDb,
@@ -314,4 +345,6 @@ module.exports = {
   getRandomSong,
   getMatchSongsQueue,
   getCatalogStats,
+  getSettingsFromDb,
+  DEFAULT_SETTINGS,
 };

@@ -46,6 +46,265 @@ import { ArtistsManager } from "@/components/admin/ArtistsManager";
 import { GenresManager } from "@/components/admin/GenresManager";
 import { AlbumsManager } from "@/components/admin/AlbumsManager";
 
+
+interface LyricsEditorProps {
+  artist: string;
+  title: string;
+  formLyricsClues: string[];
+  setFormLyricsClues: (clues: string[]) => void;
+  lyricsRawLines: string[];
+  setLyricsRawLines: (lines: string[]) => void;
+  selectedStartLine: number;
+  setSelectedStartLine: (line: number) => void;
+  isFetchingLyrics: boolean;
+  fetchLyricsOnline: (artist: string, title: string) => void;
+  customLyricsPasted: string;
+  setCustomLyricsPasted: (text: string) => void;
+  showPasteBox: boolean;
+  setShowPasteBox: (show: boolean) => void;
+  lyricsViewMode: "picker" | "manual";
+  setLyricsViewMode: (mode: "picker" | "manual") => void;
+  applyLyricsSlices: (lines: string[], start: number) => void;
+  handleApplyCustomLyrics: () => void;
+}
+
+function LyricsStanzasEditor({
+  artist,
+  title,
+  formLyricsClues,
+  setFormLyricsClues,
+  lyricsRawLines,
+  setLyricsRawLines,
+  selectedStartLine,
+  setSelectedStartLine,
+  isFetchingLyrics,
+  fetchLyricsOnline,
+  customLyricsPasted,
+  setCustomLyricsPasted,
+  showPasteBox,
+  setShowPasteBox,
+  lyricsViewMode,
+  setLyricsViewMode,
+  applyLyricsSlices,
+  handleApplyCustomLyrics,
+}: LyricsEditorProps) {
+  return (
+    <div className="flex flex-col gap-2.5 pt-3 border-t border-surfaceBorder">
+      {/* Header with Title and Action Buttons */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-1.5">
+          <label className="text-[11px] font-mono text-purple-400 font-semibold flex items-center gap-1">
+            <span>🤖 BAIT LIRIK ROBOT TTS ({formLyricsClues.filter((c: string) => c.trim().length > 0).length}/4)</span>
+          </label>
+          {formLyricsClues.some((c: string) => c.trim().length > 0) && (
+            <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-bold">
+              ✓ Siap
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => fetchLyricsOnline(artist, title)}
+            disabled={isFetchingLyrics}
+            className="text-[10px] font-mono py-1 px-2.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 transition flex items-center gap-1 cursor-pointer font-bold disabled:opacity-50"
+            title="Tarik lirik otomatis dari database LRCLIB"
+          >
+            {isFetchingLyrics ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>🔍</span>}
+            <span>{isFetchingLyrics ? "Menarik..." : "Tarik Lirik LRCLIB"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowPasteBox(!showPasteBox)}
+            className="text-[10px] font-mono py-1 px-2 rounded-lg bg-surfaceRaised hover:bg-zinc-800 text-zinc-300 border border-surfaceBorder transition cursor-pointer"
+            title="Tempel lirik mentah sendiri"
+          >
+            {showPasteBox ? "Tutup ✖" : "Tempel 📋"}
+          </button>
+        </div>
+      </div>
+
+      {/* Paste Box */}
+      {showPasteBox && (
+        <div className="bg-black/50 border border-purple-500/30 rounded-xl p-2.5 flex flex-col gap-2 animate-fade-in">
+          <span className="text-[10px] font-mono text-zinc-400">
+            Tempel lirik lagu lengkap di sini (dari Google / Genius / Spotify):
+          </span>
+          <textarea
+            rows={4}
+            value={customLyricsPasted}
+            onChange={(e) => setCustomLyricsPasted(e.target.value)}
+            placeholder="Tempel baris-baris lirik di sini..."
+            className="w-full bg-surfaceRaised border border-surfaceBorder rounded-lg p-2 text-xs text-white outline-none focus:border-purple-400 font-sans leading-relaxed resize-none"
+          />
+          <button
+            type="button"
+            onClick={handleApplyCustomLyrics}
+            disabled={!customLyricsPasted.trim()}
+            className="self-end bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white font-bold text-xs py-1 px-3 rounded-lg transition cursor-pointer"
+          >
+            Gunakan Lirik Ini ➔
+          </button>
+        </div>
+      )}
+
+      {/* Tab Selector */}
+      <div className="flex items-center gap-1.5 bg-surfaceRaised p-1 rounded-xl border border-surfaceBorder text-xs">
+        <button
+          type="button"
+          onClick={() => setLyricsViewMode("picker")}
+          className={`flex-1 py-1 rounded-lg font-mono text-[11px] transition cursor-pointer flex items-center justify-center gap-1 ${
+            lyricsViewMode === "picker"
+              ? "bg-purple-500/25 text-purple-200 border border-purple-500/40 font-bold shadow-sm"
+              : "text-muted hover:text-white"
+          }`}
+        >
+          <span>🎯 Tandai Bait 1 ({lyricsRawLines.length} Baris)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setLyricsViewMode("manual")}
+          className={`flex-1 py-1 rounded-lg font-mono text-[11px] transition cursor-pointer flex items-center justify-center gap-1 ${
+            lyricsViewMode === "manual"
+              ? "bg-purple-500/25 text-purple-200 border border-purple-500/40 font-bold shadow-sm"
+              : "text-muted hover:text-white"
+          }`}
+        >
+          <span>✏️ Edit Manual 4 Bait</span>
+        </button>
+      </div>
+
+      {/* Mode 1: Interactive Verse Picker */}
+      {lyricsViewMode === "picker" && (
+        <div className="flex flex-col gap-1.5">
+          {lyricsRawLines.length > 0 ? (
+            <>
+              <div className="text-[10px] font-mono text-zinc-400 flex items-center justify-between px-1">
+                <span>👉 Klik baris lirik mana saja di bawah untuk menetapkan <strong>Bait 1</strong>:</span>
+                <span className="text-emerald-400 font-bold bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                  Mulai dari Baris #{selectedStartLine + 1}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1 max-h-56 overflow-y-auto pr-1 rounded-xl border border-surfaceBorder bg-black/40 p-1.5">
+                {lyricsRawLines.map((line, idx) => {
+                  const isBait1 = idx === selectedStartLine || idx === selectedStartLine + 1;
+                  const isBait2 = idx === selectedStartLine + 2 || idx === selectedStartLine + 3;
+                  const isBait3 = idx === selectedStartLine + 4 || idx === selectedStartLine + 5;
+                  const isBait4 = idx === selectedStartLine + 6 || idx === selectedStartLine + 7;
+
+                  let rowStyle = "border-transparent bg-transparent hover:bg-surfaceRaised text-zinc-400";
+                  let badge = null;
+
+                  if (isBait1) {
+                    rowStyle = "bg-emerald-500/20 border-emerald-500/60 text-emerald-200 font-bold shadow-sm";
+                    badge = (
+                      <span className="text-[9px] font-mono font-black text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-400/40">
+                        🚩 BAIT 1 (CLUE AWAL)
+                      </span>
+                    );
+                  } else if (isBait2) {
+                    rowStyle = "bg-cyan-500/15 border-cyan-500/40 text-cyan-200 font-medium";
+                    badge = (
+                      <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-950/80 px-1 py-0.5 rounded border border-cyan-400/30">
+                        BAIT 2 ➔
+                      </span>
+                    );
+                  } else if (isBait3) {
+                    rowStyle = "bg-purple-500/15 border-purple-500/40 text-purple-200 font-medium";
+                    badge = (
+                      <span className="text-[9px] font-mono font-bold text-purple-300 bg-purple-950/80 px-1 py-0.5 rounded border border-purple-400/30">
+                        BAIT 3 ➔
+                      </span>
+                    );
+                  } else if (isBait4) {
+                    rowStyle = "bg-amber-500/15 border-amber-500/40 text-amber-200 font-medium";
+                    badge = (
+                      <span className="text-[9px] font-mono font-bold text-amber-300 bg-amber-950/80 px-1 py-0.5 rounded border border-amber-400/30">
+                        BAIT 4 ➔
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => applyLyricsSlices(lyricsRawLines, idx)}
+                      className={`flex items-center justify-between gap-2 p-2 rounded-lg border text-xs cursor-pointer transition select-none ${rowStyle}`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-mono text-[10px] text-mutedDark shrink-0 w-6">#{idx + 1}</span>
+                        <span className="truncate">&ldquo;{line}&rdquo;</span>
+                      </div>
+                      <div className="shrink-0">
+                        {badge || <span className="text-[9px] font-mono text-mutedDark hover:text-white">Pilih 📍</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="bg-surfaceRaised/60 border border-dashed border-surfaceBorder rounded-xl p-4 text-center flex flex-col items-center gap-2">
+              <span className="text-xl">📜</span>
+              <p className="text-xs text-muted">Belum ada lirik untuk lagu ini.</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fetchLyricsOnline(artist, title)}
+                  disabled={isFetchingLyrics}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  {isFetchingLyrics ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>🔍</span>}
+                  <span>Tarik Lirik LRCLIB Otomatis</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPasteBox(true)}
+                  className="bg-surfaceRaised hover:bg-zinc-800 text-zinc-300 border border-surfaceBorder text-xs py-1.5 px-3 rounded-lg transition cursor-pointer"
+                >
+                  Tempel Lirik Sendiri 📋
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mode 2: Manual 4-Clue Textareas */}
+      {lyricsViewMode === "manual" && (
+        <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+          {formLyricsClues.map((clue: string, idx: number) => (
+            <div key={idx} className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${idx === 0 ? "bg-accent/20 text-accent border border-accent/40" : "text-muted"}`}>
+                  {idx === 0 ? "🌟 BAIT 1 (CLUE AWAL)" : `Bait #${idx + 1}`}
+                </span>
+                <span className="text-[10px] font-mono text-zinc-500">
+                  {idx === 0 ? "Dibacakan pertama kali" : `Terbuka di Tahap ${idx + 1}`}
+                </span>
+              </div>
+              <textarea
+                rows={2}
+                value={clue}
+                onChange={(e) => {
+                  const copy = [...formLyricsClues];
+                  copy[idx] = e.target.value;
+                  setFormLyricsClues(copy);
+                }}
+                placeholder={`Tulis penggalan lirik bait #${idx + 1}...`}
+                className="bg-black/40 border border-surfaceBorder rounded-lg p-2 text-xs text-white outline-none focus:border-accent font-sans leading-relaxed resize-none"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   // Authentication PIN
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -99,6 +358,12 @@ export default function AdminDashboardPage() {
   const [formAlbumCover, setFormAlbumCover] = useState("");
   const [formStartSecond, setFormStartSecond] = useState<number>(0);
   const [formLyricsClues, setFormLyricsClues] = useState<string[]>([]);
+  const [lyricsRawLines, setLyricsRawLines] = useState<string[]>([]);
+  const [selectedStartLine, setSelectedStartLine] = useState<number>(0);
+  const [isFetchingLyrics, setIsFetchingLyrics] = useState(false);
+  const [lyricsViewMode, setLyricsViewMode] = useState<"picker" | "manual">("picker");
+  const [customLyricsPasted, setCustomLyricsPasted] = useState("");
+  const [showPasteBox, setShowPasteBox] = useState(false);
 
   // Apple Music Online Search in Add Modal
   const [onlineSearchQuery, setOnlineSearchQuery] = useState("");
@@ -336,6 +601,83 @@ export default function AdminDashboardPage() {
     showToast(`Data lagu "${r.title}" berhasil diisi otomatis! 🎵`);
   };
 
+  // Lyrics Helper Functions
+  const applyLyricsSlices = (lines: string[], startIndex: number) => {
+    if (!lines || lines.length === 0) return;
+    const start = Math.max(0, Math.min(lines.length - 1, startIndex));
+    const clues: string[] = [];
+
+    for (let i = 0; i < 4; i++) {
+      const lineIdx = start + (i * 2);
+      if (lineIdx < lines.length) {
+        if (lineIdx + 1 < lines.length) {
+          clues.push(`${lines[lineIdx]}\n${lines[lineIdx + 1]}`);
+        } else {
+          clues.push(lines[lineIdx]);
+        }
+      }
+    }
+
+    if (clues.length > 0) {
+      setFormLyricsClues(clues);
+      setSelectedStartLine(start);
+    }
+  };
+
+  const fetchLyricsOnline = async (artist: string, title: string) => {
+    if (!artist.trim() || !title.trim()) {
+      showToast("Isi Judul dan Artis terlebih dahulu!", "error");
+      return;
+    }
+    setIsFetchingLyrics(true);
+    try {
+      const res = await fetch(`/api/lyrics?artist=${encodeURIComponent(artist.trim())}&track=${encodeURIComponent(title.trim())}`);
+      if (!res.ok) {
+        showToast("Lirik tidak ditemukan di LRCLIB!", "error");
+        return;
+      }
+      const data = await res.json();
+      const rawText = data.plainLyrics || data.syncedLyrics || "";
+      const lines = rawText
+        .split("\n")
+        .map((l: string) => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim())
+        .filter((l: string) => l.length > 2 && !l.startsWith("[") && !l.endsWith("]"));
+
+      if (lines.length === 0) {
+        showToast("Lirik terlalu pendek atau tidak dapat diproses.", "error");
+        return;
+      }
+
+      setLyricsRawLines(lines);
+      applyLyricsSlices(lines, 0);
+      setLyricsViewMode("picker");
+      showToast(`Berhasil menarik ${lines.length} baris lirik! Klik baris lirik untuk tandai Bait 1.`);
+    } catch (err: any) {
+      showToast(err.message || "Gagal menarik lirik", "error");
+    } finally {
+      setIsFetchingLyrics(false);
+    }
+  };
+
+  const handleApplyCustomLyrics = () => {
+    if (!customLyricsPasted.trim()) return;
+    const lines = customLyricsPasted
+      .split("\n")
+      .map((l: string) => l.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, "").trim())
+      .filter((l: string) => l.length > 2 && !l.startsWith("[") && !l.endsWith("]"));
+
+    if (lines.length === 0) {
+      showToast("Lirik yang ditempel kosong!", "error");
+      return;
+    }
+
+    setLyricsRawLines(lines);
+    applyLyricsSlices(lines, 0);
+    setShowPasteBox(false);
+    setLyricsViewMode("picker");
+    showToast(`${lines.length} baris lirik dimuat! Klik baris lirik untuk tandai Bait 1.`);
+  };
+
   // Open Add Modal
   const openAddModal = () => {
     setFormTitle("");
@@ -346,6 +688,13 @@ export default function AdminDashboardPage() {
     setFormPopularity(90);
     setFormPreviewUrl("");
     setFormAlbumCover("");
+    setFormStartSecond(0);
+    setFormLyricsClues(["", "", "", ""]);
+    setLyricsRawLines([]);
+    setSelectedStartLine(0);
+    setCustomLyricsPasted("");
+    setShowPasteBox(false);
+    setLyricsViewMode("picker");
     setOnlineSearchQuery("");
     setOnlineResults([]);
     setShowAddModal(true);
@@ -363,11 +712,23 @@ export default function AdminDashboardPage() {
     setFormPreviewUrl(song.previewUrl || song.previewResolved || "");
     setFormAlbumCover(song.albumCover || "");
     setFormStartSecond(song.startSecond !== undefined ? Number(song.startSecond) : 0);
-    setFormLyricsClues(
-      Array.isArray(song.lyricsClues) && song.lyricsClues.length > 0
-        ? [...song.lyricsClues]
-        : ["", "", "", ""]
-    );
+
+    const existingClues = Array.isArray(song.lyricsClues) && song.lyricsClues.length > 0
+      ? [...song.lyricsClues]
+      : ["", "", "", ""];
+    setFormLyricsClues(existingClues);
+
+    const flattened = existingClues
+      .join("\n")
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0);
+    setLyricsRawLines(flattened);
+    setSelectedStartLine(0);
+    setCustomLyricsPasted("");
+    setShowPasteBox(false);
+    setLyricsViewMode("picker");
+
     setShowEditModal(true);
   };
 
@@ -398,6 +759,8 @@ export default function AdminDashboardPage() {
           popularity: formPopularity,
           previewUrl: formPreviewUrl,
           albumCover: formAlbumCover,
+          startSecond: formStartSecond,
+          lyricsClues: formLyricsClues.filter((c: string) => c.trim().length > 0),
         }),
       });
 
@@ -1939,6 +2302,48 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
+              {/* Start Second Offset */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-mono text-amber-400 font-semibold flex items-center justify-between">
+                  <span>⏱️ MULAI DARI DETIK KE-</span>
+                  <span className="text-zinc-500 font-normal">Intro / Reff</span>
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={180}
+                    value={formStartSecond}
+                    onChange={(e) => setFormStartSecond(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
+                    placeholder="0 detik"
+                  />
+                  <span className="text-xs text-muted font-mono pr-1">detik</span>
+                </div>
+              </div>
+
+              {/* Interactive Robot TTS Lyrics */}
+              <LyricsStanzasEditor
+                artist={formArtist}
+                title={formTitle}
+                formLyricsClues={formLyricsClues}
+                setFormLyricsClues={setFormLyricsClues}
+                lyricsRawLines={lyricsRawLines}
+                setLyricsRawLines={setLyricsRawLines}
+                selectedStartLine={selectedStartLine}
+                setSelectedStartLine={setSelectedStartLine}
+                isFetchingLyrics={isFetchingLyrics}
+                fetchLyricsOnline={fetchLyricsOnline}
+                customLyricsPasted={customLyricsPasted}
+                setCustomLyricsPasted={setCustomLyricsPasted}
+                showPasteBox={showPasteBox}
+                setShowPasteBox={setShowPasteBox}
+                lyricsViewMode={lyricsViewMode}
+                setLyricsViewMode={setLyricsViewMode}
+                applyLyricsSlices={applyLyricsSlices}
+                handleApplyCustomLyrics={handleApplyCustomLyrics}
+              />
+
               <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
@@ -2089,97 +2494,27 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              {/* Robot TTS Lyrics Stanzas Management */}
-              <div className="flex flex-col gap-2 pt-2 border-t border-surfaceBorder">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-mono text-purple-400 font-semibold flex items-center gap-1.5">
-                    <span>🤖 BAIT LIRIK ROBOT TTS ({formLyricsClues.length} Bait)</span>
-                  </label>
-                  <span className="text-[10px] text-zinc-400 font-mono">Bait 1 = Yang pertama dibacakan</span>
-                </div>
-
-                <div className="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-                  {formLyricsClues.map((clue, idx) => (
-                    <div key={idx} className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${idx === 0 ? "bg-accent/20 text-accent border border-accent/40" : "text-muted"}`}>
-                          {idx === 0 ? "🌟 BAIT PERTAMA (CLUE AWAL)" : `Bait #${idx + 1}`}
-                        </span>
-
-                        <div className="flex items-center gap-1">
-                          {idx > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const copy = [...formLyricsClues];
-                                const [item] = copy.splice(idx, 1);
-                                copy.unshift(item);
-                                setFormLyricsClues(copy);
-                              }}
-                              className="text-[10px] font-mono py-0.5 px-2 rounded bg-accent/15 hover:bg-accent/30 text-accent border border-accent/30 cursor-pointer"
-                              title="Pindahkan bait ini jadi yang pertama dibacakan robot"
-                            >
-                              Jadikan Bait 1 ⬆️
-                            </button>
-                          )}
-                          {idx > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const copy = [...formLyricsClues];
-                                const temp = copy[idx - 1];
-                                copy[idx - 1] = copy[idx];
-                                copy[idx] = temp;
-                                setFormLyricsClues(copy);
-                              }}
-                              className="text-xs p-1 text-muted hover:text-white"
-                              title="Geser Naik"
-                            >
-                              ▲
-                            </button>
-                          )}
-                          {idx < formLyricsClues.length - 1 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const copy = [...formLyricsClues];
-                                const temp = copy[idx + 1];
-                                copy[idx + 1] = copy[idx];
-                                copy[idx] = temp;
-                                setFormLyricsClues(copy);
-                              }}
-                              className="text-xs p-1 text-muted hover:text-white"
-                              title="Geser Turun"
-                            >
-                              ▼
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      <textarea
-                        rows={2}
-                        value={clue}
-                        onChange={(e) => {
-                          const copy = [...formLyricsClues];
-                          copy[idx] = e.target.value;
-                          setFormLyricsClues(copy);
-                        }}
-                        placeholder={`Tulis penggalan lirik bait #${idx + 1}...`}
-                        className="bg-black/40 border border-surfaceBorder rounded-lg p-2 text-xs text-white outline-none focus:border-accent font-sans leading-relaxed resize-none"
-                      />
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setFormLyricsClues([...formLyricsClues, ""])}
-                    className="py-1.5 px-3 rounded-xl border border-dashed border-surfaceBorder hover:border-accent text-xs font-mono text-muted hover:text-accent transition text-center cursor-pointer"
-                  >
-                    + Tambah Bait Lirik Baru
-                  </button>
-                </div>
-              </div>
+              {/* Interactive Robot TTS Lyrics */}
+              <LyricsStanzasEditor
+                artist={formArtist}
+                title={formTitle}
+                formLyricsClues={formLyricsClues}
+                setFormLyricsClues={setFormLyricsClues}
+                lyricsRawLines={lyricsRawLines}
+                setLyricsRawLines={setLyricsRawLines}
+                selectedStartLine={selectedStartLine}
+                setSelectedStartLine={setSelectedStartLine}
+                isFetchingLyrics={isFetchingLyrics}
+                fetchLyricsOnline={fetchLyricsOnline}
+                customLyricsPasted={customLyricsPasted}
+                setCustomLyricsPasted={setCustomLyricsPasted}
+                showPasteBox={showPasteBox}
+                setShowPasteBox={setShowPasteBox}
+                lyricsViewMode={lyricsViewMode}
+                setLyricsViewMode={setLyricsViewMode}
+                applyLyricsSlices={applyLyricsSlices}
+                handleApplyCustomLyrics={handleApplyCustomLyrics}
+              />
 
               <div className="flex items-center gap-2 pt-2">
                 <button

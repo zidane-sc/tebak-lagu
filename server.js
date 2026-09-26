@@ -10,7 +10,7 @@ const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 // Database connection (LibSQL / SQLite persistent engine)
-const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats } = require("./src/lib/db-server.js");
+const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats, getSettingsFromDb } = require("./src/lib/db-server.js");
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -183,6 +183,13 @@ function getSanitizedRoom(room) {
       buzzCooldownUntil: room.buzzCooldowns && room.buzzCooldowns[p.id] ? room.buzzCooldowns[p.id] : 0,
       streak: p.streak || 0,
     })),
+    settings: {
+      clueExtensionIntervalSeconds: room.clueExtensionIntervalSeconds || 10,
+      finalStageSeconds: room.finalStageSeconds || 15,
+      buzzerTimerSeconds: room.buzzerTimerSeconds || 15,
+      playerLivesPerRound: room.playerLivesPerRound || 3,
+      heardleDurations: room.heardleDurations || [5, 9, 18, 30],
+    },
     buzzedPlayer: room.buzzState?.buzzedPlayerId
       ? {
           id: room.buzzState.buzzedPlayerId,
@@ -273,6 +280,14 @@ function triggerRoundRevealed(room, initialPayload) {
 }
 
 async function startRound(room) {
+  // Load dynamic server configuration from SQLite!
+  const settings = await getSettingsFromDb();
+  room.clueExtensionIntervalSeconds = Number(settings.clueExtensionIntervalSeconds) || 10;
+  room.finalStageSeconds = Number(settings.finalStageSeconds) || 15;
+  room.buzzerTimerSeconds = Number(settings.buzzerTimerSeconds) || 15;
+  room.playerLivesPerRound = Number(settings.playerLivesPerRound) || 3;
+  room.heardleDurations = Array.isArray(settings.heardleDurations) ? settings.heardleDurations : [5, 9, 18, 30];
+
   room.currentRound += 1;
   room.status = "playing";
   room.skipVotes = new Set();
@@ -280,7 +295,7 @@ async function startRound(room) {
   room.nextRoundVotes = new Set();
   room.nextRoundCountdown = null;
   room.clueStage = 1;
-  room.clueSecondsLeft = 10; // Snappy 10s per stage!
+  room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
   room.buzzCooldowns = {};
 
   if (room.autoNextTimer) {
@@ -294,7 +309,7 @@ async function startRound(room) {
 
   const playerLives = {};
   for (const p of room.players) {
-    playerLives[p.id] = 3; // 3 lives per round per player
+    playerLives[p.id] = room.playerLivesPerRound;
   }
   room.buzzState = {
     buzzedPlayerId: null,
@@ -304,7 +319,7 @@ async function startRound(room) {
     playerLives,
   };
 
-  // Stage timer: 10s (Tahap 1) -> 10s (Tahap 2) -> 10s (Tahap 3) -> 15s (Tahap 4) -> Hangus! (~45 detik total)
+  // Stage timer: respects dynamic server settings!
   room.stageTimer = setInterval(() => {
     if (room.status === "playing") {
       room.clueSecondsLeft -= 1;
@@ -312,35 +327,35 @@ async function startRound(room) {
       if (room.clueSecondsLeft <= 0) {
         if (room.clueStage === 1) {
           room.clueStage = 2;
-          room.clueSecondsLeft = 10;
+          room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 2,
-            secondsLeft: 10,
+            secondsLeft: room.clueSecondsLeft,
             message: "💡 Tahap 2: Clue diperpanjang!",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 2) {
           room.clueStage = 3;
-          room.clueSecondsLeft = 10;
+          room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 3,
-            secondsLeft: 10,
+            secondsLeft: room.clueSecondsLeft,
             message: "💡 Tahap 3: Clue dibuka lebih lengkap!",
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 3) {
           room.clueStage = 4;
-          room.clueSecondsLeft = 15; // Tahap terakhir 15 detik!
+          room.clueSecondsLeft = room.finalStageSeconds;
           room.clueVotes = new Set();
           broadcast(room, {
             type: "clue_extended",
             stage: 4,
-            secondsLeft: 15,
-            message: "🚨 Tahap Terakhir (15s)! Segera Buzz sebelum hangus!",
+            secondsLeft: room.clueSecondsLeft,
+            message: `🚨 Tahap Terakhir (${room.clueSecondsLeft}s)! Segera Buzz sebelum hangus!`,
             room: getSanitizedRoom(room),
           });
         } else if (room.clueStage === 4) {
@@ -764,17 +779,18 @@ app.prepare().then(() => {
           room.buzzState.buzzedPlayerId = player.id;
           room.buzzState.buzzedPlayerName = player.name;
 
-          // Start 15-second guess countdown
+          // Start guess countdown based on server settings
+          const allowedSec = room.buzzerTimerSeconds || 15;
           if (room.buzzState.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
           room.buzzState.buzzTimer = setTimeout(() => {
             handleBuzzTimeout(room);
-          }, 15000);
+          }, allowedSec * 1000);
 
           broadcast(room, {
             type: "player_buzzed",
             buzzedPlayerId: player.id,
             buzzedPlayerName: player.name,
-            secondsAllowed: 15,
+            secondsAllowed: allowedSec,
             room: getSanitizedRoom(room),
           });
         }
@@ -1027,7 +1043,7 @@ app.prepare().then(() => {
           if (room.clueVotes.size >= threshold) {
             room.clueVotes = new Set();
             room.clueStage += 1;
-            room.clueSecondsLeft = room.clueStage === 4 ? 15 : 10;
+            room.clueSecondsLeft = room.clueStage === 4 ? (room.finalStageSeconds || 15) : (room.clueExtensionIntervalSeconds || 10);
 
             broadcast(room, {
               type: "clue_extended",
