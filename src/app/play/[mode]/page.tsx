@@ -397,7 +397,16 @@ export default function PlayArenaPage() {
             youtubeStatus={(song as any).youtubeStatus}
             youtubeStartSecond={(song as any).youtubeStartSecond ?? 20}
             onYoutubePlay={(startSecond) => {
-              ytEngine.unmuteAndPlay(startSecond);
+              if (song && (song as any).youtubeId) {
+                ytEngine.play({
+                  youtubeId: (song as any).youtubeId,
+                  startSecond: startSecond,
+                  title: song.title,
+                  artist: song.artist,
+                });
+              } else {
+                ytEngine.unmuteAndPlay(startSecond);
+              }
             }}
             onYoutubePause={() => ytEngine.pause()}
             ytEngineState={ytEngine.state}

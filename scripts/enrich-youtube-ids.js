@@ -13,6 +13,7 @@ const path = require("path");
 const db = createClient({ url: `file:${path.resolve(__dirname, "../data/tebak_lagu.db")}` });
 
 const LIMIT = parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] || "50");
+const CATEGORY_ARG = process.argv.find(a => a.startsWith("--category="))?.split("=")[1];
 const DRY_RUN = process.argv.includes("--dry-run");
 const DELAY_MS = 800; // be polite to YouTube
 
@@ -129,18 +130,23 @@ async function main() {
 
   await db.execute("PRAGMA journal_mode = WAL;");
 
-  // Fetch pending songs
-  const res = await db.execute({
-    sql: `
-      SELECT id, title, artist
-      FROM songs
-      WHERE is_active = 1
-        AND (youtube_status IS NULL OR youtube_status = 'pending')
-      ORDER BY deezer_rank DESC, popularity DESC
-      LIMIT ?
-    `,
-    args: [LIMIT],
-  });
+  // Fetch pending songs (optionally filtered by category)
+  let sql = `
+    SELECT id, title, artist, category
+    FROM songs
+    WHERE is_active = 1
+      AND (youtube_status IS NULL OR youtube_status = 'pending')
+  `;
+  const args = [];
+  if (CATEGORY_ARG) {
+    sql += " AND category = ?";
+    args.push(CATEGORY_ARG);
+    console.log(`🎯 Category filter: "${CATEGORY_ARG}"`);
+  }
+  sql += " ORDER BY deezer_rank DESC, popularity DESC LIMIT ?";
+  args.push(LIMIT);
+
+  const res = await db.execute({ sql, args });
 
   const songs = res.rows;
   console.log(`📋 Found ${songs.length} songs to enrich\n`);

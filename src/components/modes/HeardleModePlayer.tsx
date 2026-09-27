@@ -95,8 +95,12 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     setRandomOffset(offset);
   }, [searchQuery, startSecond]);
 
-  // Fetch Deezer preview if needed
+  // Fetch Deezer preview only if YouTube is NOT available
   useEffect(() => {
+    if (useYouTube) {
+      setIsLoading(false);
+      return;
+    }
     if (!initialPreview && searchQuery) {
       setIsLoading(true);
       fetch(`/api/preview?q=${encodeURIComponent(searchQuery)}`)
@@ -109,7 +113,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     } else if (initialPreview) {
       setPreviewUrl(initialPreview);
     }
-  }, [initialPreview, searchQuery]);
+  }, [initialPreview, searchQuery, useYouTube]);
 
   const handlePlay = () => {
     if (isPlaying) {

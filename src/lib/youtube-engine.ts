@@ -154,21 +154,26 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     }
   }, [updateState]);
 
-  // Mount container div
+  // Mount container div (completely hidden offscreen so no YouTube logo/box appears)
   useEffect(() => {
     if (!containerRef.current) {
-      const div = document.createElement("div");
-      div.id = "yt-engine-player";
-      div.style.cssText = `
-        position: fixed; bottom: 12px; right: 12px;
-        width: 160px; height: 90px;
-        border-radius: 10px; overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.08);
-        opacity: 0.55; z-index: 9999;
-        background: #111;
-        pointer-events: none;
-      `;
-      document.body.appendChild(div);
+      let div = document.getElementById("yt-engine-player") as HTMLDivElement | null;
+      if (!div) {
+        div = document.createElement("div");
+        div.id = "yt-engine-player";
+        div.style.cssText = `
+          position: fixed;
+          top: -9999px;
+          left: -9999px;
+          width: 200px;
+          height: 200px;
+          opacity: 0;
+          pointer-events: none;
+          z-index: -999;
+          visibility: hidden;
+        `;
+        document.body.appendChild(div);
+      }
       containerRef.current = div;
     }
 
@@ -186,8 +191,22 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
       pendingSong.current = song;
       return;
     }
+    // If the player already has this video cued/loaded, just seek and unmute immediately
+    if (currentSong?.youtubeId === song.youtubeId) {
+      const sec = song.startSecond ?? currentSong?.startSecond ?? 20;
+      try {
+        playerRef.current.seekTo(sec, true);
+        playerRef.current.unMute();
+        playerRef.current.setVolume(100);
+        playerRef.current.playVideo();
+        updateState("playing");
+      } catch (e) {
+        loadSong(song, false);
+      }
+      return;
+    }
     loadSong(song, false);
-  }, [loadSong]);
+  }, [currentSong, loadSong, updateState]);
 
   const cue = useCallback((song: YTSong) => {
     // Muted preload — use during lobby/result screen
