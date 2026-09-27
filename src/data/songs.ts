@@ -8,6 +8,9 @@ export interface Song {
   category: "Galau Hits" | "Nostalgia 2000s" | "Anthem Tongkrongan" | "Pop Jawa & Koplo" | "Western Hits" | string;
   startSecond?: number;
   youtubeId?: string;
+  youtubeStartSecond?: number;
+  youtubeStatus?: string;
+  hasYoutube?: boolean;
   albumCover?: string;
   lyricsClues: string[];
   hummingMelody: Array<{ note: number; duration: number }>;

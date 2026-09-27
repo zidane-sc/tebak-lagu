@@ -69,6 +69,11 @@ export function rowToSong(row: any) {
     timesGuessed: row.times_guessed || 0,
     timesFailed: row.times_failed || 0,
     isActive: row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true,
+    // YouTube Engine metadata
+    youtubeId: row.youtube_id || null,
+    youtubeStartSecond: row.youtube_start_second !== undefined && row.youtube_start_second !== null ? Number(row.youtube_start_second) : 20,
+    youtubeStatus: row.youtube_status || "pending",
+    hasYoutube: !!(row.youtube_id && row.youtube_status === "ready"),
   };
 }
 

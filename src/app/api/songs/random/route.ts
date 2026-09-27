@@ -82,9 +82,9 @@ export async function GET(request: Request) {
     }
 
     // YouTube metadata — include if available
-    const youtubeId = (baseSong as any).youtube_id || null;
-    const youtubeStatus = (baseSong as any).youtube_status || "pending";
-    const youtubeStartSecond = (baseSong as any).youtube_start_second ?? 20;
+    const youtubeId = (baseSong as any).youtubeId || (baseSong as any).youtube_id || null;
+    const youtubeStatus = (baseSong as any).youtubeStatus || (baseSong as any).youtube_status || "pending";
+    const youtubeStartSecond = (baseSong as any).youtubeStartSecond ?? (baseSong as any).youtube_start_second ?? 20;
 
     // Heardle fallback offset (used when no youtube_id)
     const randomOffset = Math.floor(Math.random() * 15);
