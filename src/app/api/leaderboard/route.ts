@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       player_name,
       player_avatar,
       mode: mode || "heardle",
-      category: category || "Semua Genre",
+      category: category || "Semua Playlist",
       difficulty: difficulty || "easy",
       score: parseInt(score, 10) || 0,
     });

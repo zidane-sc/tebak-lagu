@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
 import { ArtistsManager } from "@/components/admin/ArtistsManager";
-import { GenresManager } from "@/components/admin/GenresManager";
+import { PlaylistsManager } from "@/components/admin/PlaylistsManager";
 import { AlbumsManager } from "@/components/admin/AlbumsManager";
 
 
@@ -1118,7 +1118,7 @@ export default function AdminDashboardPage() {
           }`}
         >
           <Layers className="w-4 h-4 text-amber-400" />
-          <span>Kategori & Genre</span>
+          <span>Playlist</span>
         </button>
 
         <button
@@ -1206,8 +1206,8 @@ export default function AdminDashboardPage() {
                 }}
                 className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 text-xs font-mono text-zinc-200 outline-none focus:border-accent"
               >
-                <option value="all">Semua Genre</option>
-                {CATEGORIES.filter((c) => c !== "Semua Genre").map((c) => (
+                <option value="all">Semua Playlist</option>
+                {CATEGORIES.filter((c) => c !== "Semua Playlist").map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -1437,7 +1437,7 @@ export default function AdminDashboardPage() {
       {/* TAB 3: GENRES & CATEGORIES MANAGER */}
       {/* ============================================================= */}
       {activeTab === "genres" && (
-        <GenresManager onNotification={showToast} />
+        <PlaylistsManager onNotification={showToast} />
       )}
 
       {/* ============================================================= */}
@@ -2088,19 +2088,19 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Genre Popularity & Plays Breakdown */}
+              {/* Playlist Popularity & Plays Breakdown */}
               <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
                 <div className="flex items-center gap-2 pb-2 border-b border-surfaceBorder">
                   <Activity className="w-4 h-4 text-accent" />
                   <h4 className="font-bold text-xs sm:text-sm text-white">
-                    Sebaran Popularitas Putaran per Kategori Genre
+                    Sebaran Popularitas Putaran per Playlist
                   </h4>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                   {analyticsData.genreStats?.map((g: any) => {
-                    const totalAllGenrePlays = analyticsData.overview?.totalPlays || 1;
-                    const percent = Math.round((g.total_plays / Math.max(1, totalAllGenrePlays)) * 100);
+                    const totalAllPlaylistPlays = analyticsData.overview?.totalPlays || 1;
+                    const percent = Math.round((g.total_plays / Math.max(1, totalAllPlaylistPlays)) * 100);
 
                     return (
                       <div key={g.category} className="bg-surfaceRaised p-3 rounded-xl border border-surfaceBorder flex flex-col gap-1.5">
@@ -2147,7 +2147,7 @@ export default function AdminDashboardPage() {
                         <tr className="border-b border-surfaceBorder text-muted text-[10px] font-mono uppercase">
                           <th className="py-2 px-3">Pemain</th>
                           <th className="py-2 px-3">Mode</th>
-                          <th className="py-2 px-3">Genre</th>
+                          <th className="py-2 px-3">Playlist</th>
                           <th className="py-2 px-3">Kesulitan</th>
                           <th className="py-2 px-3 text-right">Skor</th>
                           <th className="py-2 px-3 text-right">Waktu</th>
@@ -2302,7 +2302,7 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setFormCategory(e.target.value)}
                     className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
                   >
-                    {CATEGORIES.filter((c) => c !== "Semua Genre").map((c) => (
+                    {CATEGORIES.filter((c) => c !== "Semua Playlist").map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
@@ -2460,7 +2460,7 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setFormCategory(e.target.value)}
                     className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
                   >
-                    {CATEGORIES.filter((c) => c !== "Semua Genre").map((c) => (
+                    {CATEGORIES.filter((c) => c !== "Semua Playlist").map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       args.push(`%${search}%`);
     }
 
-    if (category && category !== "all" && category !== "Semua Genre") {
+    if (category && category !== "all" && category !== "Semua Playlist") {
       conditions.push("a.category = ?");
       args.push(category);
     }

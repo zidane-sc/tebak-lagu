@@ -14,6 +14,13 @@ interface HeardleModePlayerProps {
   unlockedLevel: number; // 0 to 5
   isGameOver?: boolean;
   customDurations?: number[];
+  // YouTube engine props
+  youtubeId?: string | null;
+  youtubeStatus?: string;
+  youtubeStartSecond?: number;
+  onYoutubePlay?: (startSecond: number) => void;
+  onYoutubePause?: () => void;
+  ytEngineState?: string;
 }
 
 // Stepped unlocked durations in seconds (Fair, exciting progression starting at 3s)
@@ -26,7 +33,15 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   unlockedLevel,
   isGameOver = false,
   customDurations,
+  youtubeId,
+  youtubeStatus,
+  youtubeStartSecond,
+  onYoutubePlay,
+  onYoutubePause,
+  ytEngineState,
 }) => {
+  // Use YouTube if available and ready, fallback to preview_url
+  const useYouTube = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview || null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -99,16 +114,31 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   const handlePlay = () => {
     if (isPlaying) {
       stopPlayback();
-      return;
-    }
-
-    if (!audioRef.current || !previewUrl) {
+      if (useYouTube) onYoutubePause?.();
       return;
     }
 
     setIsPlaying(true);
-    audioRef.current.currentTime = randomOffset;
 
+    // ── YouTube path ──────────────────────────────────────────
+    if (useYouTube) {
+      const startSec = youtubeStartSecond ?? randomOffset;
+      onYoutubePlay!(startSec);
+      // Auto-stop after allowed duration
+      timerRef.current = setTimeout(() => {
+        onYoutubePause?.();
+        setIsPlaying(false);
+      }, maxAllowedDuration * 1000);
+      return;
+    }
+
+    // ── Fallback: HTML5 audio preview ─────────────────────────
+    if (!audioRef.current || !previewUrl) {
+      setIsPlaying(false);
+      return;
+    }
+
+    audioRef.current.currentTime = randomOffset;
     audioRef.current
       .play()
       .then(() => {
@@ -146,7 +176,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
 
         <button
           onClick={handlePlay}
-          disabled={isLoading || !previewUrl}
+          disabled={isLoading || (!previewUrl && !useYouTube)}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all transform active:scale-95 shadow-md cursor-pointer ${
             isPlaying
               ? "bg-red-500 hover:bg-red-600 text-white ring-4 ring-red-500/20"

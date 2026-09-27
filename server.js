@@ -209,6 +209,11 @@ function getSanitizedRoom(room) {
           previewUrl: room.currentSong.previewResolved || room.currentSong.previewUrl,
           searchQuery: room.currentSong.searchQuery,
           startSecond: room.currentSong.startSecond || 0,
+          // YouTube metadata
+          youtubeId: room.currentSong.youtubeId || null,
+          youtubeStartSecond: room.currentSong.youtubeStartSecond || 20,
+          youtubeStatus: room.currentSong.youtubeStatus || "pending",
+          hasYoutube: !!(room.currentSong.youtubeId && room.currentSong.youtubeStatus === "ready"),
         }
       : null,
     revealedSong: room.status === "revealed" || room.status === "game_over" ? room.currentSong : null,

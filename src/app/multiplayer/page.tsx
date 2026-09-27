@@ -4,6 +4,7 @@ import { io, Socket } from "socket.io-client";
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useYouTubeEngine } from "@/lib/youtube-engine";
 import {
   Users,
   ChevronLeft,
@@ -90,7 +91,7 @@ export default function MultiplayerPage() {
   // Room config (Create)
   const [selectedMode, setSelectedMode] = useState("heardle");
   const [selectedFilterType, setSelectedFilterType] = useState<"category" | "artists">("category");
-  const [selectedCategory, setSelectedCategory] = useState("Semua Genre");
+  const [selectedCategory, setSelectedCategory] = useState("Semua Playlist");
   const [selectedArtists, setSelectedArtists] = useState<string[]>([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState("easy");
   const [selectedAudioProfile, setSelectedAudioProfile] = useState("normal");
@@ -130,6 +131,11 @@ export default function MultiplayerPage() {
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sliceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const synthRef = useRef<HummingSynth | null>(null);
+
+  // YouTube Audio Engine — persistent singleton
+  const ytEngine = useYouTubeEngine({
+    onError: (msg) => console.warn("[YT Multiplayer]", msg),
+  });
 
   const playAudioRef = useRef<(customRoom?: any) => void>(() => {});
   const pauseAudioRef = useRef<() => void>(() => {});
@@ -214,7 +220,7 @@ export default function MultiplayerPage() {
 
   const playAudioLocal = (customRoom?: any) => {
     const r = customRoom || room;
-    if (!r?.currentSongClue || !audioRef.current) return;
+    if (!r?.currentSongClue) return;
 
     if (sliceTimerRef.current) {
       clearTimeout(sliceTimerRef.current);
@@ -224,6 +230,7 @@ export default function MultiplayerPage() {
     const profile = r.audioProfile || "normal";
 
     if (r.mode === "tts") {
+      if (!audioRef.current) return;
       const clues = r.currentSongClue?.lyricsClues || [];
       const fullLyrics = clues.join(". \n");
       const speedParam = profile === "fast" ? "1.25" : profile === "bass" ? "0.8" : "1";
@@ -236,13 +243,27 @@ export default function MultiplayerPage() {
       const stageLimits = [5, 5, 9, 18, 30];
       const maxDuration = stageLimits[r.clueStage || 1] || 5;
 
-      const previewUrl = r.currentSongClue?.previewUrl || "";
+      // ── YouTube path ─────────────────────────────────────────
+      const clue = r.currentSongClue;
+      if (clue?.hasYoutube && clue?.youtubeId) {
+        ytEngine.unmuteAndPlay(clue.youtubeStartSecond ?? 20);
+        setIsPlayingAudio(true);
+        sliceTimerRef.current = setTimeout(() => {
+          ytEngine.pause();
+          setIsPlayingAudio(false);
+        }, maxDuration * 1000);
+        return;
+      }
+
+      // ── Fallback: HTML5 audio ─────────────────────────────────
+      if (!audioRef.current) return;
+      const previewUrl = clue?.previewUrl || "";
       if (audioRef.current.src !== previewUrl) {
         audioRef.current.src = previewUrl;
       }
 
-      if (r.currentSongClue?.startSecond) {
-        audioRef.current.currentTime = r.currentSongClue.startSecond;
+      if (clue?.startSecond) {
+        audioRef.current.currentTime = clue.startSecond;
       }
 
       sliceTimerRef.current = setTimeout(() => {
@@ -433,21 +454,33 @@ export default function MultiplayerPage() {
 
             // Preload audio immediately in background so first click plays with 0ms lag!
             setTimeout(() => {
-              if (audioRef.current && data.room) {
-                const r = data.room;
-                if (r.mode === "tts") {
-                  const clues = r.currentSongClue?.allLyricsClues || r.currentSongClue?.lyricsClues || [];
-                  const fullLyrics = clues.join(". \n");
-                  const speedParam = r.audioProfile === "fast" ? "1.25" : r.audioProfile === "bass" ? "0.8" : "1";
-                  const langParam = r.currentSongClue?.lang || "id";
-                  audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik")}&speed=${speedParam}&lang=${langParam}`;
-                } else {
-                  audioRef.current.src = r.currentSongClue?.previewUrl || "";
-                  audioRef.current.currentTime = r.currentSongClue?.startSecond || 0;
-                }
-                audioRef.current.preload = "auto";
-                audioRef.current.load();
+              const r = data.room;
+              if (!r) return;
+
+              // ── YouTube cue (muted preload) ───────────────────
+              const clue = r.currentSongClue;
+              if (clue?.hasYoutube && clue?.youtubeId && r.mode !== "tts") {
+                ytEngine.cue({
+                  youtubeId: clue.youtubeId,
+                  startSecond: clue.youtubeStartSecond ?? 20,
+                });
+                return;
               }
+
+              // ── Fallback: HTML5 preload ───────────────────────
+              if (!audioRef.current) return;
+              if (r.mode === "tts") {
+                const clues = r.currentSongClue?.allLyricsClues || r.currentSongClue?.lyricsClues || [];
+                const fullLyrics = clues.join(". \n");
+                const speedParam = r.audioProfile === "fast" ? "1.25" : r.audioProfile === "bass" ? "0.8" : "1";
+                const langParam = r.currentSongClue?.lang || "id";
+                audioRef.current.src = `/api/tts?text=${encodeURIComponent(fullLyrics || "Dengarkan lirik")}&speed=${speedParam}&lang=${langParam}`;
+              } else {
+                audioRef.current.src = r.currentSongClue?.previewUrl || "";
+                audioRef.current.currentTime = r.currentSongClue?.startSecond || 0;
+              }
+              audioRef.current.preload = "auto";
+              audioRef.current.load();
             }, 100);
           } else if (data.type === "room_audio_sync") {
             if (data.action === "play") {
@@ -575,7 +608,7 @@ export default function MultiplayerPage() {
                     player_name: myP.name || user?.name || playerName,
                     player_avatar: user?.avatar || "",
                     mode: "multiplayer",
-                    category: data.room?.category || "Semua Genre",
+                    category: data.room?.category || "Semua Playlist",
                     difficulty: data.room?.difficulty || "easy",
                     score: myP.score,
                   }),
@@ -1069,7 +1102,7 @@ export default function MultiplayerPage() {
               </div>
             </div>
 
-            {/* Genre atau Pilih Penyanyi */}
+            {/* Playlist atau Pilih Penyanyi */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-mono text-mutedDark font-semibold">
@@ -1088,7 +1121,7 @@ export default function MultiplayerPage() {
                         : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    📁 Genre
+                    🎵 Playlist
                   </button>
                   <button
                     type="button"
@@ -1110,7 +1143,7 @@ export default function MultiplayerPage() {
               {selectedFilterType === "category" ? (
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: "Semua Genre", label: "Semua Genre 🔀" },
+                    { id: "Semua Playlist", label: "Semua Playlist 🔀" },
                     { id: "Galau Hits", label: "Galau Hits 💔" },
                     { id: "Nostalgia 2000s", label: "Nostalgia 2000s 🎸" },
                     { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
@@ -1356,7 +1389,7 @@ export default function MultiplayerPage() {
                 <span className="text-accent font-semibold">
                   🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
                     ? `${room.selectedArtists.length} Artis Pilihan`
-                    : room.category || "Semua Genre"}
+                    : room.category || "Semua Playlist"}
                 </span>
                 <span>•</span>
                 <span className="text-emerald-400 font-semibold">
@@ -1464,7 +1497,7 @@ export default function MultiplayerPage() {
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-surfaceBorder text-accent font-semibold">
                 🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
                   ? `${room.selectedArtists.length} Artis Pilihan`
-                  : room.category || "Semua Genre"} ·{" "}
+                  : room.category || "Semua Playlist"} ·{" "}
                 {room.difficulty === "easy"
                   ? "🟢 Mudah"
                   : room.difficulty === "medium"

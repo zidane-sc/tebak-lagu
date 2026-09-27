@@ -274,22 +274,58 @@ export async function PATCH(request: Request) {
   try {
     await initDb();
     const body = await request.json();
-    const { id, is_active } = body;
+    const { id, is_active, youtube_id, youtube_start_second, youtube_status } = body;
     if (!id) {
       return NextResponse.json({ error: "Parameter ID lagu wajib diisi!" }, { status: 400 });
     }
 
-    const newActive = is_active ? 1 : 0;
-    await db.execute({
-      sql: "UPDATE songs SET is_active = ? WHERE id = ?;",
-      args: [newActive, id],
-    });
+    // Toggle active status
+    if (is_active !== undefined) {
+      const newActive = is_active ? 1 : 0;
+      await db.execute({
+        sql: "UPDATE songs SET is_active = ? WHERE id = ?;",
+        args: [newActive, id],
+      });
+      return NextResponse.json({
+        success: true,
+        is_active: newActive,
+        message: `Status lagu berhasil diubah menjadi ${newActive ? "Aktif 🟢" : "Nonaktif 🔴"}`,
+      });
+    }
 
-    return NextResponse.json({
-      success: true,
-      is_active: newActive,
-      message: `Status lagu berhasil diubah menjadi ${newActive ? "Aktif 🟢" : "Nonaktif 🔴"}`,
-    });
+    // Update YouTube metadata
+    if (youtube_id !== undefined || youtube_start_second !== undefined) {
+      const updates: string[] = [];
+      const args: any[] = [];
+
+      if (youtube_id !== undefined) {
+        updates.push("youtube_id = ?");
+        args.push(youtube_id || null);
+      }
+      if (youtube_start_second !== undefined) {
+        updates.push("youtube_start_second = ?");
+        args.push(Number(youtube_start_second) || 20);
+      }
+      if (youtube_status !== undefined) {
+        updates.push("youtube_status = ?");
+        args.push(youtube_status);
+      } else if (youtube_id) {
+        updates.push("youtube_status = 'ready'");
+      } else if (youtube_id === null || youtube_id === "") {
+        updates.push("youtube_status = 'pending'");
+      }
+
+      updates.push("youtube_checked_at = CURRENT_TIMESTAMP");
+      args.push(id);
+
+      await db.execute({
+        sql: `UPDATE songs SET ${updates.join(", ")} WHERE id = ?;`,
+        args,
+      });
+      return NextResponse.json({ success: true, message: "YouTube metadata berhasil diupdate ✅" });
+    }
+
+    return NextResponse.json({ error: "Tidak ada field yang diupdate" }, { status: 400 });
   } catch (err: any) {
     console.error("Admin songs PATCH error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

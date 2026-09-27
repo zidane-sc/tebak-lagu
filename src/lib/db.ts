@@ -74,6 +74,15 @@ export function rowToSong(row: any) {
 
 // Initialize Schema and Auto-Seed if empty
 export async function initDb() {
+  // 0. WAL Mode & Concurrency Pragmas
+  try {
+    await db.execute("PRAGMA journal_mode = WAL;");
+    await db.execute("PRAGMA busy_timeout = 5000;");
+    await db.execute("PRAGMA synchronous = NORMAL;");
+  } catch (e) {
+    // Ignore pragma errors on edge drivers
+  }
+
   // 1. Create Tables
   await db.execute(`
     CREATE TABLE IF NOT EXISTS songs (
@@ -126,6 +135,59 @@ export async function initDb() {
     await db.execute("ALTER TABLE artists ADD COLUMN is_active INTEGER DEFAULT 1;");
   } catch (e) {
     // Column already exists
+  }
+
+  // Soft Delete columns for users
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
+  } catch (e) {}
+
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN deleted_at DATETIME DEFAULT NULL;");
+  } catch (e) {}
+
+  // FTS5 Virtual Table & Auto-Sync Triggers for sub-millisecond search
+  try {
+    await db.execute(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts USING fts5(
+        id UNINDEXED,
+        title,
+        artist,
+        search_query,
+        tokenize = 'unicode61 remove_diacritics 2'
+      );
+    `);
+
+    const ftsCountRes = await db.execute("SELECT COUNT(*) as c FROM songs_fts;");
+    if (Number(ftsCountRes.rows[0]?.c || 0) === 0) {
+      await db.execute(`
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        SELECT id, title, artist, COALESCE(search_query, title || ' ' || artist) FROM songs;
+      `);
+    }
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_ai AFTER INSERT ON songs BEGIN
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        VALUES (new.id, new.title, new.artist, COALESCE(new.search_query, new.title || ' ' || new.artist));
+      END;
+    `);
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_ad AFTER DELETE ON songs BEGIN
+        DELETE FROM songs_fts WHERE id = old.id;
+      END;
+    `);
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_au AFTER UPDATE ON songs BEGIN
+        DELETE FROM songs_fts WHERE id = old.id;
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        VALUES (new.id, new.title, new.artist, COALESCE(new.search_query, new.title || ' ' || new.artist));
+      END;
+    `);
+  } catch (e) {
+    // FTS5 already configured or edge error
   }
 
   await db.execute(`
@@ -471,6 +533,8 @@ export interface DbUser {
   total_score: number;
   games_played: number;
   wins: number;
+  isActive?: boolean;
+  deletedAt?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -485,6 +549,8 @@ export function rowToUser(row: any): DbUser | null {
     total_score: Number(row.total_score || 0),
     games_played: Number(row.games_played || 0),
     wins: Number(row.wins || 0),
+    isActive: row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true,
+    deletedAt: row.deleted_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -505,7 +571,7 @@ export async function upsertGoogleUser(user: {
   if (check.rows.length > 0) {
     const existing = rowToUser(check.rows[0])!;
     await db.execute({
-      sql: `UPDATE users SET name = ?, avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?;`,
+      sql: `UPDATE users SET name = ?, avatar = ?, is_active = 1, deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?;`,
       args: [user.name, user.avatar || existing.avatar, existing.id],
     });
     const refreshed = await db.execute({
@@ -517,8 +583,8 @@ export async function upsertGoogleUser(user: {
 
   await db.execute({
     sql: `
-      INSERT INTO users (id, email, name, avatar, total_score, games_played, wins)
-      VALUES (?, ?, ?, ?, 0, 0, 0);
+      INSERT INTO users (id, email, name, avatar, total_score, games_played, wins, is_active)
+      VALUES (?, ?, ?, ?, 0, 0, 0, 1);
     `,
     args: [user.id, emailClean, user.name, user.avatar || ""],
   });
@@ -532,11 +598,19 @@ export async function upsertGoogleUser(user: {
 
 export async function getUserById(userId: string): Promise<DbUser | null> {
   const res = await db.execute({
-    sql: "SELECT * FROM users WHERE id = ?;",
+    sql: "SELECT * FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL);",
     args: [userId],
   });
   if (res.rows.length === 0) return null;
   return rowToUser(res.rows[0]);
+}
+
+export async function softDeleteUser(userId: string): Promise<boolean> {
+  const res = await db.execute({
+    sql: "UPDATE users SET is_active = 0, deleted_at = CURRENT_TIMESTAMP WHERE id = ?;",
+    args: [userId],
+  });
+  return (res.rowsAffected || 0) > 0;
 }
 
 export async function updateUserStats(
@@ -672,7 +746,7 @@ export async function getLeaderboard(options: {
         sql: `
           SELECT id as player_key, name as player_name, avatar as player_avatar, total_score, games_played, wins, updated_at as last_played
           FROM users
-          WHERE total_score > 0
+          WHERE total_score > 0 AND (is_active = 1 OR is_active IS NULL)
           ORDER BY total_score DESC
           LIMIT ?;
         `,

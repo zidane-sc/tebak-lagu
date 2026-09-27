@@ -43,7 +43,7 @@ export const ArtistsManager: React.FC<{
   const [newName, setNewName] = useState("");
   const [isSubmittingRename, setIsSubmittingRename] = useState(false);
 
-  // Reassign Genre Modal
+  // Reassign Playlist Modal
   const [reassignArtist, setReassignArtist] = useState<any | null>(null);
   const [newGenre, setNewGenre] = useState<string>("Galau Hits");
   const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
@@ -188,11 +188,11 @@ export const ArtistsManager: React.FC<{
 
       const data = await res.json();
       if (res.ok) {
-        onNotification?.(data.message || "Genre artis berhasil diubah!", "success");
+        onNotification?.(data.message || "Playlist artis berhasil diubah!", "success");
         setReassignArtist(null);
         fetchArtists();
       } else {
-        onNotification?.(data.error || "Gagal mengubah genre artis.", "error");
+        onNotification?.(data.error || "Gagal mengubah playlist artis.", "error");
       }
     } catch (err) {
       onNotification?.("Terjadi kesalahan jaringan.", "error");
@@ -220,7 +220,7 @@ export const ArtistsManager: React.FC<{
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Genre Filter */}
+          {/* Playlist Filter */}
           <select
             value={selectedCategory}
             onChange={(e) => {
@@ -229,8 +229,8 @@ export const ArtistsManager: React.FC<{
             }}
             className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-2.5 py-2 text-xs text-white outline-none focus:border-accent font-sans transition cursor-pointer"
           >
-            <option value="all">Semua Genre</option>
-            {CATEGORIES.filter((c) => c !== "Semua Genre").map((catName) => (
+            <option value="all">Semua Playlist</option>
+            {CATEGORIES.filter((c) => c !== "Semua Playlist").map((catName) => (
               <option key={catName} value={catName}>
                 {catName}
               </option>
@@ -348,7 +348,7 @@ export const ArtistsManager: React.FC<{
                 </div>
               </div>
 
-              {/* Genre Pills */}
+              {/* Playlist Pills */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 {item.categories.slice(0, 3).map((cat: string) => (
                   <span
@@ -404,7 +404,7 @@ export const ArtistsManager: React.FC<{
                     setNewGenre(item.categories[0] || "Galau Hits");
                   }}
                   className="py-1.5 px-2 rounded-lg bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-400 hover:text-white text-[11px] transition"
-                  title="Pindahkan Seluruh Lagu ke Genre Lain"
+                  title="Pindahkan Seluruh Lagu ke Playlist Lain"
                 >
                   <Tag className="w-3 h-3" />
                 </button>
@@ -509,7 +509,7 @@ export const ArtistsManager: React.FC<{
         </div>
       )}
 
-      {/* Reassign Genre Modal */}
+      {/* Reassign Playlist Modal */}
       {reassignArtist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <form
@@ -517,7 +517,7 @@ export const ArtistsManager: React.FC<{
             className="w-full max-w-md bg-surface border border-surfaceBorder rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4"
           >
             <div className="flex items-center justify-between pb-3 border-b border-surfaceBorder">
-              <h3 className="font-bold text-sm sm:text-base text-white">Pindahkan Genre Artis</h3>
+              <h3 className="font-bold text-sm sm:text-base text-white">Pindahkan Playlist Artis</h3>
               <button
                 type="button"
                 onClick={() => setReassignArtist(null)}
@@ -529,7 +529,7 @@ export const ArtistsManager: React.FC<{
 
             <p className="text-xs text-muted leading-relaxed">
               Pindahkan seluruh <strong className="text-white">{reassignArtist.song_count} lagu</strong> milik &quot;
-              {reassignArtist.artist}&quot; ke kategori genre yang dipilih:
+              {reassignArtist.artist}&quot; ke playlist yang dipilih:
             </p>
 
             <div className="flex flex-col gap-1.5">

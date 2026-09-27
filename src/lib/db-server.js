@@ -64,10 +64,24 @@ function rowToSong(row) {
     timesGuessed: row.times_guessed || 0,
     timesFailed: row.times_failed || 0,
     isActive: row.is_active !== undefined && row.is_active !== null ? Number(row.is_active) === 1 : true,
+    // YouTube fields
+    youtubeId: row.youtube_id || null,
+    youtubeStartSecond: row.youtube_start_second !== undefined && row.youtube_start_second !== null ? Number(row.youtube_start_second) : 20,
+    youtubeStatus: row.youtube_status || "pending",
+    hasYoutube: !!(row.youtube_id && row.youtube_status === "ready"),
   };
 }
 
 async function initDb() {
+  // 0. WAL Mode & Concurrency Pragmas
+  try {
+    await db.execute("PRAGMA journal_mode = WAL;");
+    await db.execute("PRAGMA busy_timeout = 5000;");
+    await db.execute("PRAGMA synchronous = NORMAL;");
+  } catch (e) {
+    // Ignore pragma errors
+  }
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS songs (
       id TEXT PRIMARY KEY,
@@ -118,6 +132,59 @@ async function initDb() {
     await db.execute("ALTER TABLE artists ADD COLUMN is_active INTEGER DEFAULT 1;");
   } catch (e) {
     // Column already exists
+  }
+
+  // Soft delete for users
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1;");
+  } catch (e) {}
+
+  try {
+    await db.execute("ALTER TABLE users ADD COLUMN deleted_at DATETIME DEFAULT NULL;");
+  } catch (e) {}
+
+  // FTS5 Virtual Table & Auto-Sync Triggers
+  try {
+    await db.execute(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS songs_fts USING fts5(
+        id UNINDEXED,
+        title,
+        artist,
+        search_query,
+        tokenize = 'unicode61 remove_diacritics 2'
+      );
+    `);
+
+    const ftsCountRes = await db.execute("SELECT COUNT(*) as c FROM songs_fts;");
+    if (Number(ftsCountRes.rows[0]?.c || 0) === 0) {
+      await db.execute(`
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        SELECT id, title, artist, COALESCE(search_query, title || ' ' || artist) FROM songs;
+      `);
+    }
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_ai AFTER INSERT ON songs BEGIN
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        VALUES (new.id, new.title, new.artist, COALESCE(new.search_query, new.title || ' ' || new.artist));
+      END;
+    `);
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_ad AFTER DELETE ON songs BEGIN
+        DELETE FROM songs_fts WHERE id = old.id;
+      END;
+    `);
+
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS songs_au AFTER UPDATE ON songs BEGIN
+        DELETE FROM songs_fts WHERE id = old.id;
+        INSERT INTO songs_fts(id, title, artist, search_query)
+        VALUES (new.id, new.title, new.artist, COALESCE(new.search_query, new.title || ' ' || new.artist));
+      END;
+    `);
+  } catch (e) {
+    // FTS5 already configured
   }
 
   await db.execute(`

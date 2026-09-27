@@ -20,14 +20,18 @@ export interface Song {
   lang?: "id" | "en";
 }
 
+// Legacy export name for backward compatibility (backend still uses "category" column)
 export const CATEGORIES = [
-  "Semua Genre",
+  "Semua Playlist",
   "Galau Hits",
   "Nostalgia 2000s",
   "Anthem Tongkrongan",
   "Pop Jawa & Koplo",
   "Western Hits",
 ] as const;
+
+// Alias for clearer semantics in UI
+export const PLAYLISTS = CATEGORIES;
 
 export const DIFFICULTIES = [
   { id: "easy", label: "Mudah (Mega Hits) 🟢", desc: "Lagu viral & hits sejuta umat" },

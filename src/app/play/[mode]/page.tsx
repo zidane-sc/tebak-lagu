@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ScoreHeader } from "@/components/ScoreHeader";
@@ -12,6 +12,7 @@ import { Song } from "@/data/songs";
 import { sfx } from "@/lib/sound-fx";
 import { useAuth } from "@/lib/auth-context";
 import { SocialShareModal } from "@/components/SocialShareModal";
+import { useYouTubeEngine } from "@/lib/youtube-engine";
 import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle, Share2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -43,7 +44,7 @@ export default function PlayArenaPage() {
   // Single player config from sessionStorage (clean URL without query params)
   const [gameConfig, setGameConfig] = useState({
     filterType: "category" as "category" | "artists",
-    category: "Semua Genre",
+    category: "Semua Playlist",
     selectedArtists: [] as string[],
     difficulty: "easy",
     audioProfile: "normal",
@@ -55,6 +56,11 @@ export default function PlayArenaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
   const [albumCover, setAlbumCover] = useState<string | undefined>(undefined);
+
+  // YouTube Audio Engine (persistent singleton)
+  const ytEngine = useYouTubeEngine({
+    onError: (msg) => console.warn("[YT Engine]", msg),
+  });
 
   // Gameplay States
   const [guesses, setGuesses] = useState<Array<{ text: string; isCorrect: boolean }>>([]);
@@ -80,7 +86,7 @@ export default function PlayArenaPage() {
         const parsed = JSON.parse(saved);
         setGameConfig({
           filterType: parsed.filterType || "category",
-          category: parsed.category || "Semua Genre",
+          category: parsed.category || "Semua Playlist",
           selectedArtists: Array.isArray(parsed.selectedArtists) ? parsed.selectedArtists : [],
           difficulty: parsed.difficulty || "easy",
           audioProfile: parsed.audioProfile || "normal",
@@ -89,7 +95,7 @@ export default function PlayArenaPage() {
       } else {
         setGameConfig({
           filterType: "category",
-          category: searchParams.get("category") || "Semua Genre",
+          category: searchParams.get("category") || "Semua Playlist",
           selectedArtists: [],
           difficulty: searchParams.get("difficulty") || "easy",
           audioProfile: searchParams.get("audioProfile") || "normal",
@@ -146,6 +152,10 @@ export default function PlayArenaPage() {
           setSong(s);
           setPreviewUrl(s.previewResolved || s.previewUrl);
           setAlbumCover(s.albumCover);
+          // Cue YouTube player (muted preload) if youtube_id exists
+          if (s.youtubeId && s.youtubeStatus === "ready") {
+            ytEngine.cue({ youtubeId: s.youtubeId, startSecond: s.youtubeStartSecond ?? 20, title: s.title, artist: s.artist });
+          }
         }
       })
       .catch((err) => {
@@ -342,7 +352,7 @@ export default function PlayArenaPage() {
 
       {/* Main Arena Content */}
       <main className="flex-1 w-full max-w-2xl mx-auto flex flex-col justify-center items-center p-4 gap-5 my-auto">
-        {/* Genre & Difficulty Tags */}
+        {/* Playlist & Difficulty Tags */}
         <div className="flex items-center gap-2 flex-wrap justify-center">
           <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-accent">
             🎯 {gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0
@@ -383,6 +393,14 @@ export default function PlayArenaPage() {
             unlockedLevel={unlockedHeardleLevel}
             isGameOver={isGameOver}
             customDurations={serverSettings?.heardleDurations}
+            youtubeId={(song as any).youtubeId}
+            youtubeStatus={(song as any).youtubeStatus}
+            youtubeStartSecond={(song as any).youtubeStartSecond ?? 20}
+            onYoutubePlay={(startSecond) => {
+              ytEngine.unmuteAndPlay(startSecond);
+            }}
+            onYoutubePause={() => ytEngine.pause()}
+            ytEngineState={ytEngine.state}
           />
         )}
 

@@ -74,7 +74,7 @@ export default function HomePage() {
   // Single Player Mode Configuration Modal State
   const [configModalMode, setConfigModalMode] = useState<any>(null);
   const [modalFilterType, setModalFilterType] = useState<"category" | "artists">("category");
-  const [modalCategory, setModalCategory] = useState("Semua Genre");
+  const [modalCategory, setModalCategory] = useState("Semua Playlist");
   const [modalSelectedArtists, setModalSelectedArtists] = useState<string[]>([]);
   const [modalDifficulty, setModalDifficulty] = useState("easy");
   const [modalAudioProfile, setModalAudioProfile] = useState("normal");
@@ -328,7 +328,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* 1. Pilih Genre atau Penyanyi Favorit */}
+            {/* 1. Pilih Playlist atau Penyanyi Favorit */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-mono text-mutedDark font-semibold">
@@ -344,7 +344,7 @@ export default function HomePage() {
                         : "text-zinc-400 hover:text-white"
                     }`}
                   >
-                    📁 Genre
+                    🎵 Playlist
                   </button>
                   <button
                     type="button"
@@ -363,7 +363,7 @@ export default function HomePage() {
               {modalFilterType === "category" ? (
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    "Semua Genre",
+                    "Semua Playlist",
                     "Galau Hits",
                     "Nostalgia 2000s",
                     "Anthem Tongkrongan",
