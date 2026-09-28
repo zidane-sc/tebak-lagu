@@ -339,12 +339,25 @@ async function getRandomSong(category, difficulty, mode = null, artists = null) 
 
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
-    const fallbackSql = mode === "tts"
-      ? "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) AND lyrics_clues IS NOT NULL AND json_array_length(lyrics_clues) >= 4 ORDER BY RANDOM() LIMIT 1;"
-      : mode === "heardle"
-      ? "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) AND youtube_status = 'ready' AND youtube_id IS NOT NULL ORDER BY RANDOM() LIMIT 1;"
-      : "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;";
-    const fallback = await db.execute(fallbackSql);
+    // Drop ONLY the mode requirement, keep playlist/difficulty/artist filters
+    const relaxed = await db.execute({
+      sql: sql
+        .replace(
+          " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
+          ""
+        )
+        .replace(
+          " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL",
+          ""
+        ),
+      args,
+    });
+    if (relaxed.rows.length > 0) {
+      return rowToSong(relaxed.rows[0]);
+    }
+    const fallback = await db.execute(
+      "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;"
+    );
     return rowToSong(fallback.rows[0]);
   }
 

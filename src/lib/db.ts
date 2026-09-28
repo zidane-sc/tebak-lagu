@@ -361,13 +361,28 @@ export async function getRandomSong(
 
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
-    // Fallback: pick any active song satisfying mode requirements
-    const fallbackSql = mode === "tts"
-      ? "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) AND lyrics_clues IS NOT NULL AND json_array_length(lyrics_clues) >= 4 ORDER BY RANDOM() LIMIT 1;"
-      : mode === "heardle"
-      ? "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) AND youtube_status = 'ready' AND youtube_id IS NOT NULL ORDER BY RANDOM() LIMIT 1;"
-      : "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;";
-    const fallback = await db.execute(fallbackSql);
+    // No song satisfies the full filter set (e.g. artist picked but none of
+    // their songs are YouTube-ready yet). Retry while dropping ONLY the mode
+    // requirement, keeping playlist/difficulty/artist filters intact so the
+    // player never silently gets a song from a different artist.
+    const relaxed = await db.execute({
+      sql: sql.replace(
+        " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
+        ""
+      ).replace(
+        " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL",
+        ""
+      ),
+      args,
+    });
+    if (relaxed.rows.length > 0) {
+      return rowToSong(relaxed.rows[0]);
+    }
+
+    // Absolute last resort: any active song at all.
+    const fallback = await db.execute(
+      "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;"
+    );
     return rowToSong(fallback.rows[0]);
   }
 
