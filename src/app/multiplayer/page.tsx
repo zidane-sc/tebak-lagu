@@ -36,7 +36,6 @@ import { RoomQrCodeModal } from "@/components/RoomQrCodeModal";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { ArtistSelector } from "@/components/game/ArtistSelector";
 import { useAuth } from "@/lib/auth-context";
-import { HummingSynth } from "@/lib/audio-synth";
 import { sfx } from "@/lib/sound-fx";
 import confetti from "canvas-confetti";
 
@@ -130,7 +129,6 @@ export default function MultiplayerPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sliceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const synthRef = useRef<HummingSynth | null>(null);
 
   // YouTube Audio Engine — persistent singleton
   const ytEngine = useYouTubeEngine({
@@ -143,13 +141,6 @@ export default function MultiplayerPage() {
   useEffect(() => {
     const timer = setInterval(() => setCooldownTick((t) => t + 1), 1000);
     return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    synthRef.current = new HummingSynth();
-    return () => {
-      synthRef.current?.stop();
-    };
   }, []);
 
   const { user } = useAuth();
@@ -200,7 +191,6 @@ export default function MultiplayerPage() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-    if (synthRef.current) synthRef.current.stop();
     setIsPlayingAudio(false);
     setIsAudioBuffering(false);
   };
@@ -213,7 +203,6 @@ export default function MultiplayerPage() {
     if (audioRef.current) {
       audioRef.current.pause();
     }
-    if (synthRef.current) synthRef.current.stop();
     setIsPlayingAudio(false);
     setIsAudioBuffering(false);
   };
@@ -756,7 +745,6 @@ export default function MultiplayerPage() {
     setIsPlayingAudio(false);
     setBuzzCountdown(0);
     if (audioRef.current) audioRef.current.pause();
-    if (synthRef.current) synthRef.current.stop();
     if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
     setShowExitConfirm(false);
   };
