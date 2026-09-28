@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useYouTubeEngine } from "@/lib/youtube-engine";
 import {
   Users,
+  Smile,
+  ChevronRight,
   ChevronLeft,
   Flame,
   Trophy,
@@ -120,6 +122,7 @@ export default function MultiplayerPage() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [roundKickoff, setRoundKickoff] = useState<number | null>(null);
   const [showPlayerSheet, setShowPlayerSheet] = useState(false);
+  const [showStickerSheet, setShowStickerSheet] = useState(false);
   const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(15);
@@ -2026,42 +2029,69 @@ export default function MultiplayerPage() {
             </div>
           )}
 
-          {/* Quick Reaction & Meme Soundboard Bar */}
-          <div className="flex flex-col gap-1.5 mt-1 bg-surfaceRaised/60 border border-surfaceBorder rounded-2xl p-2 px-3">
-            {/* Emojis */}
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-[10px] font-mono text-mutedDark">Emoji:</span>
-              {REACTION_EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => sendReaction(emoji)}
-                  className="text-lg p-0.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer"
-                  title={`Kirim ${emoji}`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-
-            {/* Meme Soundboard Buttons */}
-            <div className="flex items-center justify-center gap-1.5 pt-1 border-t border-surfaceBorder/40">
-              <span className="text-[10px] font-mono text-accent font-semibold flex items-center gap-0.5">
-                <Volume1 className="w-3 h-3" />
-                <span>SFX:</span>
-              </span>
-              {MEME_SOUNDS.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => sendSfx(s.id)}
-                  className="px-2 py-1 rounded-lg bg-surface border border-surfaceBorder hover:border-accent/40 text-[11px] font-mono font-medium text-zinc-300 hover:text-white flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-sm"
-                  title={s.title}
-                >
-                  <span>{s.icon}</span>
-                  <span className="hidden sm:inline">{s.label}</span>
-                </button>
-              ))}
-            </div>
+          {/* Quick Reaction & Meme Soundboard — one button, opens a sheet */}
+          <div className="mt-1 flex justify-center">
+            <button
+              onClick={() => {
+                sfx.playClick();
+                setShowStickerSheet((v) => !v);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surfaceRaised/60 border border-surfaceBorder text-xs font-semibold text-muted hover:text-white hover:border-accent/40 transition active:scale-95 cursor-pointer"
+            >
+              <Smile className="w-3.5 h-3.5 text-accent" />
+              <span>Reaksi</span>
+              <ChevronRight
+                className={`w-3 h-3 text-mutedDark transition-transform ${
+                  showStickerSheet ? "rotate-90" : ""
+                }`}
+              />
+            </button>
           </div>
+
+          {showStickerSheet && (
+            <div
+              className="mt-1.5 bg-surfaceRaised/60 border border-surfaceBorder rounded-2xl p-3 flex flex-col gap-2.5 animate-fade-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-[10px] font-mono text-mutedDark">Emoji</span>
+                {REACTION_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      sendReaction(emoji);
+                      setShowStickerSheet(false);
+                    }}
+                    className="text-xl p-0.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer"
+                    title={`Kirim ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-surfaceBorder/40 flex-wrap">
+                <span className="text-[10px] font-mono text-accent font-semibold flex items-center gap-0.5">
+                  <Volume1 className="w-3 h-3" />
+                  <span>SFX</span>
+                </span>
+                {MEME_SOUNDS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      sendSfx(s.id);
+                      setShowStickerSheet(false);
+                    }}
+                    className="px-2 py-1 rounded-lg bg-surface border border-surfaceBorder hover:border-accent/40 text-[11px] font-mono font-medium text-zinc-300 hover:text-white flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-sm"
+                    title={s.title}
+                  >
+                    <span>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </main>
       )}
 
