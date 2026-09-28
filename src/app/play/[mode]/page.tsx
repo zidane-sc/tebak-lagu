@@ -51,6 +51,11 @@ export default function PlayArenaPage() {
     maxRounds: 5,
   });
 
+  // Blocks the first song fetch until the real config is read. Without this the
+  // initial load races ahead with the default config and round 1 comes from the
+  // wrong pool (e.g. "Semua Playlist" instead of the chosen artist).
+  const [isConfigReady, setIsConfigReady] = useState(false);
+
   const [song, setSong] = useState<Song | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +108,7 @@ export default function PlayArenaPage() {
         });
       }
     } catch {}
+    setIsConfigReady(true);
   }, [searchParams]);
 
   // Load Saved Lifetime Score
@@ -122,6 +128,10 @@ export default function PlayArenaPage() {
       .catch(() => {});
   }, []);
 
+  // Serialise the artist list so the callback identity stays stable. Without
+  // this, every render produces a new array -> new useCallback -> refetch loop.
+  const artistsKey = (gameConfig.selectedArtists || []).join(",");
+
   // Fetch song from server database (with guaranteed LRCLIB lyrics & Apple preview)
   const loadNewSong = useCallback(() => {
     setIsLoading(true);
@@ -137,9 +147,9 @@ export default function PlayArenaPage() {
       difficulty: gameConfig.difficulty,
     });
 
-    if (gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0) {
+    if (gameConfig.filterType === "artists" && artistsKey) {
       q.set("filterType", "artists");
-      q.set("artists", gameConfig.selectedArtists.join(","));
+      q.set("artists", artistsKey);
     } else {
       q.set("category", gameConfig.category);
     }
@@ -169,11 +179,11 @@ export default function PlayArenaPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [modeKey, gameConfig.category, gameConfig.difficulty, gameConfig.filterType, gameConfig.selectedArtists]);
+  }, [modeKey, gameConfig.category, gameConfig.difficulty, gameConfig.filterType, artistsKey]);
 
   useEffect(() => {
-    loadNewSong();
-  }, [loadNewSong]);
+    if (isConfigReady) loadNewSong();
+  }, [loadNewSong, isConfigReady]);
 
   // Track played song IDs to avoid repeats in the same session
   const playedSongIds = useRef<Set<string>>(new Set());
