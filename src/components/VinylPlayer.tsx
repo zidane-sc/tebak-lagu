@@ -9,6 +9,8 @@ interface VinylPlayerProps {
   coverUrl?: string;
   label?: string;
   size?: "sm" | "md" | "lg";
+  /** ponytail: hide the status tag when the caller already shows its own status */
+  hideTag?: boolean;
 }
 
 export const VinylPlayer: React.FC<VinylPlayerProps> = ({
@@ -16,12 +18,17 @@ export const VinylPlayer: React.FC<VinylPlayerProps> = ({
   coverUrl,
   label = "Audio Deck",
   size = "md",
+  hideTag = false,
 }) => {
   const sizeClasses = {
     sm: "w-24 h-24",
     md: "w-36 h-36",
     lg: "w-48 h-48",
   }[size];
+
+  // ponytail: "xs" is a compact deck for phones where vertical space is tight
+  const xsSize = "w-16 h-16";
+  const deckSize = size === "sm" && hideTag ? xsSize : sizeClasses;
 
   const labelSizeClasses = {
     sm: "w-8 h-8 text-[9px]",
@@ -42,7 +49,7 @@ export const VinylPlayer: React.FC<VinylPlayerProps> = ({
 
       {/* The Vinyl Disc */}
       <div
-        className={`relative ${sizeClasses} rounded-full bg-zinc-950 border-4 border-zinc-900 shadow-2xl flex items-center justify-center overflow-hidden transition-transform duration-500 ${
+        className={`relative ${deckSize} rounded-full bg-zinc-950 border-4 border-zinc-900 shadow-2xl flex items-center justify-center overflow-hidden transition-transform duration-500 ${
           isPlaying
             ? "animate-spin [animation-duration:3.5s] ring-2 ring-accent/30"
             : "ring-1 ring-zinc-800"
@@ -78,12 +85,14 @@ export const VinylPlayer: React.FC<VinylPlayerProps> = ({
       </div>
 
       {/* Floating Status Equalizer Tag */}
-      <div className="mt-3 flex items-center gap-2 bg-surfaceRaised/90 border border-surfaceBorder px-3 py-1 rounded-full text-[11px] font-mono shadow-sm">
-        <SoundBars isPlaying={isPlaying} color="bg-accent" />
-        <span className={isPlaying ? "text-zinc-200 font-semibold" : "text-mutedDark"}>
-          {isPlaying ? label : "Audio Siap"}
-        </span>
-      </div>
+      {!hideTag && (
+        <div className="mt-3 flex items-center gap-2 bg-surfaceRaised/90 border border-surfaceBorder px-3 py-1 rounded-full text-[11px] font-mono shadow-sm">
+          <SoundBars isPlaying={isPlaying} color="bg-accent" />
+          <span className={isPlaying ? "text-zinc-200 font-semibold" : "text-mutedDark"}>
+            {isPlaying ? label : "Audio Siap"}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

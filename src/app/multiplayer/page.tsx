@@ -897,7 +897,7 @@ export default function MultiplayerPage() {
 
   return (
     <div
-      className={`min-h-[100dvh] overflow-y-auto pb-6 bg-background text-zinc-100 flex flex-col justify-center gap-3 p-3 max-w-md mx-auto select-none relative transition-colors duration-200 ${
+      className={`h-[100dvh] bg-background text-zinc-100 flex flex-col justify-center gap-2 p-2.5 max-w-md mx-auto select-none relative transition-colors duration-200 ${
         screenFlash === "buzz"
           ? "ring-4 ring-amber-500 bg-amber-950/20"
           : screenFlash === "correct"
@@ -1504,7 +1504,7 @@ export default function MultiplayerPage() {
       {/* 5. MULTIPLAYER ARENA (THE BUZZER SHOWDOWN!) */}
       {/* ======================================================== */}
       {view === "game" && room && (
-        <main className="my-auto flex flex-col gap-4 py-2 w-full">
+        <main className="my-auto flex flex-col gap-3 py-2 w-full max-h-full overflow-y-auto">
           {/* Compact Status Bar: round + score pills + details button */}
           <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 flex items-center justify-between gap-2 shadow-sm">
             <span className="font-mono text-muted font-bold text-[11px] shrink-0">
@@ -1573,27 +1573,31 @@ export default function MultiplayerPage() {
                   </div>
                 </div>
 
-                {/* Compact deck: vinyl + waveform side by side */}
-                <div className="flex items-center justify-center gap-4 py-0.5">
+                {/* Compact deck: one vinyl, one wave, inline status */}
+                <div className="flex items-center justify-center gap-3 py-0.5">
                   <VinylPlayer
                     isPlaying={isPlayingAudio}
                     coverUrl={room.status === "revealed" ? room.revealedSong?.albumCover : undefined}
-                    label={
-                      isPlayingAudio
-                        ? room.mode === "tts"
-                          ? "Robot Membacakan..."
-                          : "Clue Berputar..."
-                        : "Clue Siap"
-                    }
+                    label=""
                     size="sm"
+                    hideTag
                   />
-                  <AudioWaveformVisualizer
-                    isPlaying={isPlayingAudio}
-                    variant="emerald"
-                    barCount={20}
-                    height={20}
-                    className="w-28 opacity-90"
-                  />
+                  <div className="flex flex-col items-start gap-1">
+                    <AudioWaveformVisualizer
+                      isPlaying={isPlayingAudio}
+                      variant="emerald"
+                      barCount={18}
+                      height={18}
+                      className="w-24 opacity-90"
+                    />
+                    <span className="text-[10px] font-mono text-mutedDark leading-tight">
+                      {isPlayingAudio
+                        ? room.mode === "tts"
+                          ? "Robot membacakan..."
+                          : "Clue berputar..."
+                        : "Clue siap"}
+                    </span>
+                  </div>
                 </div>
 
                 {/* 4 Clean Segmented Stage Pills (NO TEXT SPOILERS) */}
@@ -1615,7 +1619,7 @@ export default function MultiplayerPage() {
                     return (
                       <div
                         key={stageNum}
-                        className={`relative h-8 rounded-xl flex items-center justify-center font-mono text-[11px] font-bold transition-all duration-300 overflow-hidden border ${
+                        className={`relative h-7 rounded-lg flex items-center justify-center font-mono text-[10px] font-bold transition-all duration-300 overflow-hidden border ${
                           isCurrent
                             ? "border-emerald-400 bg-zinc-900 text-emerald-300 shadow-md shadow-emerald-500/20"
                             : isUnlocked
@@ -1649,7 +1653,7 @@ export default function MultiplayerPage() {
                 </div>
 
                 {/* Action Toolbar: Replay + Clue + Skip, no clutter */}
-                <div className="flex items-center justify-center w-full pt-2.5 border-t border-surfaceBorder/60 gap-2">
+                <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60 gap-1.5">
                   {/* Replay — always available, this is the "listen again" escape hatch */}
                   <button
                     onClick={() => playAudioLocal()}
@@ -1812,7 +1816,7 @@ export default function MultiplayerPage() {
               </div>
 
               {isMyTurnToGuess ? (
-                <div className="w-full mt-1">
+                <div className="w-full">
                   <GuessInput
                     onGuess={handleGuess}
                     onSkip={handleForfeitBuzz}
@@ -1822,12 +1826,9 @@ export default function MultiplayerPage() {
                   />
                 </div>
               ) : (
-                <div className="bg-surfaceRaised border border-surfaceBorder rounded-2xl p-6 text-center w-full">
-                  <p className="text-sm font-bold text-white">
+                <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-3 text-center w-full">
+                  <p className="text-xs font-bold text-white">
                     Menunggu tebakan {room.buzzedPlayer?.name}...
-                  </p>
-                  <p className="text-xs text-muted mt-1">
-                    Bila jawabannya salah, buzzer akan terbuka kembali untukmu!
                   </p>
                 </div>
               )}
