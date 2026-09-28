@@ -222,6 +222,36 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     return () => clearInterval(titleGuard);
   }, []);
 
+  useEffect(() => {
+    // The YouTube iframe lives on a cross-origin document, so it republishes its
+    // own Media Session metadata (artist + title) every time a video starts.
+    // Clearing it once at onReady is not enough — it gets re-set on each
+    // loadVideoById, which is what surfaced the answer in Android's "Media
+    // output" panel. Keep clearing it while the engine is alive.
+    const clearMediaSession = () => {
+      try {
+        if (!("mediaSession" in navigator)) return;
+        const ms = navigator.mediaSession;
+        if (ms.metadata) ms.metadata = null;
+        if (ms.playbackState !== "none") ms.playbackState = "none";
+        // Dropping the artwork handler stops Android from rendering a cover in
+        // the media panel, which was another leak of the current track.
+        if (typeof ms.setActionHandler === "function") {
+          for (const a of ["play", "pause", "seekbackward", "seekforward", "previoustrack", "nexttrack", "skipad", "stop"]) {
+            try { ms.setActionHandler(a, null); } catch {}
+          }
+        }
+      } catch {
+        // Media Session unsupported — fine
+      }
+    };
+
+    clearMediaSession();
+    const id = setInterval(clearMediaSession, 700);
+
+    return () => clearInterval(id);
+  }, []);
+
   // ── Public API ─────────────────────────────────────────────────────────────
   const play = useCallback((song: YTSong) => {
     isCued.current = false;
