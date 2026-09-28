@@ -375,7 +375,77 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. RENAME OR MERGE GENRE
+    // 3. DELETE ALL SONGS BY ARTIST
+    if (action === "delete_artist_songs") {
+      const { artist, mode: purgeMode } = body;
+      if (!artist?.trim()) {
+        return NextResponse.json({ error: "Nama artis wajib diisi!" }, { status: 400 });
+      }
+
+      const usePurge = purgeMode === "purge";
+      const songIdsRes = await db.execute({
+        sql: "SELECT song_id FROM song_artists WHERE artist_name = ?;",
+        args: [artist.trim()],
+      });
+      const songIds = songIdsRes.rows.map((r) => String(r.song_id));
+
+      let affected = 0;
+      if (songIds.length > 0) {
+        const ph = songIds.map(() => "?").join(",");
+        if (usePurge) {
+          // Hard delete: remove songs + their FTS + junction rows
+          const del = await db.execute({
+            sql: `DELETE FROM songs WHERE id IN (${ph});`,
+            args: songIds,
+          });
+          affected = del.rowsAffected || 0;
+          await db.execute({
+            sql: `DELETE FROM song_artists WHERE song_id IN (${ph});`,
+            args: songIds,
+          });
+        } else {
+          // Safe: disable songs (is_active = 0)
+          const dis = await db.execute({
+            sql: `UPDATE songs SET is_active = 0 WHERE id IN (${ph});`,
+            args: songIds,
+          });
+          affected = dis.rowsAffected || 0;
+        }
+      }
+
+      // Recount artist song_count
+      const recount = await db.execute({
+        sql: `
+          SELECT COUNT(*) as c
+          FROM song_artists sa
+          JOIN songs s ON s.id = sa.song_id
+          WHERE sa.artist_name = ? AND (s.is_active = 1 OR s.is_active IS NULL);
+        `,
+        args: [artist.trim()],
+      });
+      const remaining = Number(recount.rows[0]?.c || 0);
+
+      // If artist has no active songs left, disable the artist too
+      if (remaining === 0) {
+        await db.execute({
+          sql: "UPDATE artists SET is_active = 0 WHERE name = ?;",
+          args: [artist.trim()],
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        affected,
+        remaining,
+        artist: artist.trim(),
+        mode: usePurge ? "purge" : "disable",
+        message: usePurge
+          ? `Berhasil menghapus ${affected} lagu "${artist.trim()}" dari katalog.`
+          : `Berhasil menonaktifkan ${affected} lagu "${artist.trim()}". Bisa diaktifkan kembali kapan saja.`,
+      });
+    }
+
+    // 4. RENAME OR MERGE GENRE
     if (action === "rename_genre") {
       const { oldCategory, newCategory } = body;
       if (!oldCategory?.trim() || !newCategory?.trim()) {
