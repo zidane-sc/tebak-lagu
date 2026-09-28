@@ -11,6 +11,7 @@ import {
   Flame,
   Trophy,
   Copy,
+  X,
   Check,
   Play,
   Pause,
@@ -118,6 +119,7 @@ export default function MultiplayerPage() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [roundKickoff, setRoundKickoff] = useState<number | null>(null);
+  const [showPlayerSheet, setShowPlayerSheet] = useState(false);
   const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
   const [buzzCountdown, setBuzzCountdown] = useState<number>(0);
   const [maxAllowedSeconds, setMaxAllowedSeconds] = useState<number>(15);
@@ -1512,57 +1514,41 @@ export default function MultiplayerPage() {
       {/* ======================================================== */}
       {view === "game" && room && (
         <main className="my-auto flex flex-col gap-4 py-2 w-full">
-          {/* Round Header & Leaderboard Bar */}
-          <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-3 flex items-center justify-between text-xs shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-muted font-bold">
-                Ronde {room.currentRound} / {room.maxRounds}
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface border border-surfaceBorder text-accent font-semibold">
-                🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
-                  ? `${room.selectedArtists.length} Artis Pilihan`
-                  : room.category || "Semua Playlist"} ·{" "}
-                {room.difficulty === "easy"
-                  ? "🟢 Mudah"
-                  : room.difficulty === "medium"
-                  ? "🟡 Sedang"
-                  : room.difficulty === "hard"
-                  ? "🔴 Sulit"
-                  : "🔀 Campur"}{" "}
-                ·{" "}
-                {room.audioProfile === "fast"
-                  ? "⚡ Cepat"
-                  : room.audioProfile === "bass"
-                  ? "🔊 Bass"
-                  : "🤖 Datar"}
-              </span>
-            </div>
+          {/* Compact Status Bar: round + score pills + details button */}
+          <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 flex items-center justify-between gap-2 shadow-sm">
+            <span className="font-mono text-muted font-bold text-[11px] shrink-0">
+              {room.currentRound}/{room.maxRounds}
+            </span>
 
-            {/* Score Strip with Rank badges, Streaks and Lives */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar flex-1 min-w-0 justify-center">
               {sortedPlayers.map((p: any, idx: number) => (
-                <div
+                <button
                   key={p.id}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[11px] border transition ${
+                  onClick={() => setShowPlayerSheet(true)}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md font-mono text-[10px] border shrink-0 transition ${
                     p.id === myPlayerId
                       ? "bg-zinc-800 border-accent/40 text-white font-bold"
                       : "bg-surface border-surfaceBorder text-muted"
                   }`}
                 >
-                  {idx === 0 && <Crown className="w-3 h-3 text-amber-400" />}
+                  {idx === 0 && <Crown className="w-2.5 h-2.5 text-amber-400" />}
                   <span>{p.avatar}</span>
-                  <span className="font-semibold text-zinc-200">{p.score}</span>
-                  {p.streak >= 2 && (
-                    <span className="text-[10px] text-amber-400 font-bold bg-amber-500/15 px-1 rounded border border-amber-500/30" title={`Win streak ${p.streak}x berturut-turut!`}>
-                      🔥{p.streak}x
-                    </span>
-                  )}
-                  <span className="text-[10px] text-red-400 ml-0.5">
-                    {p.lives !== undefined ? (p.lives > 0 ? "❤️".repeat(p.lives) : "💀") : "❤️❤️❤️"}
+                  <span className="font-semibold">{p.score}</span>
+                  {p.streak >= 2 && <span className="text-amber-400">🔥{p.streak}</span>}
+                  <span className="text-red-400">
+                    {p.lives !== undefined ? (p.lives > 0 ? "♥".repeat(p.lives) : "☠") : "♥♥♥"}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
+
+            <button
+              onClick={() => setShowPlayerSheet(true)}
+              className="shrink-0 p-1.5 rounded-lg bg-surface border border-surfaceBorder text-muted hover:text-white transition"
+              title="Detail pemain & info ronde"
+            >
+              <Users className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* ========================================================= */}
@@ -1673,95 +1659,63 @@ export default function MultiplayerPage() {
                   })}
                 </div>
 
-                {/* Action Toolbar: Replay + Host + Voting */}
-                <div className="flex items-center justify-between w-full pt-2.5 border-t border-surfaceBorder/60 gap-2 flex-wrap">
-                  {/* Left: Replay & Host audio controls */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => playAudioLocal()}
-                      disabled={isAudioBuffering}
-                      className="flex items-center gap-1 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-300 px-2.5 py-1 rounded-lg text-xs font-medium transition active:scale-95 cursor-pointer shadow-sm"
-                      title="Dengarkan ulang clue di ponselmu"
-                    >
-                      {isAudioBuffering ? (
-                        <Loader2 className="w-3 h-3 text-accent animate-spin" />
-                      ) : isPlayingAudio ? (
-                        <Volume2 className="w-3 h-3 text-accent animate-pulse" />
-                      ) : (
-                        <RotateCcw className="w-3 h-3 text-accent" />
-                      )}
-                      <span className="text-[11px]">{isPlayingAudio ? "Berputar" : "Ulang"}</span>
-                    </button>
-
-                    {isHost && (
-                      <button
-                        onClick={handleToggleRoomAudio}
-                        disabled={isAudioBuffering}
-                        className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-medium transition active:scale-95 cursor-pointer"
-                        title="Kontrol Host: Jeda / Lanjut audio room"
-                      >
-                        {isPlayingAudio ? (
-                          <Pause className="w-3 h-3 text-amber-400" />
-                        ) : (
-                          <Play className="w-3 h-3 fill-current text-amber-400" />
-                        )}
-                        <span className="text-[11px]">{isPlayingAudio ? "Jeda" : "Putar"}</span>
-                      </button>
+                {/* Action Toolbar: Replay + Clue + Skip, no clutter */}
+                <div className="flex items-center justify-center w-full pt-2.5 border-t border-surfaceBorder/60 gap-2">
+                  {/* Replay — always available, this is the "listen again" escape hatch */}
+                  <button
+                    onClick={() => playAudioLocal()}
+                    disabled={isAudioBuffering}
+                    className="flex items-center gap-1.5 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-300 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer"
+                    title="Dengarkan ulang clue"
+                  >
+                    {isAudioBuffering ? (
+                      <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
+                    ) : (
+                      <RotateCcw className="w-3.5 h-3.5 text-accent" />
                     )}
-                  </div>
+                    <span>Ulang</span>
+                  </button>
 
-                  {/* Right: Buka Clue & Nyerah Buttons */}
-                  <div className="flex items-center gap-1.5">
-                    {currentStage < 4 && (() => {
-                      const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
-                      const requiredVotes =
-                        room.clueVotesRequired ||
-                        (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
-                      const hasVoted =
-                        room.clueVotes?.includes(myPlayerId) ||
-                        (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
-                      const currentVotes = room.clueVotes?.length || 0;
+                  {currentStage < 4 && (() => {
+                    const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
+                    const requiredVotes =
+                      room.clueVotesRequired ||
+                      (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
+                    const hasVoted =
+                      room.clueVotes?.includes(myPlayerId) ||
+                      (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
+                    const currentVotes = room.clueVotes?.length || 0;
 
-                      return (
-                        <button
-                          onClick={handleAdvanceClue}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition active:scale-95 cursor-pointer ${
-                            hasVoted
-                              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-bold animate-pulse"
-                              : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-amber-400"
-                          }`}
-                          title={
-                            activeCount <= 2
-                              ? "Butuh persetujuan kedua pemain untuk membuka clue"
-                              : "Butuh >50% persetujuan pemain"
-                          }
-                        >
-                          <span>💡</span>
-                          <span className="text-[11px]">
-                            {hasVoted
-                              ? `Menunggu (${currentVotes}/${requiredVotes})`
-                              : `Buka Clue (${currentVotes}/${requiredVotes})`}
-                          </span>
-                        </button>
-                      );
-                    })()}
+                    return (
+                      <button
+                        onClick={handleAdvanceClue}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                          hasVoted
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-bold"
+                            : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-amber-300 hover:border-amber-500/40"
+                        }`}
+                        title="Buka clue berikutnya (butuh persetujuan pemain)"
+                      >
+                        <span>💡</span>
+                        <span>
+                          {hasVoted ? `Menunggu ${currentVotes}/${requiredVotes}` : `Clue ${currentStage + 1} · ${currentVotes}/${requiredVotes}`}
+                        </span>
+                      </button>
+                    );
+                  })()}
 
-                    <button
-                      onClick={handleSkipRound}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition active:scale-95 cursor-pointer ${
-                        room.skipVotes?.includes(myPlayerId)
-                          ? "bg-red-500/20 text-red-300 border-red-500/50 font-bold"
-                          : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400"
-                      }`}
-                    >
-                      <span>🏳️</span>
-                      <span className="text-[11px]">
-                        {room.skipVotes?.includes(myPlayerId) ? "Batal" : "Nyerah"}{" "}
-                        ({room.skipVotes?.length || 0}/
-                        {room.players?.filter((p: any) => !p.isDisconnected).length || 1})
-                      </span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleSkipRound}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
+                      room.skipVotes?.includes(myPlayerId)
+                        ? "bg-red-500/20 text-red-300 border-red-500/50 font-bold"
+                        : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-muted hover:text-red-400 hover:border-red-500/40"
+                    }`}
+                    title="Nyatakan ronde ini hangus"
+                  >
+                    <span>🏳️</span>
+                    <span>Nyerah</span>
+                  </button>
                 </div>
 
                 {/* Hidden native audio element */}
@@ -2212,6 +2166,112 @@ export default function MultiplayerPage() {
                 ? "Robot akan segera membacakan bait lirik secara serentak..."
                 : "Cuplikan musik akan berputar serentak di semua perangkat!"}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Player & Round Info Sheet */}
+      {showPlayerSheet && room && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => setShowPlayerSheet(false)}
+        >
+          <div
+            className="w-full sm:max-w-md bg-surface border border-surfaceBorder rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-surfaceBorder">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-accent" />
+                Pemain &amp; Info Ronde
+              </h3>
+              <button
+                onClick={() => setShowPlayerSheet(false)}
+                className="text-muted hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Round config summary */}
+            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+              <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2">
+                <span className="text-mutedDark block text-[10px]">PLAYLIST</span>
+                <span className="text-accent font-bold">
+                  {room.filterType === "artists" && room.selectedArtists?.length > 0
+                    ? `${room.selectedArtists.length} Artis`
+                    : room.category || "Semua Playlist"}
+                </span>
+              </div>
+              <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2">
+                <span className="text-mutedDark block text-[10px]">KESULITAN</span>
+                <span className="text-emerald-400 font-bold">
+                  {room.difficulty === "easy"
+                    ? "🟢 Mudah"
+                    : room.difficulty === "medium"
+                    ? "🟡 Sedang"
+                    : room.difficulty === "hard"
+                    ? "🔴 Sulit"
+                    : "🔀 Campur"}
+                </span>
+              </div>
+              <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2">
+                <span className="text-mutedDark block text-[10px]">SUARA</span>
+                <span className="text-cyan-400 font-bold">
+                  {room.audioProfile === "fast"
+                    ? "⚡ Cepat"
+                    : room.audioProfile === "bass"
+                    ? "🔊 Bass"
+                    : "🤖 Datar"}
+                </span>
+              </div>
+              <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2">
+                <span className="text-mutedDark block text-[10px]">RONDE</span>
+                <span className="text-zinc-200 font-bold">
+                  {room.currentRound} / {room.maxRounds}
+                </span>
+              </div>
+            </div>
+
+            {/* Player list with full detail */}
+            <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
+              {sortedPlayers.map((p: any, idx: number) => (
+                <div
+                  key={p.id}
+                  className={`flex items-center justify-between bg-surfaceRaised/70 border rounded-xl px-3 py-2 ${
+                    p.id === myPlayerId ? "border-accent/40" : "border-surfaceBorder"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-lg shrink-0">{p.avatar}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-white truncate">{p.name}</span>
+                        {p.isHost && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
+                        {idx === 0 && (
+                          <span className="text-[9px] font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 px-1 rounded font-bold">
+                            #1
+                          </span>
+                        )}
+                      </div>
+                      {p.streak >= 2 && (
+                        <span className="text-[10px] text-amber-400 font-mono">
+                          🔥 Streak {p.streak}x
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-mono font-bold text-zinc-200">
+                      {p.score}
+                    </span>
+                    <span className="text-[10px] text-red-400">
+                      {p.lives !== undefined ? (p.lives > 0 ? "♥".repeat(p.lives) : "☠") : "♥♥♥"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
