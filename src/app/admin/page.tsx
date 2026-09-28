@@ -308,6 +308,23 @@ function LyricsStanzasEditor({
   );
 }
 
+// ── YouTube duration helpers ────────────────────────────────────────────────
+// YouTube duration is "M:SS" or "H:MM:SS"
+function parseYtDuration(d: string | undefined | null): number | null {
+  if (!d) return null;
+  const parts = d.trim().split(":").map((p) => parseInt(p, 10));
+  if (parts.some((n) => isNaN(n))) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+function formatYtDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function AdminDashboardPage() {
   // Authentication PIN
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -364,8 +381,33 @@ export default function AdminDashboardPage() {
   // YouTube metadata in Create/Edit form
   const [formYoutubeId, setFormYoutubeId] = useState<string>("");
   const [formYoutubeStart, setFormYoutubeStart] = useState<number>(20);
+  const [formYoutubeMax, setFormYoutubeMax] = useState<number>(90);
   const [formYtSearching, setFormYtSearching] = useState(false);
   const [formYtResults, setFormYtResults] = useState<any[]>([]);
+  const [isYtEnriching, setIsYtEnriching] = useState(false);
+
+  // Batch sync YouTube IDs for songs that don't have one yet
+  const handleYtEnrichBatch = async () => {
+    setIsYtEnriching(true);
+    try {
+      const res = await fetch("/api/admin/youtube-search?batch=true&limit=25", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(
+          data.found > 0
+            ? `Sync YouTube selesai: ${data.found} lagu dapat ID baru ✅`
+            : "Semua lagu sudah punya YouTube ID atau tidak ditemukan"
+        );
+        fetchSongs();
+      } else {
+        showToast(data.error || "Gagal sync YouTube", "error");
+      }
+    } catch {
+      showToast("Gagal sync YouTube", "error");
+    } finally {
+      setIsYtEnriching(false);
+    }
+  };
 
   const handleFormSearchYouTube = async () => {
     if (!formTitle.trim() || !formArtist.trim()) {
@@ -631,6 +673,22 @@ export default function AdminDashboardPage() {
     setFormPreviewUrl(r.previewUrl || "");
     setFormAlbumCover(r.artworkUrl || "");
     showToast(`Data lagu "${r.title}" berhasil diisi otomatis! 🎵`);
+
+    // Auto-search YouTube ID in background
+    fetch(`/api/admin/youtube-search?title=${encodeURIComponent(r.title)}&artist=${encodeURIComponent(r.artist)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.results?.length) {
+          const best = data.results[0];
+          setFormYoutubeId(best.videoId);
+          const d = parseYtDuration(best.duration);
+          if (d) setFormYoutubeMax(Math.max(30, d - 5));
+          showToast(`YouTube ID ditemukan: ${best.videoId} (score ${best.score}) ▶`);
+        } else {
+          showToast("YouTube ID tidak ditemukan otomatis — isi manual ya", "error");
+        }
+      })
+      .catch(() => {});
   };
 
   // Lyrics Helper Functions
@@ -800,6 +858,7 @@ export default function AdminDashboardPage() {
   const [ytEditSong, setYtEditSong] = useState<any | null>(null);
   const [ytEditId, setYtEditId] = useState("");
   const [ytEditStart, setYtEditStart] = useState(20);
+  const [ytEditMax, setYtEditMax] = useState(90);
   const [ytEditSaving, setYtEditSaving] = useState(false);
   const [ytSearching, setYtSearching] = useState(false);
   const [ytResults, setYtResults] = useState<any[]>([]);
@@ -808,6 +867,7 @@ export default function AdminDashboardPage() {
     setYtEditSong(song);
     setYtEditId(song.youtubeId || "");
     setYtEditStart(Number(song.youtubeStartSecond ?? 20));
+    setYtEditMax(90);
     setYtResults([]);
   };
 
@@ -1350,6 +1410,36 @@ export default function AdminDashboardPage() {
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-accent" : ""}`} />
               </button>
+
+              {/* YouTube Enrichment Button */}
+              <button
+                onClick={handleYtEnrichBatch}
+                disabled={isYtEnriching}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-400 hover:text-red-300 text-[11px] font-bold font-mono transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                title="Cari YouTube ID otomatis untuk 25 lagu yang belum punya"
+              >
+                {isYtEnriching ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Youtube className="w-3.5 h-3.5" />
+                )}
+                <span>{isYtEnriching ? "Sync..." : "Sync YouTube"}</span>
+              </button>
+
+              {/* Deezer Metadata Sync Button */}
+              <button
+                onClick={handleEnrichBatch}
+                disabled={isEnriching}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-purple-600/15 hover:bg-purple-600/25 border border-purple-500/30 text-purple-400 hover:text-purple-300 text-[11px] font-bold font-mono transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                title="Sinkronisasi BPM & rank popularitas dari Deezer untuk 50 lagu berikutnya"
+              >
+                {isEnriching ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Radio className="w-3.5 h-3.5" />
+                )}
+                <span>{isEnriching ? "Sync..." : "Sync Deezer"}</span>
+              </button>
             </div>
           </div>
 
@@ -1361,7 +1451,7 @@ export default function AdminDashboardPage() {
                   <tr className="border-b border-surfaceBorder bg-surfaceRaised/60 font-mono text-mutedDark text-[11px]">
                     <th className="py-3 px-4 w-12 text-center">PLAY</th>
                     <th className="py-3 px-4">JUDUL & ARTIS</th>
-                    <th className="py-3 px-4">GENRE</th>
+                    <th className="py-3 px-4">PLAYLIST</th>
                     <th className="py-3 px-4 text-center">KESULITAN</th>
                     <th className="py-3 px-4 text-center">TAHUN</th>
                     <th className="py-3 px-4 text-center">YOUTUBE</th>
@@ -1582,7 +1672,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* ============================================================= */}
-      {/* TAB 3: GENRES & CATEGORIES MANAGER */}
+      {/* TAB 3: PLAYLISTS MANAGER */}
       {/* ============================================================= */}
       {activeTab === "genres" && (
         <PlaylistsManager onNotification={showToast} />
@@ -2368,7 +2458,7 @@ export default function AdminDashboardPage() {
             <div className="bg-surfaceRaised/80 border border-surfaceBorder rounded-xl p-3 flex flex-col gap-2">
               <span className="text-[11px] font-mono text-accent font-semibold flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Pencarian Otomatis Apple Music (Auto-Fill)</span>
+                <span>Pencarian Otomatis Katalog + YouTube Music (Auto-Fill)</span>
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -2444,7 +2534,7 @@ export default function AdminDashboardPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-mono text-mutedDark font-semibold">GENRE</label>
+                  <label className="text-[11px] font-mono text-mutedDark font-semibold">PLAYLIST</label>
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
@@ -2491,26 +2581,106 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setFormPreviewUrl(e.target.value)}
                   className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono text-[11px]"
                 />
+                <p className="text-[10px] text-mutedDark font-mono">
+                  Dipakai untuk preview lagu di modal hasil ronde (setelah main selesai).
+                </p>
               </div>
 
-              {/* Start Second Offset */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-mono text-amber-400 font-semibold flex items-center justify-between">
-                  <span>⏱️ MULAI DARI DETIK KE-</span>
-                  <span className="text-zinc-500 font-normal">Intro / Reff</span>
+              {/* YouTube Audio Engine */}
+              <div className="flex flex-col gap-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                <label className="text-[11px] font-mono text-red-400 font-semibold flex items-center gap-1.5">
+                  <Youtube className="w-3.5 h-3.5" />
+                  YOUTUBE AUDIO ENGINE
                 </label>
+
                 <div className="flex items-center gap-1.5">
                   <input
-                    type="number"
-                    min={0}
-                    max={180}
-                    value={formStartSecond}
-                    onChange={(e) => setFormStartSecond(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                    className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
-                    placeholder="0 detik"
+                    type="text"
+                    value={formYoutubeId}
+                    onChange={(e) => setFormYoutubeId(e.target.value)}
+                    placeholder="sjjhLDPT5_g"
+                    className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-red-500/60 font-mono"
                   />
-                  <span className="text-xs text-muted font-mono pr-1">detik</span>
+                  <button
+                    type="button"
+                    onClick={handleFormSearchYouTube}
+                    disabled={formYtSearching}
+                    className="shrink-0 px-3 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 hover:text-red-300 text-[10px] font-bold font-mono flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {formYtSearching ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Search className="w-3.5 h-3.5" />
+                    )}
+                    <span>CARI</span>
+                  </button>
                 </div>
+
+                {formYtResults.length > 0 && (
+                  <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                    {formYtResults.map((r, i) => (
+                      <button
+                        key={r.videoId}
+                        type="button"
+                        onClick={() => {
+                          setFormYoutubeId(r.videoId);
+                          const d = parseYtDuration(r.duration);
+                          if (d) setFormYoutubeMax(Math.max(30, d - 5));
+                        }}
+                        className={`text-left px-2 py-1.5 rounded-lg border transition cursor-pointer ${
+                          formYoutubeId === r.videoId
+                            ? "bg-red-500/20 border-red-500/50"
+                            : "bg-surfaceRaised border-surfaceBorder hover:border-red-500/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono text-mutedDark shrink-0">{i + 1}.</span>
+                          <span className="text-[10px] font-semibold text-zinc-200 truncate flex-1">
+                            {r.title}
+                          </span>
+                          <span className="text-[9px] font-mono px-1 rounded bg-emerald-500/15 text-emerald-400 font-bold shrink-0">
+                            {r.score}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 pl-4">
+                          <span className="text-[9px] font-mono text-mutedDark truncate">{r.channel}</span>
+                          {r.duration && (
+                            <span className="text-[9px] font-mono text-mutedDark shrink-0">· {r.duration}</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold shrink-0">
+                    START @
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={formYoutubeMax}
+                    step={1}
+                    value={Math.min(formYoutubeStart, formYoutubeMax)}
+                    onChange={(e) => setFormYoutubeStart(Number(e.target.value))}
+                    className="flex-1 accent-red-500"
+                  />
+                  <span className="text-[11px] font-mono text-red-400 font-bold shrink-0 w-14 text-right">
+                    {formYoutubeStart}s / {formatYtDuration(formYoutubeMax)}
+                  </span>
+                </div>
+
+                {formYoutubeId && (
+                  <a
+                    href={`https://www.youtube.com/watch?v=${formYoutubeId}&t=${formYoutubeStart}s`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-mono text-accent hover:text-white flex items-center gap-1 transition"
+                  >
+                    ▶ Test playback dari @{formYoutubeStart}s
+                  </a>
+                )}
               </div>
 
               {/* Interactive Robot TTS Lyrics */}
@@ -2602,7 +2772,7 @@ export default function AdminDashboardPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-mono text-mutedDark font-semibold">GENRE</label>
+                  <label className="text-[11px] font-mono text-mutedDark font-semibold">PLAYLIST</label>
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value)}
@@ -2650,26 +2820,9 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setFormPreviewUrl(e.target.value)}
                     className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono text-[11px]"
                   />
-                </div>
-
-                {/* Start Second Offset */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-[11px] font-mono text-amber-400 font-semibold flex items-center justify-between">
-                    <span>⏱️ MULAI DARI DETIK KE-</span>
-                    <span className="text-zinc-500 font-normal">Intro / Reff</span>
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      min={0}
-                      max={180}
-                      value={formStartSecond}
-                      onChange={(e) => setFormStartSecond(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                      className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
-                      placeholder="0 detik"
-                    />
-                    <span className="text-xs text-muted font-mono pr-1">detik</span>
-                  </div>
+                  <p className="text-[10px] text-mutedDark font-mono">
+                    Dipakai untuk preview lagu di modal hasil ronde (setelah main selesai).
+                  </p>
                 </div>
               </div>
 
@@ -2923,7 +3076,11 @@ export default function AdminDashboardPage() {
                   <button
                     key={r.videoId}
                     type="button"
-                    onClick={() => setYtEditId(r.videoId)}
+                    onClick={() => {
+                      setYtEditId(r.videoId);
+                      const d = parseYtDuration(r.duration);
+                      if (d) setYtEditMax(Math.max(30, d - 5));
+                    }}
                     className={`text-left px-2.5 py-2 rounded-xl border transition cursor-pointer ${
                       ytEditId === r.videoId
                         ? "bg-red-500/15 border-red-500/50 text-white"
@@ -2959,19 +3116,21 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
                 <span>START AUDIO AT (detik)</span>
-                <span className="text-red-400 font-bold">@{ytEditStart}s</span>
+                <span className="text-red-400 font-bold">
+                  @{Math.min(ytEditStart, ytEditMax)}s / {formatYtDuration(ytEditMax)}
+                </span>
               </label>
               <input
                 type="range"
                 min={0}
-                max={90}
+                max={ytEditMax}
                 step={1}
-                value={ytEditStart}
+                value={Math.min(ytEditStart, ytEditMax)}
                 onChange={(e) => setYtEditStart(Number(e.target.value))}
                 className="w-full accent-red-500"
               />
               <p className="text-[10px] text-mutedDark font-mono">
-                Set ke detik dimana vokal/hook mulai — skip intro instrumen.
+                Set ke detik dimana vokal/hook mulai — skip intro instrumen. Maks: {formatYtDuration(ytEditMax)}.
               </p>
             </div>
 

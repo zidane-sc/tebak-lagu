@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { db, initDb } from "@/lib/db";
 import https from "https";
 
 export const dynamic = "force-dynamic";
@@ -153,6 +154,76 @@ export async function GET(request: Request) {
     });
   } catch (err: any) {
     console.error("YouTube search API error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+// POST: Batch enrich songs that don't have youtube_id yet
+export async function POST(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(100, Math.max(5, parseInt(searchParams.get("limit") || "25", 10)));
+
+    await initDb();
+
+    const res = await db.execute({
+      sql: `
+        SELECT id, title, artist
+        FROM songs
+        WHERE is_active = 1
+          AND (youtube_status IS NULL OR youtube_status = 'pending')
+        ORDER BY deezer_rank DESC, popularity DESC
+        LIMIT ?
+      `,
+      args: [limit],
+    });
+
+    const songs = res.rows;
+    let found = 0;
+    let notFound = 0;
+
+    for (const song of songs) {
+      try {
+        const candidates = await fetchYouTubeSearch(`${song.artist} ${song.title}`);
+        if (candidates.length > 0) {
+          const scored = candidates
+            .map((c) => ({ ...c, score: scoreCandidate(c, String(song.artist), String(song.title)) }))
+            .sort((a, b) => b.score - a.score);
+          const best = scored[0];
+
+          await db.execute({
+            sql: `
+              UPDATE songs
+              SET youtube_id = ?,
+                  youtube_status = 'ready',
+                  youtube_start_second = 20,
+                  youtube_checked_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `,
+            args: [best.videoId, song.id],
+          });
+          found++;
+        } else {
+          await db.execute({
+            sql: `UPDATE songs SET youtube_status = 'not_found', youtube_checked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+            args: [song.id],
+          });
+          notFound++;
+        }
+      } catch {
+        // skip on error
+      }
+      await new Promise((r) => setTimeout(r, 700));
+    }
+
+    return NextResponse.json({
+      success: true,
+      processed: songs.length,
+      found,
+      notFound,
+    });
+  } catch (err: any) {
+    console.error("YouTube batch enrich error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
