@@ -237,8 +237,22 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         // Dropping the artwork handler stops Android from rendering a cover in
         // the media panel, which was another leak of the current track.
         if (typeof ms.setActionHandler === "function") {
-          for (const a of ["play", "pause", "seekbackward", "seekforward", "previoustrack", "nexttrack", "skipad", "stop"]) {
-            try { ms.setActionHandler(a, null); } catch {}
+          const actions = [
+            "play",
+            "pause",
+            "seekbackward",
+            "seekforward",
+            "previoustrack",
+            "nexttrack",
+            "skipad",
+            "stop",
+          ] as MediaSessionAction[];
+          for (const a of actions) {
+            try {
+              ms.setActionHandler(a, null);
+            } catch {
+              // Action unsupported on this browser — ignore
+            }
           }
         }
       } catch {
