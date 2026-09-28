@@ -324,10 +324,14 @@ async function getRandomSong(category, difficulty, mode = null, artists = null) 
     args.push(category);
   }
 
-  if (difficulty && difficulty !== "all") {
-    sql += " AND s.difficulty = ?";
-    args.push(difficulty);
+  // Difficulty is cumulative: easy ⊂ medium ⊂ hard. Picking "hard" means the
+  // whole catalogue, not only deep cuts.
+  if (difficulty === "easy") {
+    sql += " AND s.difficulty = 'easy'";
+  } else if (difficulty === "medium") {
+    sql += " AND s.difficulty IN ('easy', 'medium')";
   }
+  // "hard" and "all" add no constraint — hard is the full pool.
 
   if (mode === "heardle") {
     sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";
@@ -408,10 +412,14 @@ async function getMatchSongsQueue(category, difficulty, count = 5, mode = null, 
     args.push(category);
   }
 
-  if (difficulty && difficulty !== "all") {
-    sql += " AND s.difficulty = ?";
-    args.push(difficulty);
+  // Difficulty is cumulative: easy ⊂ medium ⊂ hard. Picking "hard" means the
+  // whole catalogue, not only deep cuts.
+  if (difficulty === "easy") {
+    sql += " AND s.difficulty = 'easy'";
+  } else if (difficulty === "medium") {
+    sql += " AND s.difficulty IN ('easy', 'medium')";
   }
+  // "hard" and "all" add no constraint — hard is the full pool.
 
   if (mode === "heardle") {
     sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";

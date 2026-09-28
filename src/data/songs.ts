@@ -38,8 +38,8 @@ export const PLAYLISTS = CATEGORIES;
 
 export const DIFFICULTIES = [
   { id: "easy", label: "Mudah (Mega Hits) 🟢", desc: "Lagu viral & hits sejuta umat" },
-  { id: "medium", label: "Sedang (Populer) 🟡", desc: "Hits radio & single album" },
-  { id: "hard", label: "Sulit (Sepuh Musik) 🔴", desc: "Deep cuts & b-side buat sepuh" },
+  { id: "medium", label: "Sedang (Populer) 🟡", desc: "Semua lagu Mudah + Populer" },
+  { id: "hard", label: "Sulit (Sepuh Musik) 🔴", desc: "Seluruh katalog — Mudah, Sedang & Sulit" },
   { id: "all", label: "Campur (Semua) 🔀", desc: "Koleksi lengkap acak" },
 ] as const;
 
