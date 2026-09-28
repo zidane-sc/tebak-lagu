@@ -1741,11 +1741,11 @@ export default function MultiplayerPage() {
           {/* THE GIANT 3D ARCADE BUZZER (Playing State) */}
           {/* ======================================================== */}
           {room.status === "playing" && (
-            <div className="flex flex-col items-center justify-center py-4 gap-3">
+            <div className="flex flex-col items-center justify-center py-2 gap-2">
               <button
                 onClick={handleBuzz}
                 disabled={(myPlayer?.lives ?? 3) <= 0 || isCooldown}
-                className={`w-44 h-44 rounded-full text-white font-black text-3xl tracking-wider flex flex-col items-center justify-center select-none transition-all ${
+                className={`w-28 h-28 rounded-full text-white font-black text-2xl tracking-wider flex flex-col items-center justify-center select-none transition-all ${
                   (myPlayer?.lives ?? 3) <= 0
                     ? "bg-zinc-800 border-4 border-zinc-700 opacity-40 cursor-not-allowed text-zinc-500 shadow-none"
                     : isCooldown
@@ -1760,21 +1760,21 @@ export default function MultiplayerPage() {
                     ? `${cooldownSeconds}s`
                     : "BUZZ!"}
                 </span>
-                <span className="text-[10px] font-mono font-bold tracking-widest uppercase opacity-90 mt-1">
+                <span className="text-[9px] font-mono font-bold tracking-widest uppercase opacity-90 mt-0.5">
                   {(myPlayer?.lives ?? 3) <= 0
                     ? "NYAWA (0/3)"
                     : isCooldown
-                    ? "PENALTI SALAH"
-                    : "TEKAN JIKA TAHU"}
+                    ? "PENALTI"
+                    : "TEKAN"}
                 </span>
               </button>
-              <p className="text-xs text-muted font-mono text-center mt-1">
-                {(myPlayer?.lives ?? 3) <= 0
-                  ? "💀 Nyawamu di ronde ini sudah habis! Menunggu ronde selanjutnya..."
-                  : isCooldown
-                  ? `⏳ Penalti salah tebak! Tunggu ${cooldownSeconds} detik sebelum boleh buzz lagi.`
-                  : "⚡ Tekan tombol buzzer di atas begitu kamu tahu lagunya!"}
-              </p>
+              {((myPlayer?.lives ?? 3) <= 0 || isCooldown) && (
+                <p className="text-[11px] text-muted font-mono text-center">
+                  {(myPlayer?.lives ?? 3) <= 0
+                    ? "💀 Nyawamu habis, menunggu ronde selanjutnya..."
+                    : `⏳ Penalti! Tunggu ${cooldownSeconds}d.`}
+                </p>
+              )}
             </div>
           )}
 
