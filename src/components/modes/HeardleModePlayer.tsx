@@ -204,6 +204,12 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         </button>
 
         <AudioWaveformVisualizer isPlaying={isPlaying} variant="emerald" barCount={26} height={32} />
+
+        {ytEngineState === "unavailable" && (
+          <p className="text-[11px] text-rose-400 font-mono text-center">
+            Audio tidak bisa dimuat — video ini tidak tersedia.
+          </p>
+        )}
       </div>
 
       {/* Hardware-Style Segmented Timeline Bar */}

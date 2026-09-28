@@ -172,6 +172,14 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         playerRef.current?.setVolume(100);
         playerRef.current?.playVideo();
         setError(null);
+        // Watchdog: browsers sometimes keep the player muted after a
+        // programmatic load, so re-assert the volume.
+        setTimeout(() => {
+          try {
+            playerRef.current?.unMute();
+            playerRef.current?.setVolume(100);
+          } catch {}
+        }, 400);
       } catch {
         // player not ready — ignore
       }
@@ -273,6 +281,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
       pendingSong.current = song;
       return;
     }
+
     // If the player already has this video cued/loaded, just seek and unmute immediately
     if (currentSong?.youtubeId === song.youtubeId) {
       const sec = song.startSecond ?? currentSong?.startSecond ?? 20;
@@ -282,10 +291,19 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         playerRef.current.setVolume(100);
         playerRef.current.playVideo();
         updateState("playing");
+        // Mobile can silently drop the unmute if the video was paused, so
+        // re-assert volume shortly after as a watchdog.
+        setTimeout(() => {
+          try {
+            playerRef.current?.unMute();
+            playerRef.current?.setVolume(100);
+          } catch {}
+        }, 350);
+        return;
       } catch (e) {
         loadSong(song, false);
+        return;
       }
-      return;
     }
     loadSong(song, false);
   }, [currentSong, loadSong, updateState]);
