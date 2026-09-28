@@ -13,6 +13,24 @@ const path = require("path");
 
 const db = createClient({ url: `file:${path.resolve(__dirname, "../data/tebak_lagu.db")}` });
 
+/**
+ * Two workers (youtube + deezer) write the same file. WAL lets readers run
+ * concurrently but only one writer at a time, so a concurrent write still
+ * throws SQLITE_BUSY. Retry with backoff instead of crashing the batch.
+ */
+async function exec(sqlOrStmt, args) {
+  const stmt = typeof sqlOrStmt === "string" ? { sql: sqlOrStmt, args: args || [] } : sqlOrStmt;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await db.execute(stmt);
+    } catch (err) {
+      const busy = err?.code === "SQLITE_BUSY" || /database is locked/i.test(err?.message || "");
+      if (!busy || attempt === 5) throw err;
+      await sleep(300 * Math.pow(2, attempt));
+    }
+  }
+}
+
 const LIMIT = parseInt(process.argv.find(a => a.startsWith("--limit="))?.split("=")[1] || "100");
 const ONLY = process.argv.find(a => a.startsWith("--only="))?.split("=")[1] || "all";
 const CATEGORY_ARG = process.argv.find(a => a.startsWith("--category="))?.split("=")[1];
@@ -175,10 +193,28 @@ async function fetchLyrics(artist, title) {
 
 // ── Deezer metadata ───────────────────────────────────────────────────────────
 async function fetchDeezer(artist, title) {
-  const q = encodeURIComponent(`${artist} ${title}`);
-  const data = await fetchJson(`https://api.deezer.com/search?q=${q}&limit=1`);
-  if (!data?.data?.[0]) return null;
-  const track = data.data[0];
+  const cleanT = cleanTitle(title);
+  const cleanA = cleanArtistName(artist);
+  const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const targetT = norm(cleanT);
+  const targetA = norm(cleanA);
+
+  // Deezer's combined ?artist=&track= params return nothing usable, and the
+  // fuzzy ?q= search happily returns a different song. So: search broadly,
+  // then accept only a confident title+artist match.
+  const data = await fetchJson(
+    `https://api.deezer.com/search?q=${encodeURIComponent(`${cleanA} ${cleanT}`)}&limit=10`
+  );
+  if (!data?.data?.length) return null;
+
+  const track =
+    data.data.find((t) => norm(t.title) === targetT && norm(t.artist?.name) === targetA) ||
+    data.data.find((t) => norm(t.title).startsWith(targetT.slice(0, 8)) && norm(t.artist?.name) === targetA) ||
+    null;
+
+  // No confident match — a wrong rank is worse than no rank.
+  if (!track) return null;
+
   const detail = await fetchJson(`https://api.deezer.com/track/${track.id}`);
   if (!detail) return null;
   return {
@@ -200,7 +236,8 @@ async function main() {
   console.log(`\n🎵 Unified Enrichment Worker`);
   console.log(`   Limit: ${LIMIT} | Only: ${ONLY} | Category: ${CATEGORY_ARG || "all"} | Dry: ${DRY_RUN}\n`);
 
-  await db.execute("PRAGMA journal_mode = WAL;");
+  await exec("PRAGMA journal_mode = WAL;");
+  await exec("PRAGMA busy_timeout = 8000;");
 
   // Filter: only songs from ACTIVE artists with >2 songs in catalog
   let sql = `
@@ -225,6 +262,16 @@ async function main() {
     sql += " AND s.category = ?";
     args.push(CATEGORY_ARG);
   }
+
+  // Only pull songs that still need the source we're running for
+  if (RUN_YOUTUBE && !RUN_LYRICS && !RUN_DEEZER) {
+    sql += " AND (s.youtube_status IS NULL OR s.youtube_status = 'pending')";
+  } else if (RUN_DEEZER && !RUN_YOUTUBE && !RUN_LYRICS) {
+    sql += " AND (s.deezer_rank IS NULL OR s.deezer_rank = 0)";
+  } else if (RUN_LYRICS && !RUN_YOUTUBE && !RUN_DEEZER) {
+    sql += " AND (s.lyrics_clues IS NULL OR s.lyrics_clues = '' OR s.lyrics_clues = '[]')";
+  }
+
   sql += `
     ORDER BY
       CASE WHEN s.youtube_status IS NULL OR s.youtube_status = 'pending' THEN 0 ELSE 1 END,
@@ -235,7 +282,7 @@ async function main() {
     LIMIT ?`;
   args.push(LIMIT);
 
-  const res = await db.execute({ sql, args });
+  const res = await exec({ sql, args });
   const songs = res.rows;
   console.log(`📋 ${songs.length} lagu dari artis aktif (>2 lagu)\n`);
 
@@ -250,7 +297,7 @@ async function main() {
       const yt = await findYouTubeId(String(s.artist), String(s.title));
       if (yt) {
         if (!DRY_RUN) {
-          await db.execute({
+          await exec({
             sql: `UPDATE songs SET youtube_id = ?, youtube_status = 'ready', youtube_start_second = 20, youtube_checked_at = CURRENT_TIMESTAMP WHERE id = ?;`,
             args: [yt.videoId, s.id],
           });
@@ -258,7 +305,7 @@ async function main() {
         ytOk++;
         console.log(`${p}\n   ▶ YT: ${yt.videoId} (${yt.score}) ${yt.channel}`);
       } else if (!DRY_RUN) {
-        await db.execute({
+        await exec({
           sql: `UPDATE songs SET youtube_status = 'not_found', youtube_checked_at = CURRENT_TIMESTAMP WHERE id = ?;`,
           args: [s.id],
         });
@@ -272,7 +319,7 @@ async function main() {
       const clues = await fetchLyrics(String(s.artist), String(s.title));
       if (clues) {
         if (!DRY_RUN) {
-          await db.execute({
+          await exec({
             sql: `UPDATE songs SET lyrics_clues = ? WHERE id = ?;`,
             args: [JSON.stringify(clues), s.id],
           });
@@ -290,12 +337,12 @@ async function main() {
         const newDiff = difficultyFromRank(dz.deezerRank);
         if (!DRY_RUN) {
           if (newDiff) {
-            await db.execute({
+            await exec({
               sql: `UPDATE songs SET deezer_rank = ?, bpm = ?, difficulty = ? WHERE id = ?;`,
               args: [dz.deezerRank, dz.bpm, newDiff, s.id],
             });
           } else {
-            await db.execute({
+            await exec({
               sql: `UPDATE songs SET deezer_rank = ?, bpm = ? WHERE id = ?;`,
               args: [dz.deezerRank, dz.bpm, s.id],
             });
