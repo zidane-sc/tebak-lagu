@@ -31,6 +31,7 @@ export const CATEGORIES = [
   "Anthem Tongkrongan",
   "Pop Jawa & Koplo",
   "Western Hits",
+  "Rap",
 ] as const;
 
 // Alias for clearer semantics in UI

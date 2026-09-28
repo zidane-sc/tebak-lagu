@@ -53,14 +53,31 @@ const db = createClient({ url: "file:/app/data/tebak_lagu.db" });
     });
   }
 
-  // 5. Keep artists.song_count accurate
+  // 5. Upsert artists (new masters + song_count refresh)
+  for (const a of payload.artists || []) {
+    const found = await db.execute({ sql: "SELECT id FROM artists WHERE id = ?;", args: [a.id] });
+    if (found.rows.length === 0) {
+      await db.execute({
+        sql: `INSERT INTO artists (id, name, image, category, song_count, is_active)
+              VALUES (?, ?, '', ?, ?, 1);`,
+        args: [a.id, a.name, a.category, a.song_count],
+      });
+    } else {
+      await db.execute({
+        sql: "UPDATE artists SET category = ?, song_count = ? WHERE id = ?;",
+        args: [a.category, a.song_count, a.id],
+      });
+    }
+  }
+
+  // 6. Keep artists.song_count accurate
   await db.execute(`
     UPDATE artists SET song_count = (
       SELECT COUNT(*) FROM song_artists sa JOIN songs s ON s.id = sa.song_id
       WHERE sa.artist_id = artists.id AND (s.is_active = 1 OR s.is_active IS NULL));
   `);
 
-  // 6. Re-sync FTS so search reflects the new songs
+  // 7. Re-sync FTS so search reflects the new songs
   try {
     await db.execute("DELETE FROM songs_fts;");
     await db.execute(`INSERT INTO songs_fts(id,title,artist,search_query)

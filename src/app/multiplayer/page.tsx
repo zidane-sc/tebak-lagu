@@ -1137,6 +1137,7 @@ export default function MultiplayerPage() {
                     { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
                     { id: "Pop Jawa & Koplo", label: "Jawa & Koplo 💃" },
                     { id: "Western Hits", label: "Western Hits 🌎" },
+                    { id: "Rap", label: "Rap 🎤" },
                   ].map((c) => (
                     <button
                       key={c.id}

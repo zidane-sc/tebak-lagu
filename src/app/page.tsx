@@ -369,6 +369,7 @@ export default function HomePage() {
                     "Anthem Tongkrongan",
                     "Pop Jawa & Koplo",
                     "Western Hits",
+                    "Rap",
                   ].map((cat) => (
                     <button
                       key={cat}
