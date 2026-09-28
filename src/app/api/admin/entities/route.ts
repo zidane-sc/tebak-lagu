@@ -383,17 +383,35 @@ export async function POST(request: Request) {
       }
 
       const usePurge = purgeMode === "purge";
+
+      // Collect song IDs from BOTH sources: the junction table and the plain
+      // `songs.artist` string (which is what solo/multiplayer filtering reads).
       const songIdsRes = await db.execute({
-        sql: "SELECT song_id FROM song_artists WHERE artist_name = ?;",
-        args: [artist.trim()],
+        sql: `
+          SELECT DISTINCT id FROM (
+            SELECT song_id AS id FROM song_artists
+            WHERE artist_name = ? COLLATE NOCASE
+              OR artist_id = ? COLLATE NOCASE
+            UNION
+            SELECT id FROM songs
+            WHERE artist = ? COLLATE NOCASE
+              OR artist LIKE ? COLLATE NOCASE
+          );
+        `,
+        args: [artist.trim(), artist.trim(), artist.trim(), `%${artist.trim()}%`],
       });
-      const songIds = songIdsRes.rows.map((r) => String(r.song_id));
+      const songIds = songIdsRes.rows.map((r) => String(r.id));
 
       let affected = 0;
       if (songIds.length > 0) {
         const ph = songIds.map(() => "?").join(",");
         if (usePurge) {
-          // Hard delete: remove songs + their FTS + junction rows
+          // Hard delete. FTS5 has an AFTER DELETE trigger, but wipe explicitly
+          // too in case the trigger was never created (e.g. older DB).
+          await db.execute({
+            sql: `DELETE FROM songs_fts WHERE id IN (${ph});`,
+            args: songIds,
+          });
           const del = await db.execute({
             sql: `DELETE FROM songs WHERE id IN (${ph});`,
             args: songIds,
@@ -425,11 +443,33 @@ export async function POST(request: Request) {
       });
       const remaining = Number(recount.rows[0]?.c || 0);
 
-      // If artist has no active songs left, disable the artist too
+      // Recount the stored song_count so the artist card doesn't show a stale number
+      await db.execute({
+        sql: `
+          UPDATE artists
+          SET song_count = (
+            SELECT COUNT(*)
+            FROM song_artists sa
+            JOIN songs s ON s.id = sa.song_id
+            WHERE sa.artist_id = artists.id
+              AND (s.is_active = 1 OR s.is_active IS NULL)
+          )
+          WHERE name = ?;
+        `,
+        args: [artist.trim()],
+      });
+
+      // If artist has no active songs left, disable the artist too.
+      // Match by id OR name (case-insensitive) so it never misses a variant.
       if (remaining === 0) {
         await db.execute({
-          sql: "UPDATE artists SET is_active = 0 WHERE name = ?;",
-          args: [artist.trim()],
+          sql: "UPDATE artists SET is_active = 0, song_count = 0 WHERE LOWER(name) = LOWER(?) OR LOWER(id) = LOWER(?);",
+          args: [artist.trim(), artist.trim()],
+        });
+      } else {
+        await db.execute({
+          sql: "UPDATE artists SET is_active = 1 WHERE LOWER(name) = LOWER(?) OR LOWER(id) = LOWER(?);",
+          args: [artist.trim(), artist.trim()],
         });
       }
 
