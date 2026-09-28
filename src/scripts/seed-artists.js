@@ -42,6 +42,22 @@ async function seedArtists() {
 
   // Clear existing artist relations for clean sync
   await db.execute("DELETE FROM song_artists;");
+  // Snapshot admin-managed is_active flags BEFORE the wipe, then restore them
+  // after re-seeding. Without this, every "Sinkronkan" resets every artist to
+  // active and resurrects songs the admin purged.
+  const flagsRes = await db.execute("SELECT id, name, is_active FROM artists;");
+  const inactiveById = new Map();
+  const inactiveByName = new Set();
+  for (const r of flagsRes.rows) {
+    if (Number(r.is_active) === 0) {
+      inactiveById.set(String(r.id), true);
+      inactiveByName.add(String(r.name).toLowerCase());
+    }
+  }
+  if (inactiveById.size > 0) {
+    console.log(`Mempertahankan ${inactiveById.size} status nonaktif dari admin...`);
+  }
+
   await db.execute("DELETE FROM artists;");
 
   // 2. Fetch all songs
@@ -135,14 +151,42 @@ async function seedArtists() {
 
       return {
         sql: `
-          INSERT OR REPLACE INTO artists (id, name, image, category, song_count)
-          VALUES (?, ?, ?, ?, ?);
+          INSERT INTO artists (id, name, image, category, song_count)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            image = excluded.image,
+            category = excluded.category,
+            song_count = excluded.song_count;
         `,
+        // ponytail: ON CONFLICT DO UPDATE (not OR REPLACE) so admin-set is_active survives a re-sync
         args: [a.id, a.name, a.image, topCat, a.songIds.size],
       };
     });
 
     await db.batch(stmts);
+  }
+
+  // Restore admin-managed inactive flags so a re-sync never resurrects
+  // artists the admin disabled.
+  if (inactiveById.size > 0 || inactiveByName.size > 0) {
+    const restoreIds = Array.from(inactiveById.keys());
+    const restoreNames = Array.from(inactiveByName.values());
+    if (restoreIds.length > 0) {
+      const ph = restoreIds.map(() => "?").join(",");
+      await db.execute({
+        sql: `UPDATE artists SET is_active = 0 WHERE id IN (${ph});`,
+        args: restoreIds,
+      });
+    }
+    if (restoreNames.length > 0) {
+      const ph = restoreNames.map(() => "?").join(",");
+      await db.execute({
+        sql: `UPDATE artists SET is_active = 0 WHERE LOWER(name) IN (${ph});`,
+        args: restoreNames,
+      });
+    }
+    console.log(`Status nonaktif dipulihkan untuk ${restoreIds.length} artis.`);
   }
 
   // 4. Batch Insert into `song_artists`
