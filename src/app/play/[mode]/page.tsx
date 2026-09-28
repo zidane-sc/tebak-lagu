@@ -13,6 +13,7 @@ import { sfx } from "@/lib/sound-fx";
 import { useAuth } from "@/lib/auth-context";
 import { SocialShareModal } from "@/components/SocialShareModal";
 import { useYouTubeEngine } from "@/lib/youtube-engine";
+import { isGuessCorrect } from "@/lib/guess-matcher";
 import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle, Share2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -194,25 +195,16 @@ export default function PlayArenaPage() {
     }
   }, [song?.id]);
 
-  // Clean String for fuzzy matching
-  const cleanStr = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "")
-      .trim();
-
   // Handle Player Guess
   const handleGuess = (guessedTitle: string, guessedArtist: string) => {
     if (!song || isGameOver) return;
 
-    const targetTitle = cleanStr(song.title);
-    const targetArtist = cleanStr(song.artist);
-    const inputTitle = cleanStr(guessedTitle);
-    const inputArtist = cleanStr(guessedArtist);
-
-    const isMatch =
-      inputTitle.includes(targetTitle) ||
-      targetTitle.includes(inputTitle);
+    const isMatch = isGuessCorrect(
+      guessedTitle,
+      guessedArtist,
+      song.title,
+      song.artist
+    );
 
     if (isMatch) {
       sfx.playCorrect();
