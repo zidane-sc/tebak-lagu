@@ -42,6 +42,7 @@ import {
   Disc3,
   Eye,
   EyeOff,
+  Youtube,
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
 import { ArtistsManager } from "@/components/admin/ArtistsManager";
@@ -763,6 +764,59 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // ── YouTube Metadata Editor ────────────────────────────────────────────────
+  const [ytEditSong, setYtEditSong] = useState<any | null>(null);
+  const [ytEditId, setYtEditId] = useState("");
+  const [ytEditStart, setYtEditStart] = useState(20);
+  const [ytEditSaving, setYtEditSaving] = useState(false);
+
+  const openYouTubeEditor = (song: any) => {
+    setYtEditSong(song);
+    setYtEditId(song.youtubeId || "");
+    setYtEditStart(Number(song.youtubeStartSecond ?? 20));
+  };
+
+  const handleSaveYouTube = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ytEditSong) return;
+    setYtEditSaving(true);
+    try {
+      const res = await fetch("/api/admin/songs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ytEditSong.id,
+          youtube_id: ytEditId.trim() || null,
+          youtube_start_second: ytEditStart,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("Metadata YouTube berhasil disimpan ✅");
+        setSongs((prev) =>
+          prev.map((s) =>
+            s.id === ytEditSong.id
+              ? {
+                  ...s,
+                  youtubeId: ytEditId.trim() || null,
+                  youtubeStartSecond: ytEditStart,
+                  youtubeStatus: ytEditId.trim() ? "ready" : "pending",
+                  hasYoutube: !!ytEditId.trim(),
+                }
+              : s
+          )
+        );
+        setYtEditSong(null);
+      } else {
+        showToast(data.error || "Gagal menyimpan metadata YouTube", "error");
+      }
+    } catch {
+      showToast("Terjadi kesalahan jaringan", "error");
+    } finally {
+      setYtEditSaving(false);
+    }
+  };
+
   // Submit Add Song
   const handleSaveAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1250,20 +1304,21 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4">GENRE</th>
                     <th className="py-3 px-4 text-center">KESULITAN</th>
                     <th className="py-3 px-4 text-center">TAHUN</th>
+                    <th className="py-3 px-4 text-center">YOUTUBE</th>
                     <th className="py-3 px-4 text-right">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surfaceBorder/60">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-muted">
+                      <td colSpan={7} className="py-12 text-center text-muted">
                         <Loader2 className="w-6 h-6 animate-spin mx-auto text-accent mb-2" />
                         <span>Memuat data lagu...</span>
                       </td>
                     </tr>
                   ) : songs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-muted font-mono">
+                      <td colSpan={7} className="py-12 text-center text-muted font-mono">
                         Tidak ada lagu yang cocok dengan pencarian.
                       </td>
                     </tr>
@@ -1357,9 +1412,42 @@ export default function AdminDashboardPage() {
                             {song.year || "—"}
                           </td>
 
+                          {/* YouTube Status */}
+                          <td className="py-2.5 px-4 text-center">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
+                                  song.hasYoutube
+                                    ? "bg-red-500/10 border-red-500/30 text-red-400"
+                                    : song.youtubeStatus === "not_found"
+                                    ? "bg-zinc-500/10 border-zinc-500/30 text-zinc-400"
+                                    : "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                                }`}
+                              >
+                                {song.hasYoutube
+                                  ? `▶ ${(song.youtubeId || "").slice(0, 7)}…`
+                                  : song.youtubeStatus === "not_found"
+                                  ? "✕ GAGAL"
+                                  : "⏳ PENDING"}
+                              </span>
+                              {song.hasYoutube && (
+                                <span className="text-[9px] font-mono text-mutedDark">
+                                  @{song.youtubeStartSecond ?? 20}s
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
                           {/* Actions */}
                           <td className="py-2.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openYouTubeEditor(song)}
+                                className="p-1.5 rounded-lg text-accent hover:text-red-400 hover:bg-red-500/10 transition"
+                                title="Edit Metadata YouTube (ID & Start Second)"
+                              >
+                                <Youtube size={14} />
+                              </button>
                               <button
                                 onClick={() => handleToggleSongStatus(song)}
                                 className={`p-1.5 rounded-lg transition ${
@@ -2613,6 +2701,99 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── YouTube Metadata Editor Modal ──────────────────────── */}
+      {ytEditSong && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <form
+            onSubmit={handleSaveYouTube}
+            className="w-full max-w-md bg-surface border border-surfaceBorder rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-surfaceBorder">
+              <div>
+                <h3 className="font-bold text-sm sm:text-base text-white flex items-center gap-2">
+                  <Youtube className="w-4 h-4 text-red-500" />
+                  Metadata YouTube
+                </h3>
+                <p className="text-[11px] text-muted font-mono mt-0.5 truncate max-w-[260px]">
+                  {ytEditSong.title} — {ytEditSong.artist}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setYtEditSong(null)}
+                className="text-muted hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                YOUTUBE VIDEO ID
+              </label>
+              <input
+                type="text"
+                value={ytEditId}
+                onChange={(e) => setYtEditId(e.target.value)}
+                placeholder="sjjhLDPT5_g"
+                className="w-full bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white font-mono outline-none focus:border-red-500/60"
+              />
+              <p className="text-[10px] text-mutedDark font-mono">
+                11 karakter. Ambil dari URL: youtube.com/watch?v=ID
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
+                <span>START AUDIO AT (detik)</span>
+                <span className="text-red-400 font-bold">@{ytEditStart}s</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={90}
+                step={1}
+                value={ytEditStart}
+                onChange={(e) => setYtEditStart(Number(e.target.value))}
+                className="w-full accent-red-500"
+              />
+              <p className="text-[10px] text-mutedDark font-mono">
+                Set ke detik dimana vokal/hook mulai — skip intro instrumen.
+              </p>
+            </div>
+
+            {ytEditId && (
+              <a
+                href={`https://www.youtube.com/watch?v=${ytEditId}&t=${ytEditStart}s`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[11px] font-mono text-accent hover:text-white flex items-center gap-1.5 transition"
+              >
+                ▶ Test playback dari @{ytEditStart}s
+              </a>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-surfaceBorder">
+              <button
+                type="button"
+                onClick={() => setYtEditSong(null)}
+                className="py-2 px-3 rounded-xl bg-surfaceRaised border border-surfaceBorder text-xs text-muted hover:text-white transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={ytEditSaving}
+                className="py-2 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-red-600/25 transition cursor-pointer disabled:opacity-50"
+              >
+                {ytEditSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Simpan</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
