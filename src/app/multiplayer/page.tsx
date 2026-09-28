@@ -1762,19 +1762,12 @@ export default function MultiplayerPage() {
                 </span>
                 <span className="text-[9px] font-mono font-bold tracking-widest uppercase opacity-90 mt-0.5">
                   {(myPlayer?.lives ?? 3) <= 0
-                    ? "NYAWA (0/3)"
+                    ? "NYAWA 0/3"
                     : isCooldown
-                    ? "PENALTI"
-                    : "TEKAN"}
+                    ? "TUNGGU"
+                    : `NYAWA ${myPlayer?.lives ?? 3}/3`}
                 </span>
               </button>
-              {((myPlayer?.lives ?? 3) <= 0 || isCooldown) && (
-                <p className="text-[11px] text-muted font-mono text-center">
-                  {(myPlayer?.lives ?? 3) <= 0
-                    ? "💀 Nyawamu habis, menunggu ronde selanjutnya..."
-                    : `⏳ Penalti! Tunggu ${cooldownSeconds}d.`}
-                </p>
-              )}
             </div>
           )}
 
