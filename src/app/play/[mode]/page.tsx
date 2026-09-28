@@ -144,6 +144,11 @@ export default function PlayArenaPage() {
       q.set("category", gameConfig.category);
     }
 
+    const exclude = Array.from(playedSongIds.current);
+    if (exclude.length > 0) {
+      q.set("exclude", exclude.join(","));
+    }
+
     fetch(`/api/songs/random?${q.toString()}`)
       .then((r) => r.json())
       .then((data) => {
@@ -169,6 +174,15 @@ export default function PlayArenaPage() {
   useEffect(() => {
     loadNewSong();
   }, [loadNewSong]);
+
+  // Track played song IDs to avoid repeats in the same session
+  const playedSongIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (song?.id) {
+      playedSongIds.current.add(song.id);
+    }
+  }, [song?.id]);
 
   // Clean String for fuzzy matching
   const cleanStr = (s: string) =>

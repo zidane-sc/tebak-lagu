@@ -311,13 +311,21 @@ export async function getRandomSong(
   category?: string | null,
   difficulty?: string | null,
   artists?: string[] | string | null,
-  mode?: string | null
+  mode?: string | null,
+  excludeIds?: string[]
 ) {
   let sql = "SELECT s.* FROM songs s WHERE (s.is_active = 1 OR s.is_active IS NULL)";
   const args: any[] = [];
 
   // Exclude disabled artists
   sql += " AND s.id NOT IN (SELECT sa.song_id FROM song_artists sa JOIN artists a ON sa.artist_id = a.id WHERE a.is_active = 0)";
+
+  // Exclude already-played songs in this session
+  if (excludeIds && excludeIds.length > 0) {
+    const ph = excludeIds.map(() => "?").join(",");
+    sql += ` AND s.id NOT IN (${ph})`;
+    args.push(...excludeIds);
+  }
 
   // If specific artists selected
   if (artists) {

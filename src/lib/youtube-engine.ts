@@ -64,6 +64,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingSong = useRef<YTSong | null>(null);
+  const pendingUnmute = useRef<number | null>(null);
   const isCued = useRef(false);
   const [state, setState] = useState<YTEngineState>("idle");
   const [currentSong, setCurrentSong] = useState<YTSong | null>(null);
@@ -101,6 +102,17 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
             const s = pendingSong.current;
             pendingSong.current = null;
             loadSong(s, isCued.current);
+          }
+
+          // Silence the Media Session so Android/desktop doesn't raise a
+          // system notification showing the currently playing song (spoiler).
+          try {
+            if ("mediaSession" in navigator) {
+              navigator.mediaSession.metadata = null;
+              navigator.mediaSession.playbackState = "none";
+            }
+          } catch {
+            // Media Session unsupported — fine
           }
         },
         onStateChange: (e: any) => {
@@ -143,16 +155,28 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     });
 
     if (!muteOnly) {
-      // Brief wait for player to start, then unmute
-      setTimeout(() => {
-        if (playerRef.current) {
-          playerRef.current.seekTo(song.startSecond ?? 20, true);
-          playerRef.current.unMute();
-          playerRef.current.setVolume(100);
-        }
-      }, 800);
+      // Unmute when the player actually reports PLAYING, not on a blind timer.
+      // A blind setTimeout races with loadVideoById and can unmute the wrong video.
+      pendingUnmute.current = song.startSecond ?? 20;
     }
   }, [updateState]);
+
+  // Unmute on the PLAYING event instead of a timer (fixes silent playback)
+  useEffect(() => {
+    if (state === "playing" && pendingUnmute.current !== null && !isCued.current) {
+      const sec = pendingUnmute.current;
+      pendingUnmute.current = null;
+      try {
+        playerRef.current?.seekTo(sec, true);
+        playerRef.current?.unMute();
+        playerRef.current?.setVolume(100);
+        playerRef.current?.playVideo();
+        setError(null);
+      } catch {
+        // player not ready — ignore
+      }
+    }
+  }, [state]);
 
   // Mount container div (completely hidden offscreen so no YouTube logo/box appears)
   useEffect(() => {
@@ -161,16 +185,18 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
       if (!div) {
         div = document.createElement("div");
         div.id = "yt-engine-player";
+        // 1x1 px, clipped out of view. The iframe still renders (so audio plays
+        // and the embed counts as visible for TOS), but takes no layout space.
         div.style.cssText = `
           position: fixed;
-          top: -9999px;
-          left: -9999px;
-          width: 200px;
-          height: 200px;
-          opacity: 0;
+          top: 0;
+          left: 0;
+          width: 1px;
+          height: 1px;
+          opacity: 0.01;
           pointer-events: none;
-          z-index: -999;
-          visibility: hidden;
+          z-index: -1;
+          overflow: hidden;
         `;
         document.body.appendChild(div);
       }
@@ -183,6 +209,18 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
       // Don't destroy on unmount — keep singleton alive across route changes
     };
   }, [initPlayer]);
+
+  useEffect(() => {
+    // YouTube IFrame API writes the video title into document.title on some
+    // browsers, which surfaces a system notification / tab label with the answer.
+    // Pin the title so no spoiler leaks.
+    const baseTitle = "Tebak Lagu";
+    document.title = baseTitle;
+    const titleGuard = setInterval(() => {
+      if (document.title !== baseTitle) document.title = baseTitle;
+    }, 1000);
+    return () => clearInterval(titleGuard);
+  }, []);
 
   // ── Public API ─────────────────────────────────────────────────────────────
   const play = useCallback((song: YTSong) => {

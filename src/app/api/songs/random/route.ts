@@ -12,15 +12,22 @@ export async function GET(request: Request) {
     const mode = searchParams.get("mode");
     const artists = searchParams.get("artists");
     const filterType = searchParams.get("filterType");
+    const excludeParam = searchParams.get("exclude");
+
+    // Song IDs already played in this session (avoid repeats)
+    const excludeIds = excludeParam
+      ? excludeParam.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 200)
+      : [];
 
     const effectiveCategory = filterType === "artists" ? null : category;
     const effectiveArtists = filterType === "artists" ? artists : null;
 
     // Query database directly
-    let baseSong = await getRandomSong(effectiveCategory, difficulty, effectiveArtists, mode);
+    let baseSong = await getRandomSong(effectiveCategory, difficulty, effectiveArtists, mode, excludeIds);
 
-    if (!baseSong) {
-      return NextResponse.json({ error: "Lagu tidak ditemukan" }, { status: 404 });
+    if (!baseSong && excludeIds.length > 0) {
+      // All matching songs exhausted — clear exclusion and retry
+      baseSong = await getRandomSong(effectiveCategory, difficulty, effectiveArtists, mode, []);
     }
 
     // Record song play in background
