@@ -897,7 +897,7 @@ export default function MultiplayerPage() {
 
   return (
     <div
-      className={`min-h-[100dvh] overflow-y-auto pb-28 bg-background text-zinc-100 flex flex-col justify-between p-4 max-w-lg mx-auto select-none relative transition-colors duration-200 ${
+      className={`min-h-[100dvh] overflow-y-auto pb-6 bg-background text-zinc-100 flex flex-col justify-center gap-3 p-3 max-w-md mx-auto select-none relative transition-colors duration-200 ${
         screenFlash === "buzz"
           ? "ring-4 ring-amber-500 bg-amber-950/20"
           : screenFlash === "correct"
@@ -933,7 +933,7 @@ export default function MultiplayerPage() {
       </div>
 
       {/* Top Header */}
-      <header className="w-full flex items-center justify-between pb-3.5 border-b border-surfaceBorder z-10">
+      <header className="w-full flex items-center justify-between pb-2 border-b border-surfaceBorder z-10">
         {view === "room" || view === "game" ? (
           <button
             onClick={() => {
@@ -1410,78 +1410,66 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
-          {/* Players in Room */}
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-            <div className="flex items-center justify-between text-[11px] font-mono text-mutedDark font-semibold">
-              <span>PEMAIN TERGABUNG ({room.players.length}/8)</span>
-              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                <span className="text-accent font-semibold">
-                  🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
-                    ? `${room.selectedArtists.length} Artis Pilihan`
-                    : room.category || "Semua Playlist"}
-                </span>
-                <span>•</span>
-                <span className="text-emerald-400 font-semibold">
-                  {room.difficulty === "easy"
-                    ? "🟢 Mudah"
-                    : room.difficulty === "medium"
-                    ? "🟡 Sedang"
-                    : room.difficulty === "hard"
-                    ? "🔴 Sulit"
-                    : "🔀 Campur"}
-                </span>
-                <span>•</span>
-                <span className="text-cyan-400 font-semibold">
-                  {room.audioProfile === "fast"
-                    ? "⚡ Cepat"
-                    : room.audioProfile === "bass"
-                    ? "🔊 Bass"
-                    : "🤖 Datar"}
-                </span>
-                <span>•</span>
-                <span>{room.maxRounds} Ronde</span>
-              </div>
+          {/* Players in Room — compact bar, detail in modal */}
+          <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col gap-2.5 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono text-mutedDark font-semibold shrink-0">
+                {room.players.length}/8 PEMAIN
+              </span>
+              <button
+                onClick={() => setShowPlayerSheet(true)}
+                className="flex items-center gap-1 text-[10px] font-mono text-accent hover:text-white px-2 py-1 rounded-lg bg-accentDim border border-accent/20 transition"
+              >
+                <Users className="w-3 h-3" />
+                <span>Detail</span>
+              </button>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* Avatar row — compact preview */}
+            <div className="flex items-center gap-1.5 flex-wrap">
               {room.players.map((p: any) => (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between bg-surfaceRaised/80 border border-surfaceBorder rounded-xl p-2.5 px-3 transition"
+                  className={`flex items-center gap-1 px-1.5 py-1 rounded-lg text-[11px] border ${
+                    p.isReady
+                      ? "bg-emerald-500/10 border-emerald-500/25 text-white"
+                      : "bg-surfaceRaised border-surfaceBorder text-muted"
+                  }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl filter drop-shadow-sm">{p.avatar}</span>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-white">
-                          {p.name}
-                        </span>
-                        {p.isHost && (
-                          <span className="text-[9px] font-mono bg-accentDim text-accent px-1.5 py-0.5 rounded border border-accent/30 font-bold flex items-center gap-0.5">
-                            <Crown className="w-2.5 h-2.5" />
-                            <span>HOST</span>
-                          </span>
-                        )}
-                        {p.id === myPlayerId && (
-                          <span className="text-[9px] font-mono text-mutedDark">
-                            (Kamu)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full font-semibold ${
-                      p.isReady
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : "bg-zinc-800 text-zinc-500"
-                    }`}
-                  >
-                    {p.isReady ? "Siap ✓" : "Menunggu..."}
-                  </span>
+                  <span className="text-base">{p.avatar}</span>
+                  <span className="max-w-[70px] truncate">{p.name}</span>
+                  {p.isHost && <Crown className="w-2.5 h-2.5 text-amber-400 shrink-0" />}
                 </div>
               ))}
+            </div>
+
+            {/* Config summary — one line */}
+            <div className="flex items-center gap-1.5 flex-wrap text-[10px] font-mono text-muted pt-1 border-t border-surfaceBorder/50">
+              <span className="text-accent font-semibold">
+                🎯 {room.filterType === "artists" && room.selectedArtists?.length > 0
+                  ? `${room.selectedArtists.length} Artis`
+                  : room.category || "Semua Playlist"}
+              </span>
+              <span>·</span>
+              <span className="text-emerald-400 font-semibold">
+                {room.difficulty === "easy"
+                  ? "🟢 Mudah"
+                  : room.difficulty === "medium"
+                  ? "🟡 Sedang"
+                  : room.difficulty === "hard"
+                  ? "🔴 Sulit"
+                  : "🔀 Campur"}
+              </span>
+              <span>·</span>
+              <span className="text-cyan-400 font-semibold">
+                {room.audioProfile === "fast"
+                  ? "⚡ Cepat"
+                  : room.audioProfile === "bass"
+                  ? "🔊 Bass"
+                  : "🤖 Datar"}
+              </span>
+              <span>·</span>
+              <span>{room.maxRounds} Ronde</span>
             </div>
           </div>
 
@@ -1564,7 +1552,7 @@ export default function MultiplayerPage() {
             const stageProgressPct = Math.max(0, Math.min(100, (secondsLeft / maxSecondsForStage) * 100));
 
             return (
-              <div className="bg-surface border border-surfaceBorder rounded-3xl p-4 sm:p-5 flex flex-col items-center gap-3.5 text-center shadow-lg relative overflow-hidden w-full">
+              <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col items-center gap-2.5 text-center shadow-lg relative overflow-hidden w-full">
                 {/* Header: Subtle Stage & Countdown Pill */}
                 <div className="w-full flex items-center justify-between text-xs font-mono px-0.5">
                   <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full text-zinc-300 font-bold text-[11px]">
@@ -1585,30 +1573,28 @@ export default function MultiplayerPage() {
                   </div>
                 </div>
 
-                {/* Spinning Vinyl Record Deck */}
-                <div className="py-0.5">
+                {/* Compact deck: vinyl + waveform side by side */}
+                <div className="flex items-center justify-center gap-4 py-0.5">
                   <VinylPlayer
                     isPlaying={isPlayingAudio}
                     coverUrl={room.status === "revealed" ? room.revealedSong?.albumCover : undefined}
                     label={
                       isPlayingAudio
                         ? room.mode === "tts"
-                          ? "Robot Sedang Membacakan Lirik..."
-                          : "Audio Clue Sedang Berputar..."
-                        : "Audio Clue Siap"
+                          ? "Robot Membacakan..."
+                          : "Clue Berputar..."
+                        : "Clue Siap"
                     }
                     size="sm"
                   />
+                  <AudioWaveformVisualizer
+                    isPlaying={isPlayingAudio}
+                    variant="emerald"
+                    barCount={20}
+                    height={20}
+                    className="w-28 opacity-90"
+                  />
                 </div>
-
-                {/* Sleek Waveform Visualizer */}
-                <AudioWaveformVisualizer
-                  isPlaying={isPlayingAudio}
-                  variant="emerald"
-                  barCount={28}
-                  height={24}
-                  className="w-full max-w-xs opacity-90 my-0"
-                />
 
                 {/* 4 Clean Segmented Stage Pills (NO TEXT SPOILERS) */}
                 <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full max-w-sm mt-0.5">
@@ -2029,78 +2015,28 @@ export default function MultiplayerPage() {
             </div>
           )}
 
-          {/* Quick Reaction & Meme Soundboard — one button, opens a sheet */}
+          {/* Quick Reaction & Meme Soundboard — one button, opens a modal */}
           <div className="mt-1 flex justify-center">
             <button
               onClick={() => {
                 sfx.playClick();
-                setShowStickerSheet((v) => !v);
+                setShowStickerSheet(true);
               }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surfaceRaised/60 border border-surfaceBorder text-xs font-semibold text-muted hover:text-white hover:border-accent/40 transition active:scale-95 cursor-pointer"
             >
               <Smile className="w-3.5 h-3.5 text-accent" />
               <span>Reaksi</span>
-              <ChevronRight
-                className={`w-3 h-3 text-mutedDark transition-transform ${
-                  showStickerSheet ? "rotate-90" : ""
-                }`}
-              />
             </button>
           </div>
-
-          {showStickerSheet && (
-            <div
-              className="mt-1.5 bg-surfaceRaised/60 border border-surfaceBorder rounded-2xl p-3 flex flex-col gap-2.5 animate-fade-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-[10px] font-mono text-mutedDark">Emoji</span>
-                {REACTION_EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => {
-                      sendReaction(emoji);
-                      setShowStickerSheet(false);
-                    }}
-                    className="text-xl p-0.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer"
-                    title={`Kirim ${emoji}`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-surfaceBorder/40 flex-wrap">
-                <span className="text-[10px] font-mono text-accent font-semibold flex items-center gap-0.5">
-                  <Volume1 className="w-3 h-3" />
-                  <span>SFX</span>
-                </span>
-                {MEME_SOUNDS.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      sendSfx(s.id);
-                      setShowStickerSheet(false);
-                    }}
-                    className="px-2 py-1 rounded-lg bg-surface border border-surfaceBorder hover:border-accent/40 text-[11px] font-mono font-medium text-zinc-300 hover:text-white flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-sm"
-                    title={s.title}
-                  >
-                    <span>{s.icon}</span>
-                    <span>{s.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </main>
       )}
 
       {/* FIXED STICKY ACTION BAR FOR ALL PLAYERS (AUTO COUNTDOWN & MANUAL FAST-FORWARD) */}
       {view === "game" && room?.status === "revealed" && (
-        <div className="fixed bottom-3 left-4 right-4 max-w-lg mx-auto z-50">
+        <div className="fixed bottom-2 left-3 right-3 max-w-md mx-auto z-50">
           <button
             onClick={handleNextRound}
-            className={`w-full font-black py-4 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-base shadow-2xl cursor-pointer border ${
+            className={`w-full font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-base shadow-2xl cursor-pointer border ${
               isHost
                 ? "bg-accent hover:bg-green-500 text-zinc-950 border-green-400/40 shadow-accent/50"
                 : room.nextRoundVotes?.includes(myPlayerId)
@@ -2200,6 +2136,76 @@ export default function MultiplayerPage() {
         </div>
       )}
 
+      {/* Emoji & SFX Modal */}
+      {showStickerSheet && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => setShowStickerSheet(false)}
+        >
+          <div
+            className="w-full max-w-xs bg-surface border border-surfaceBorder rounded-2xl p-5 shadow-2xl flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <Smile className="w-4 h-4 text-accent" />
+                Reaksi
+              </h3>
+              <button
+                onClick={() => setShowStickerSheet(false)}
+                className="text-muted hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono text-mutedDark uppercase tracking-wider">
+                Emoji
+              </span>
+              <div className="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+                {REACTION_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      sendReaction(emoji);
+                      setShowStickerSheet(false);
+                    }}
+                    className="text-2xl p-1.5 rounded-xl hover:bg-surfaceRaised hover:scale-125 active:scale-90 transition cursor-pointer"
+                    title={`Kirim ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-[10px] font-mono text-mutedDark uppercase tracking-wider flex items-center gap-1">
+                <Volume1 className="w-3 h-3" />
+                SFX
+              </span>
+              <div className="grid grid-cols-3 gap-1.5 mt-2">
+                {MEME_SOUNDS.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      sendSfx(s.id);
+                      setShowStickerSheet(false);
+                    }}
+                    className="py-2 px-1 rounded-xl bg-surfaceRaised border border-surfaceBorder hover:border-accent/40 text-[11px] font-mono font-medium text-zinc-300 hover:text-white flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+                    title={s.title}
+                  >
+                    <span>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Player & Round Info Sheet */}
       {showPlayerSheet && room && (
         <div
@@ -2213,7 +2219,7 @@ export default function MultiplayerPage() {
             <div className="flex items-center justify-between pb-3 border-b border-surfaceBorder">
               <h3 className="font-bold text-sm text-white flex items-center gap-2">
                 <Users className="w-4 h-4 text-accent" />
-                Pemain &amp; Info Ronde
+                {view === "room" ? "Pemain Room" : "Pemain & Info Ronde"}
               </h3>
               <button
                 onClick={() => setShowPlayerSheet(false)}
@@ -2223,8 +2229,9 @@ export default function MultiplayerPage() {
               </button>
             </div>
 
-            {/* Round config summary */}
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+            {/* Round config summary — game only; the lobby already shows it inline */}
+            {view === "game" && (
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
               <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2">
                 <span className="text-mutedDark block text-[10px]">PLAYLIST</span>
                 <span className="text-accent font-bold">
@@ -2261,7 +2268,8 @@ export default function MultiplayerPage() {
                   {room.currentRound} / {room.maxRounds}
                 </span>
               </div>
-            </div>
+              </div>
+            )}
 
             {/* Player list with full detail */}
             <div className="flex flex-col gap-1.5 max-h-64 overflow-y-auto">
@@ -2278,10 +2286,13 @@ export default function MultiplayerPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-white truncate">{p.name}</span>
                         {p.isHost && <Crown className="w-3 h-3 text-amber-400 shrink-0" />}
-                        {idx === 0 && (
+                        {idx === 0 && view === "game" && (
                           <span className="text-[9px] font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 px-1 rounded font-bold">
                             #1
                           </span>
+                        )}
+                        {p.id === myPlayerId && (
+                          <span className="text-[9px] font-mono text-mutedDark">(Kamu)</span>
                         )}
                       </div>
                       {p.streak >= 2 && (
@@ -2292,12 +2303,26 @@ export default function MultiplayerPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-mono font-bold text-zinc-200">
-                      {p.score}
-                    </span>
-                    <span className="text-[10px] text-red-400">
-                      {p.lives !== undefined ? (p.lives > 0 ? "♥".repeat(p.lives) : "☠") : "♥♥♥"}
-                    </span>
+                    {view === "room" ? (
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
+                          p.isReady
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-zinc-800 text-zinc-500"
+                        }`}
+                      >
+                        {p.isReady ? "Siap ✓" : "Menunggu..."}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-xs font-mono font-bold text-zinc-200">
+                          {p.score}
+                        </span>
+                        <span className="text-[10px] text-red-400">
+                          {p.lives !== undefined ? (p.lives > 0 ? "♥".repeat(p.lives) : "☠") : "♥♥♥"}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
