@@ -17,6 +17,9 @@ const CATEGORY_ARG = process.argv.find(a => a.startsWith("--category="))?.split(
 const DRY_RUN = process.argv.includes("--dry-run");
 const DELAY_MS = 800; // be polite to YouTube
 
+// Tracks video IDs already assigned in this run so two songs never share one video
+const claimedIds = new Set();
+
 // Preferred official label keywords (higher priority)
 const OFFICIAL_KEYWORDS = [
   "official audio", "official video", "official mv",
@@ -121,7 +124,17 @@ async function findYouTubeId(artist, title) {
   // Score and pick best
   const scored = results.map(r => ({ ...r, score: scoreResult(r, artist, title) }));
   scored.sort((a, b) => b.score - a.score);
-  return scored[0];
+
+  // Reject weak matches — a wrong video is worse than no video, since a wrong
+  // ID makes the game play the wrong song.
+  const best = scored[0];
+  if (!best || best.score < 30) return null;
+
+  // Reject an ID already claimed by another song in this run
+  if (claimedIds.has(best.videoId)) return null;
+  claimedIds.add(best.videoId);
+
+  return best;
 }
 
 async function main() {
