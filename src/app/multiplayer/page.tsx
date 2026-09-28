@@ -145,6 +145,34 @@ export default function MultiplayerPage() {
 
   const { user } = useAuth();
 
+  // ── Audio Unlock (mobile autoplay policy) ────────────────────────────────
+  // Multiplay audio has to fire on its own — there is no per-player play
+  // button by design. Mobile browsers only allow unmuted playback after a real
+  // user gesture somewhere in the page, so burn that gesture on the first tap
+  // (create/join/name field) with a silent clip. After that every round can
+  // auto-play.
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // A zero-length silent buffer keeps this gesture-only and inaudible.
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+        void ctx.resume();
+      } catch {}
+    };
+
+    const events = ["pointerdown", "touchstart", "keydown", "click"] as const;
+    for (const e of events) window.addEventListener(e, unlock, { once: true, passive: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, unlock);
+    };
+  }, []);
+
   // Auto-detect room code from URL query (?room=CODE) for instant QR / Invite join
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -235,7 +263,14 @@ export default function MultiplayerPage() {
       // ── YouTube path ─────────────────────────────────────────
       const clue = r.currentSongClue;
       if (clue?.hasYoutube && clue?.youtubeId) {
-        ytEngine.unmuteAndPlay(clue.youtubeStartSecond ?? 20);
+        // Use play() (not unmuteAndPlay) so a fresh video is loaded, then
+        // seeked and unmuted. unmuteAndPlay() only works on an already-loaded
+        // video and silently no-ops on a new one, which left multiplayer
+        // rounds silent.
+        ytEngine.play({
+          youtubeId: clue.youtubeId,
+          startSecond: clue.youtubeStartSecond ?? 20,
+        });
         setIsPlayingAudio(true);
         sliceTimerRef.current = setTimeout(() => {
           ytEngine.pause();
