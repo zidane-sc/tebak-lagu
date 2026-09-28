@@ -99,13 +99,16 @@ export async function POST(request: Request) {
     const searchQuery = `${title.trim()} ${artist.trim()}`;
     const popularity = body.popularity || (difficulty === "easy" ? 90 : difficulty === "medium" ? 75 : 50);
     const startSecond = body.startSecond !== undefined ? Number(body.startSecond) : 0;
+    const youtubeId = body.youtubeId?.trim() || null;
+    const youtubeStartSecond = body.youtubeStartSecond !== undefined ? Number(body.youtubeStartSecond) : 20;
 
     await db.execute({
       sql: `
         INSERT OR REPLACE INTO songs (
           id, title, artist, year, category, difficulty, popularity,
-          preview_url, album_cover, lyrics_clues, humming_melody, search_query, start_second
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+          preview_url, album_cover, lyrics_clues, humming_melody, search_query, start_second,
+          youtube_id, youtube_start_second, youtube_status, youtube_checked_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
       `,
       args: [
         songId,
@@ -121,6 +124,9 @@ export async function POST(request: Request) {
         JSON.stringify(hummingMelody),
         searchQuery,
         startSecond,
+        youtubeId,
+        youtubeStartSecond,
+        youtubeId ? "ready" : "pending",
       ],
     });
 
@@ -159,6 +165,8 @@ export async function PUT(request: Request) {
       albumCover,
       startSecond,
       lyricsClues,
+      youtubeId,
+      youtubeStartSecond,
     } = body;
 
     if (!id) {
@@ -186,6 +194,8 @@ export async function PUT(request: Request) {
     const updatedStartSecond = startSecond !== undefined ? Number(startSecond) : existing.startSecond || 0;
     const updatedLyricsClues = lyricsClues !== undefined ? JSON.stringify(lyricsClues) : JSON.stringify(existing.lyricsClues || []);
     const searchQuery = `${updatedTitle} ${updatedArtist}`;
+    const updatedYoutubeId = youtubeId !== undefined ? (youtubeId || null) : existing.youtubeId || null;
+    const updatedYoutubeStart = youtubeStartSecond !== undefined ? Number(youtubeStartSecond) : (existing.youtubeStartSecond ?? 20);
 
     await db.execute({
       sql: `
@@ -200,7 +210,11 @@ export async function PUT(request: Request) {
           album_cover = ?,
           search_query = ?,
           start_second = ?,
-          lyrics_clues = ?
+          lyrics_clues = ?,
+          youtube_id = ?,
+          youtube_start_second = ?,
+          youtube_status = ?,
+          youtube_checked_at = CURRENT_TIMESTAMP
         WHERE id = ?;
       `,
       args: [
@@ -215,6 +229,9 @@ export async function PUT(request: Request) {
         searchQuery,
         updatedStartSecond,
         updatedLyricsClues,
+        updatedYoutubeId,
+        updatedYoutubeStart,
+        updatedYoutubeId ? "ready" : "pending",
         id,
       ],
     });

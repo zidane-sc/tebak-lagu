@@ -360,6 +360,35 @@ export default function AdminDashboardPage() {
   const [formPreviewUrl, setFormPreviewUrl] = useState("");
   const [formAlbumCover, setFormAlbumCover] = useState("");
   const [formStartSecond, setFormStartSecond] = useState<number>(0);
+
+  // YouTube metadata in Create/Edit form
+  const [formYoutubeId, setFormYoutubeId] = useState<string>("");
+  const [formYoutubeStart, setFormYoutubeStart] = useState<number>(20);
+  const [formYtSearching, setFormYtSearching] = useState(false);
+  const [formYtResults, setFormYtResults] = useState<any[]>([]);
+
+  const handleFormSearchYouTube = async () => {
+    if (!formTitle.trim() || !formArtist.trim()) {
+      showToast("Isi judul & artis dulu sebelum cari YouTube ID", "error");
+      return;
+    }
+    setFormYtSearching(true);
+    setFormYtResults([]);
+    try {
+      const q = new URLSearchParams({ title: formTitle.trim(), artist: formArtist.trim() });
+      const res = await fetch(`/api/admin/youtube-search?${q.toString()}`);
+      const data = await res.json();
+      if (res.ok && data.results?.length) {
+        setFormYtResults(data.results);
+      } else {
+        showToast("Ga ada hasil — isi manual ya", "error");
+      }
+    } catch {
+      showToast("Gagal searching YouTube", "error");
+    } finally {
+      setFormYtSearching(false);
+    }
+  };
   const [formLyricsClues, setFormLyricsClues] = useState<string[]>([]);
   const [lyricsRawLines, setLyricsRawLines] = useState<string[]>([]);
   const [selectedStartLine, setSelectedStartLine] = useState<number>(0);
@@ -715,6 +744,9 @@ export default function AdminDashboardPage() {
     setFormPreviewUrl(song.previewUrl || song.previewResolved || "");
     setFormAlbumCover(song.albumCover || "");
     setFormStartSecond(song.startSecond !== undefined ? Number(song.startSecond) : 0);
+    setFormYoutubeId(song.youtubeId || "");
+    setFormYoutubeStart(Number(song.youtubeStartSecond ?? 20));
+    setFormYtResults([]);
 
     const existingClues = Array.isArray(song.lyricsClues) && song.lyricsClues.length > 0
       ? [...song.lyricsClues]
@@ -769,11 +801,37 @@ export default function AdminDashboardPage() {
   const [ytEditId, setYtEditId] = useState("");
   const [ytEditStart, setYtEditStart] = useState(20);
   const [ytEditSaving, setYtEditSaving] = useState(false);
+  const [ytSearching, setYtSearching] = useState(false);
+  const [ytResults, setYtResults] = useState<any[]>([]);
 
   const openYouTubeEditor = (song: any) => {
     setYtEditSong(song);
     setYtEditId(song.youtubeId || "");
     setYtEditStart(Number(song.youtubeStartSecond ?? 20));
+    setYtResults([]);
+  };
+
+  const handleSearchYouTube = async () => {
+    if (!ytEditSong) return;
+    setYtSearching(true);
+    setYtResults([]);
+    try {
+      const q = new URLSearchParams({
+        title: ytEditSong.title || "",
+        artist: ytEditSong.artist || "",
+      });
+      const res = await fetch(`/api/admin/youtube-search?${q.toString()}`);
+      const data = await res.json();
+      if (res.ok && data.results?.length) {
+        setYtResults(data.results);
+      } else {
+        showToast("Ga ada hasil — cek judul/artis atau isi manual", "error");
+      }
+    } catch {
+      showToast("Gagal searching YouTube", "error");
+    } finally {
+      setYtSearching(false);
+    }
   };
 
   const handleSaveYouTube = async (e: React.FormEvent) => {
@@ -877,6 +935,8 @@ export default function AdminDashboardPage() {
           albumCover: formAlbumCover,
           startSecond: formStartSecond,
           lyricsClues: formLyricsClues.filter((c: string) => c.trim().length > 0),
+          youtubeId: formYoutubeId.trim() || null,
+          youtubeStartSecond: formYoutubeStart,
         }),
       });
 
@@ -2613,6 +2673,100 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* YouTube Metadata */}
+              <div className="flex flex-col gap-2 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                <label className="text-[11px] font-mono text-red-400 font-semibold flex items-center gap-1.5">
+                  <Youtube className="w-3.5 h-3.5" />
+                  YOUTUBE AUDIO ENGINE
+                </label>
+
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={formYoutubeId}
+                    onChange={(e) => setFormYoutubeId(e.target.value)}
+                    placeholder="sjjhLDPT5_g"
+                    className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-red-500/60 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFormSearchYouTube}
+                    disabled={formYtSearching}
+                    className="shrink-0 px-3 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400 hover:text-red-300 text-[10px] font-bold font-mono flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {formYtSearching ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Search className="w-3.5 h-3.5" />
+                    )}
+                    <span>CARI</span>
+                  </button>
+                </div>
+
+                {/* Search results */}
+                {formYtResults.length > 0 && (
+                  <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+                    {formYtResults.map((r, i) => (
+                      <button
+                        key={r.videoId}
+                        type="button"
+                        onClick={() => setFormYoutubeId(r.videoId)}
+                        className={`text-left px-2 py-1.5 rounded-lg border transition cursor-pointer ${
+                          formYoutubeId === r.videoId
+                            ? "bg-red-500/20 border-red-500/50"
+                            : "bg-surfaceRaised border-surfaceBorder hover:border-red-500/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono text-mutedDark shrink-0">{i + 1}.</span>
+                          <span className="text-[10px] font-semibold text-zinc-200 truncate flex-1">
+                            {r.title}
+                          </span>
+                          <span className="text-[9px] font-mono px-1 rounded bg-emerald-500/15 text-emerald-400 font-bold shrink-0">
+                            {r.score}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 pl-4">
+                          <span className="text-[9px] font-mono text-mutedDark truncate">{r.channel}</span>
+                          {r.duration && (
+                            <span className="text-[9px] font-mono text-mutedDark shrink-0">· {r.duration}</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold shrink-0">
+                    START @
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={90}
+                    step={1}
+                    value={formYoutubeStart}
+                    onChange={(e) => setFormYoutubeStart(Number(e.target.value))}
+                    className="flex-1 accent-red-500"
+                  />
+                  <span className="text-[11px] font-mono text-red-400 font-bold shrink-0 w-9 text-right">
+                    {formYoutubeStart}s
+                  </span>
+                </div>
+
+                {formYoutubeId && (
+                  <a
+                    href={`https://www.youtube.com/watch?v=${formYoutubeId}&t=${formYoutubeStart}s`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] font-mono text-accent hover:text-white flex items-center gap-1 transition"
+                  >
+                    ▶ Test playback dari @{formYoutubeStart}s
+                  </a>
+                )}
+              </div>
+
               {/* Album Cover */}
               <div className="flex flex-col gap-1">
                 <label className="text-[11px] font-mono text-mutedDark font-semibold">ALBUM COVER ARTWORK URL</label>
@@ -2744,7 +2898,63 @@ export default function AdminDashboardPage() {
               <p className="text-[10px] text-mutedDark font-mono">
                 11 karakter. Ambil dari URL: youtube.com/watch?v=ID
               </p>
+              <button
+                type="button"
+                onClick={handleSearchYouTube}
+                disabled={ytSearching}
+                className="mt-1.5 py-2 px-3 rounded-xl bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-400 hover:text-red-300 text-[11px] font-bold font-mono flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+              >
+                {ytSearching ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Search className="w-3.5 h-3.5" />
+                )}
+                <span>{ytSearching ? "Mencari..." : "🔍 Cari Otomatis"}</span>
+              </button>
             </div>
+
+            {/* Search Results */}
+            {ytResults.length > 0 && (
+              <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto">
+                <span className="text-[10px] font-mono text-mutedDark font-semibold">
+                  {ytResults.length} HASIL — klik untuk pakai
+                </span>
+                {ytResults.map((r, i) => (
+                  <button
+                    key={r.videoId}
+                    type="button"
+                    onClick={() => setYtEditId(r.videoId)}
+                    className={`text-left px-2.5 py-2 rounded-xl border transition cursor-pointer ${
+                      ytEditId === r.videoId
+                        ? "bg-red-500/15 border-red-500/50 text-white"
+                        : "bg-surfaceRaised border-surfaceBorder text-zinc-300 hover:border-red-500/30 hover:bg-red-500/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-bold shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="text-[11px] font-semibold truncate flex-1">
+                        {r.title}
+                      </span>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-bold shrink-0">
+                        {r.score}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5 pl-6">
+                      <span className="text-[9px] font-mono text-mutedDark truncate">
+                        {r.channel}
+                      </span>
+                      {r.duration && (
+                        <span className="text-[9px] font-mono text-mutedDark shrink-0">
+                          · {r.duration}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
