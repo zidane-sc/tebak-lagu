@@ -255,6 +255,9 @@ export default function MultiplayerPage() {
     }
 
     const profile = r.audioProfile || "normal";
+    const stageLimits = [5, 5, 9, 18, 30];
+    const stage = r.clueStage || 1;
+    const maxDuration = stageLimits[stage] || 5;
 
     if (r.mode === "tts") {
       if (!audioRef.current) return;
@@ -267,11 +270,15 @@ export default function MultiplayerPage() {
         audioRef.current.src = ttsUrl;
       }
     } else {
-      const stageLimits = [5, 5, 9, 18, 30];
-      const maxDuration = stageLimits[r.clueStage || 1] || 5;
+      // Each stage must reveal NEW audio, not replay the same window. Offset from
+      // the song's vocal start by everything already heard in earlier stages.
+      const heardBefore = stageLimits
+        .slice(0, stage - 1)
+        .reduce((a, b) => a + b, 0);
+      const clue = r.currentSongClue;
+      const startAt = (clue?.youtubeStartSecond ?? 20) + heardBefore;
 
       // ── YouTube path ─────────────────────────────────────────
-      const clue = r.currentSongClue;
       if (clue?.hasYoutube && clue?.youtubeId) {
         // Use play() (not unmuteAndPlay) so a fresh video is loaded, then
         // seeked and unmuted. unmuteAndPlay() only works on an already-loaded
@@ -279,7 +286,7 @@ export default function MultiplayerPage() {
         // rounds silent.
         ytEngine.play({
           youtubeId: clue.youtubeId,
-          startSecond: clue.youtubeStartSecond ?? 20,
+          startSecond: startAt,
         });
         setIsPlayingAudio(true);
         sliceTimerRef.current = setTimeout(() => {
@@ -295,10 +302,7 @@ export default function MultiplayerPage() {
       if (audioRef.current.src !== previewUrl) {
         audioRef.current.src = previewUrl;
       }
-
-      if (clue?.startSecond) {
-        audioRef.current.currentTime = clue.startSecond;
-      }
+      audioRef.current.currentTime = startAt;
 
       sliceTimerRef.current = setTimeout(() => {
         if (audioRef.current) {
@@ -308,6 +312,7 @@ export default function MultiplayerPage() {
       }, maxDuration * 1000);
     }
 
+    if (!audioRef.current) return;
     if (profile === "fast") audioRef.current.playbackRate = 1.3;
     else if (profile === "bass") audioRef.current.playbackRate = 0.85;
     else audioRef.current.playbackRate = 1.0;

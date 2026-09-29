@@ -239,6 +239,52 @@ function advanceToNextRound(room) {
   }
 }
 
+/**
+ * Advance to the next clue stage when the timer for the current one runs out.
+ * Stops at stage 4, then reveals the round as a loss.
+ */
+function advanceClueOnTimeout(room) {
+  if (room.clueStage === 1) {
+    room.clueStage = 2;
+    room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
+    room.clueVotes = new Set();
+    broadcast(room, {
+      type: "clue_extended",
+      stage: 2,
+      secondsLeft: room.clueSecondsLeft,
+      message: "💡 Tahap 2: Clue diperpanjang!",
+      room: getSanitizedRoom(room),
+    });
+  } else if (room.clueStage === 2) {
+    room.clueStage = 3;
+    room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
+    room.clueVotes = new Set();
+    broadcast(room, {
+      type: "clue_extended",
+      stage: 3,
+      secondsLeft: room.clueSecondsLeft,
+      message: "💡 Tahap 3: Clue dibuka lebih lengkap!",
+      room: getSanitizedRoom(room),
+    });
+  } else if (room.clueStage === 3) {
+    room.clueStage = 4;
+    room.clueSecondsLeft = room.finalStageSeconds;
+    room.clueVotes = new Set();
+    broadcast(room, {
+      type: "clue_extended",
+      stage: 4,
+      secondsLeft: room.clueSecondsLeft,
+      message: `🚨 Tahap Terakhir (${room.clueSecondsLeft}s)! Segera Buzz sebelum hangus!`,
+      room: getSanitizedRoom(room),
+    });
+  } else if (room.clueStage === 4) {
+    triggerRoundRevealed(room, {
+      type: "round_revealed",
+      message: `Waktu habis! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+    });
+  }
+}
+
 function triggerRoundRevealed(room, initialPayload) {
   room.status = "revealed";
 
@@ -326,53 +372,13 @@ async function startRound(room) {
     playerLives,
   };
 
-  // Stage timer: respects dynamic server settings!
+  // Stage timer: one shared tick for the whole round, advanced by helper so the
+  // vote path and the timeout path behave identically.
   room.stageTimer = setInterval(() => {
-    if (room.status === "playing") {
-      room.clueSecondsLeft -= 1;
-
-      if (room.clueSecondsLeft <= 0) {
-        if (room.clueStage === 1) {
-          room.clueStage = 2;
-          room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
-          room.clueVotes = new Set();
-          broadcast(room, {
-            type: "clue_extended",
-            stage: 2,
-            secondsLeft: room.clueSecondsLeft,
-            message: "💡 Tahap 2: Clue diperpanjang!",
-            room: getSanitizedRoom(room),
-          });
-        } else if (room.clueStage === 2) {
-          room.clueStage = 3;
-          room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
-          room.clueVotes = new Set();
-          broadcast(room, {
-            type: "clue_extended",
-            stage: 3,
-            secondsLeft: room.clueSecondsLeft,
-            message: "💡 Tahap 3: Clue dibuka lebih lengkap!",
-            room: getSanitizedRoom(room),
-          });
-        } else if (room.clueStage === 3) {
-          room.clueStage = 4;
-          room.clueSecondsLeft = room.finalStageSeconds;
-          room.clueVotes = new Set();
-          broadcast(room, {
-            type: "clue_extended",
-            stage: 4,
-            secondsLeft: room.clueSecondsLeft,
-            message: `🚨 Tahap Terakhir (${room.clueSecondsLeft}s)! Segera Buzz sebelum hangus!`,
-            room: getSanitizedRoom(room),
-          });
-        } else if (room.clueStage === 4) {
-          // Waktu ronde habis -> Ronde Hangus!
-          triggerRoundRevealed(room, {
-            type: "round_revealed",
-            message: `Waktu habis (45 detik)! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-          });
-        }
-      }
+    if (room.status !== "playing") return;
+    room.clueSecondsLeft -= 1;
+    if (room.clueSecondsLeft <= 0) {
+      advanceClueOnTimeout(room);
     }
   }, 1000);
 
@@ -1113,6 +1119,25 @@ app.prepare().then(() => {
             room.clueVotes = new Set();
             room.clueStage += 1;
             room.clueSecondsLeft = room.clueStage === 4 ? (room.finalStageSeconds || 15) : (room.clueExtensionIntervalSeconds || 10);
+
+            // Restart the countdown for the new stage. Without this the old
+            // interval keeps ticking against the fresh budget and can advance
+            // two stages in one go.
+            if (room.stageTimer) {
+              clearInterval(room.stageTimer);
+              room.stageTimer = null;
+            }
+            if (room.clueStage < 4) {
+              room.stageTimer = setInterval(() => {
+                if (room.status !== "playing") return;
+                room.clueSecondsLeft -= 1;
+                if (room.clueSecondsLeft <= 0) {
+                  clearInterval(room.stageTimer);
+                  room.stageTimer = null;
+                  advanceClueOnTimeout(room);
+                }
+              }, 1000);
+            }
 
             broadcast(room, {
               type: "clue_extended",
