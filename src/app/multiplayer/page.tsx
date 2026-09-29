@@ -224,6 +224,9 @@ export default function MultiplayerPage() {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+    // YouTube deck must be silenced too, otherwise the clue keeps playing over
+    // the guess, the countdown and the result screen.
+    ytEngine.pause();
     setIsPlayingAudio(false);
     setIsAudioBuffering(false);
   };
@@ -236,6 +239,8 @@ export default function MultiplayerPage() {
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    // Same for the YouTube path.
+    ytEngine.pause();
     setIsPlayingAudio(false);
     setIsAudioBuffering(false);
   };
@@ -469,7 +474,9 @@ export default function MultiplayerPage() {
               navigator.vibrate([60, 40, 90]);
             }
 
-            // Seamlessly auto-play the newly unlocked clue audio for all devices
+            // Cut the running clue, then start the longer one — otherwise the two
+            // play on top of each other.
+            pauseAudioRef.current();
             setTimeout(() => {
               playAudioRef.current(data.room);
             }, 250);
@@ -589,19 +596,31 @@ export default function MultiplayerPage() {
               }
               setScreenFlash("wrong");
               setTimeout(() => setScreenFlash(null), 350);
+              // Silence the clue first, then let the server resume it — otherwise
+              // the audio stacks on itself when a wrong guess reopens the buzzer.
+              pauseAudioRef.current();
               if (data.resumeAudio) {
                 setTimeout(() => playAudioRef.current(data.room), 400);
               }
             }
           } else if (data.type === "round_revealed") {
+            // Stop the clue first — otherwise it keeps playing under the reveal.
+            pauseAudioRef.current();
             setRoom(data.room);
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
 
-            // Celebration: play the full hook of the revealed song!
-            if (audioRef.current && data.room?.revealedSong?.previewUrl) {
-              audioRef.current.src = data.room.revealedSong.previewUrl;
-              audioRef.current.currentTime = data.room.revealedSong.startSecond || 0;
+            // Celebration: play the full hook of the revealed song.
+            const revealed = data.room?.revealedSong;
+            if (revealed?.hasYoutube && revealed?.youtubeId) {
+              ytEngine.play({
+                youtubeId: revealed.youtubeId,
+                startSecond: revealed.youtubeStartSecond ?? 20,
+              });
+              setIsPlayingAudio(true);
+            } else if (audioRef.current && revealed?.previewUrl) {
+              audioRef.current.src = revealed.previewUrl;
+              audioRef.current.currentTime = revealed.startSecond || 0;
               audioRef.current.playbackRate = 1.0;
               audioRef.current.play().then(() => setIsPlayingAudio(true)).catch(() => {});
             }
