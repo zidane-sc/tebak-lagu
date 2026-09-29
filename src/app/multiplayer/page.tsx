@@ -1127,38 +1127,51 @@ export default function MultiplayerPage() {
 
             {/* Panel: create */}
             {menuTab === "create" && (
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent shrink-0">
-                    {selectedMode === "tts" ? (
-                      <Volume2 className="w-3.5 h-3.5" />
-                    ) : (
-                      <Timer className="w-3.5 h-3.5" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <label className="text-[10px] font-mono text-mutedDark font-semibold">MODE</label>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {[
-                        { id: "heardle", label: "Time Slice" },
-                        { id: "tts", label: "Robot TTS" },
-                      ].map((m) => (
+              <div className="flex flex-col gap-3">
+                {/* Mode — two distinct cards, each with its own colour */}
+                <div>
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
+                    MODE PERMAINAN
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      {
+                        id: "heardle",
+                        label: "Time Slice",
+                        desc: "Dengerin musik, lalu tebak",
+                        icon: <Timer className="w-5 h-5" />,
+                        on: "border-emerald-400/60 bg-emerald-500/15 text-emerald-300",
+                        off: "border-surfaceBorder bg-surfaceRaised text-muted",
+                      },
+                      {
+                        id: "tts",
+                        label: "Robot TTS",
+                        desc: "Robot baca lirik buta",
+                        icon: <Volume2 className="w-5 h-5" />,
+                        on: "border-purple-400/60 bg-purple-500/15 text-purple-300",
+                        off: "border-surfaceBorder bg-surfaceRaised text-muted",
+                      },
+                    ].map((m) => {
+                      const on = selectedMode === m.id;
+                      return (
                         <button
                           key={m.id}
                           onClick={() => {
                             sfx.playClick();
                             setSelectedMode(m.id);
                           }}
-                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition ${
-                            selectedMode === m.id
-                              ? "bg-zinc-100 text-zinc-950"
-                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                          className={`flex flex-col items-start gap-1 p-3 rounded-2xl border-2 transition active:scale-95 cursor-pointer ${
+                            on ? m.on : `${m.off} hover:text-white`
                           }`}
                         >
-                          {m.label}
+                          {m.icon}
+                          <span className="text-xs font-bold">{m.label}</span>
+                          <span className="text-[9px] opacity-70 leading-tight text-left">
+                            {m.desc}
+                          </span>
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1216,75 +1229,107 @@ export default function MultiplayerPage() {
                 </div>
 
                 {/* Difficulty — cumulative. TTS uses clue count instead of audio slices. */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-mono text-mutedDark font-semibold">
-                    {selectedMode === "tts" ? "JUMLAH BAIT LIRIK" : "KESULITAN"}
+                <div>
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
+                    {selectedMode === "tts" ? "JUMLAH BAIT LIRIK" : "KESULITAN LAGU"}
                   </label>
                   {selectedMode === "tts" ? (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[1, 2, 3].map((n) => (
-                        <button
-                          key={n}
-                          onClick={() => {
-                            sfx.playClick();
-                            setClueCount(n);
-                          }}
-                          className={`py-2 rounded-xl text-[11px] font-mono font-semibold transition ${
-                            clueCount === n
-                              ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                          }`}
-                        >
-                          {n} bait
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { n: 1, label: "1 Bait", desc: "Paling susah" },
+                        { n: 2, label: "2 Bait", desc: "Seimbang" },
+                        { n: 3, label: "3 Bait", desc: "Paling gampang" },
+                      ].map((c) => {
+                        const on = clueCount === c.n;
+                        return (
+                          <button
+                            key={c.n}
+                            onClick={() => {
+                              sfx.playClick();
+                              setClueCount(c.n);
+                            }}
+                            className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                              on
+                                ? "border-purple-400/60 bg-purple-500/15 text-purple-300"
+                                : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                            }`}
+                          >
+                            <span className="block text-[11px] font-bold">{c.label}</span>
+                            <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                              {c.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: "easy", label: "Mudah 🟢" },
-                        { id: "medium", label: "Sedang 🟡" },
-                        { id: "hard", label: "Semua 🔴" },
-                      ].map((d) => (
-                        <button
-                          key={d.id}
-                          onClick={() => {
-                            sfx.playClick();
-                            setSelectedDifficulty(d.id);
-                          }}
-                          className={`py-2 rounded-xl text-[11px] font-semibold transition ${
-                            selectedDifficulty === d.id
-                              ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                          }`}
-                        >
-                          {d.label}
-                        </button>
-                      ))}
+                        { id: "easy", label: "Mudah", desc: "Mega hits" },
+                        { id: "medium", label: "Sedang", desc: "+ populer" },
+                        { id: "hard", label: "Semua", desc: "Seluruhnya" },
+                      ].map((d) => {
+                        const on = selectedDifficulty === d.id;
+                        const tint =
+                          d.id === "easy"
+                            ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-300"
+                            : d.id === "medium"
+                            ? "border-amber-400/60 bg-amber-500/15 text-amber-300"
+                            : "border-rose-400/60 bg-rose-500/15 text-rose-300";
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => {
+                              sfx.playClick();
+                              setSelectedDifficulty(d.id);
+                            }}
+                            className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                              on ? tint : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                            }`}
+                          >
+                            <span className="block text-[11px] font-bold">{d.label}</span>
+                            <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                              {d.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
                 {/* Rounds */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-mono text-mutedDark font-semibold">RONDE</label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[3, 5, 10].map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => {
-                          sfx.playClick();
-                          setMaxRounds(r);
-                        }}
-                        className={`py-2 rounded-xl text-[11px] font-mono font-semibold transition ${
-                          maxRounds === r
-                            ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                            : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
+                <div>
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
+                    JUMLAH RONDE
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { n: 3, desc: "Cepat" },
+                      { n: 5, desc: "Ideal" },
+                      { n: 10, desc: "Panjang" },
+                    ].map((r) => {
+                      const on = maxRounds === r.n;
+                      return (
+                        <button
+                          key={r.n}
+                          onClick={() => {
+                            sfx.playClick();
+                            setMaxRounds(r.n);
+                          }}
+                          className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                            on
+                              ? "border-accent/60 bg-accent/15 text-accent"
+                              : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                          }`}
+                        >
+                          <span className="block text-base font-black leading-none">{r.n}</span>
+                          <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                            {r.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1545,8 +1590,9 @@ export default function MultiplayerPage() {
                 {/* Phase banner */}
                 <div className="w-full flex items-center justify-between text-xs font-mono px-0.5">
                   <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full text-zinc-300 font-bold text-[11px]">
-                    <span>{room.mode === "tts" ? "🤖 Robot TTS" : "🎧 Time Slice"}</span>
+                    <span>👥 Multiplayer</span>
                     <span className="text-zinc-500">·</span>
+                    <span className="text-muted">{room.mode === "tts" ? "Robot TTS" : "Time Slice"}</span>
                     <span className="text-accent font-extrabold">
                       Clue {Math.min(clueIndex, totalClues)}/{totalClues}
                     </span>
