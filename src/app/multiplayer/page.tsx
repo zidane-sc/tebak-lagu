@@ -22,7 +22,6 @@ import {
   Zap,
   Volume2,
   Timer,
-  Share2,
   Crown,
   VolumeX,
   Radio,
@@ -34,7 +33,6 @@ import {
 import { GuessInput } from "@/components/GuessInput";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
-import { SocialShareModal } from "@/components/SocialShareModal";
 import { RoomQrCodeModal } from "@/components/RoomQrCodeModal";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { ArtistSelector } from "@/components/game/ArtistSelector";
@@ -138,7 +136,6 @@ export default function MultiplayerPage() {
   // In-Game Playback State
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isAudioBuffering, setIsAudioBuffering] = useState(false);
-  const [showSocialModal, setShowSocialModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [roundKickoff, setRoundKickoff] = useState<number | null>(null);
   const [showPlayerSheet, setShowPlayerSheet] = useState(false);
@@ -1029,14 +1026,11 @@ export default function MultiplayerPage() {
             </Link>
           )}
 
-          <div className="min-w-0">
-            <h1 className="text-sm font-bold text-white leading-tight truncate">Multiplayer</h1>
-            {view === "menu" ? (
-              <p className="text-[10px] text-mutedDark font-mono leading-tight truncate">
-                {isConnected ? "Siap bermain" : "Menghubungkan..."}
-              </p>
-            ) : null}
-          </div>
+          <img
+            src="/icons/icon-192.png"
+            alt="Tebak Lagu"
+            className="w-7 h-7 rounded-lg border border-emerald-500/40 shrink-0"
+          />
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1929,15 +1923,6 @@ export default function MultiplayerPage() {
                 )}
               </div>
 
-              {/* Share Podium Button */}
-              <button
-                onClick={() => setShowSocialModal(true)}
-                className="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition active:scale-95 cursor-pointer shadow-sm"
-              >
-                <Share2 className="w-4 h-4" />
-                <span>Bagikan Hasil Mabar (WA / IG / TikTok)</span>
-              </button>
-
               {isHost ? (
                 <button
                   onClick={handleStartGame}
@@ -2046,16 +2031,6 @@ export default function MultiplayerPage() {
           </div>
         </div>
       )}
-
-      {/* Social Share Modal */}
-      <SocialShareModal
-        isOpen={showSocialModal}
-        onClose={() => setShowSocialModal(false)}
-        title="Bagikan Hasil Mabar Tebak Lagu"
-        score={room?.players?.find((p: any) => p.id === myPlayerId)?.score}
-        modeTitle={`Multiplayer Room (${room?.players?.length || 2} Pemain)`}
-        shareUrl="https://tebak-lagu-live.fly.dev/multiplayer"
-      />
 
       {/* Room QR Code Modal */}
       {room && (
