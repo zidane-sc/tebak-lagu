@@ -255,9 +255,11 @@ export default function MultiplayerPage() {
     }
 
     const profile = r.audioProfile || "normal";
-    const stageLimits = [5, 5, 9, 18, 30];
+    // Each tier reveals more audio from the same starting point, so the slices
+    // stay cumulative rather than replaying the same window.
+    const TIER_SECONDS = { 1: 5, 2: 9, 3: 16, 4: 30 };
     const stage = r.clueStage || 1;
-    const maxDuration = stageLimits[stage] || 5;
+    const maxDuration = TIER_SECONDS[stage] || 5;
 
     if (r.mode === "tts") {
       if (!audioRef.current) return;
@@ -270,13 +272,11 @@ export default function MultiplayerPage() {
         audioRef.current.src = ttsUrl;
       }
     } else {
-      // Each stage must reveal NEW audio, not replay the same window. Offset from
-      // the song's vocal start by everything already heard in earlier stages.
-      const heardBefore = stageLimits
-        .slice(0, stage - 1)
-        .reduce((a, b) => a + b, 0);
+      // Tiers are cumulative: each one starts at the song's vocal start and
+      // plays for longer, so later tiers simply contain everything the earlier
+      // ones revealed.
       const clue = r.currentSongClue;
-      const startAt = (clue?.youtubeStartSecond ?? 20) + heardBefore;
+      const startAt = clue?.youtubeStartSecond ?? 20;
 
       // ── YouTube path ─────────────────────────────────────────
       if (clue?.hasYoutube && clue?.youtubeId) {
@@ -1676,36 +1676,19 @@ export default function MultiplayerPage() {
                   })}
                 </div>
 
-                {/* Action Toolbar: Clue + Skip. No replay — it hands the answer
-                    to whoever presses it again, which breaks the buzz race. */}
+                {/* Action Toolbar: reveal the full clue, or skip. No vote gate —
+                    the round runs on one clock and the clue opens for everyone. */}
                 <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60 gap-1.5">
-                  {currentStage < 4 && (() => {
-                    const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
-                    const requiredVotes =
-                      room.clueVotesRequired ||
-                      (activeCount <= 2 ? activeCount : Math.floor(activeCount / 2) + 1);
-                    const hasVoted =
-                      room.clueVotes?.includes(myPlayerId) ||
-                      (myPlayer?.id && room.clueVotes?.includes(myPlayer.id));
-                    const currentVotes = room.clueVotes?.length || 0;
-
-                    return (
-                      <button
-                        onClick={handleAdvanceClue}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${
-                          hasVoted
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50 font-bold"
-                            : "bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-amber-300 hover:border-amber-500/40"
-                        }`}
-                        title="Buka clue berikutnya (butuh persetujuan pemain)"
-                      >
-                        <span>💡</span>
-                        <span>
-                          {hasVoted ? `Menunggu ${currentVotes}/${requiredVotes}` : `Clue ${currentStage + 1} · ${currentVotes}/${requiredVotes}`}
-                        </span>
-                      </button>
-                    );
-                  })()}
+                  {currentStage < 4 && (
+                    <button
+                      onClick={handleAdvanceClue}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-amber-300 hover:border-amber-500/40"
+                      title="Buka seluruh clue untuk semua pemain"
+                    >
+                      <span>💡</span>
+                      <span>Buka Semua</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleSkipRound}

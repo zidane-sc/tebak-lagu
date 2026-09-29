@@ -239,51 +239,11 @@ function advanceToNextRound(room) {
   }
 }
 
-/**
- * Advance to the next clue stage when the timer for the current one runs out.
- * Stops at stage 4, then reveals the round as a loss.
- */
-function advanceClueOnTimeout(room) {
-  if (room.clueStage === 1) {
-    room.clueStage = 2;
-    room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
-    room.clueVotes = new Set();
-    broadcast(room, {
-      type: "clue_extended",
-      stage: 2,
-      secondsLeft: room.clueSecondsLeft,
-      message: "💡 Tahap 2: Clue diperpanjang!",
-      room: getSanitizedRoom(room),
-    });
-  } else if (room.clueStage === 2) {
-    room.clueStage = 3;
-    room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
-    room.clueVotes = new Set();
-    broadcast(room, {
-      type: "clue_extended",
-      stage: 3,
-      secondsLeft: room.clueSecondsLeft,
-      message: "💡 Tahap 3: Clue dibuka lebih lengkap!",
-      room: getSanitizedRoom(room),
-    });
-  } else if (room.clueStage === 3) {
-    room.clueStage = 4;
-    room.clueSecondsLeft = room.finalStageSeconds;
-    room.clueVotes = new Set();
-    broadcast(room, {
-      type: "clue_extended",
-      stage: 4,
-      secondsLeft: room.clueSecondsLeft,
-      message: `🚨 Tahap Terakhir (${room.clueSecondsLeft}s)! Segera Buzz sebelum hangus!`,
-      room: getSanitizedRoom(room),
-    });
-  } else if (room.clueStage === 4) {
-    triggerRoundRevealed(room, {
-      type: "round_revealed",
-      message: `Waktu habis! Tidak ada yang berhasil menjawab. Ronde ini hangus! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-    });
-  }
-}
+const CLUE_TIER_MESSAGES = {
+  2: "💡 Clue dibuka sedikit lebih panjang!",
+  3: "💡 Hook-nya mulai kedengeran!",
+  4: "🚨 Full clue! Buzz sekarang sebelum waktu habis!",
+};
 
 function triggerRoundRevealed(room, initialPayload) {
   room.status = "revealed";
@@ -347,8 +307,12 @@ async function startRound(room) {
   room.clueVotes = new Set();
   room.nextRoundVotes = new Set();
   room.nextRoundCountdown = null;
+  // Buzz race: one fixed round timer, the clue audio just gets longer. Dropped
+  // the 4-stage vote gate — it was slow to play and the rounds never got long
+  // enough for anyone to enjoy the tension.
   room.clueStage = 1;
-  room.clueSecondsLeft = room.clueExtensionIntervalSeconds;
+  room.roundSecondsLeft = room.clueExtensionIntervalSeconds * 3 + 5;
+  room.clueSecondsLeft = room.roundSecondsLeft;
   room.buzzCooldowns = {};
 
   if (room.autoNextTimer) {
@@ -372,13 +336,30 @@ async function startRound(room) {
     playerLives,
   };
 
-  // Stage timer: one shared tick for the whole round, advanced by helper so the
-  // vote path and the timeout path behave identically.
+  // One countdown for the whole round. The audio gets longer as it runs down.
   room.stageTimer = setInterval(() => {
     if (room.status !== "playing") return;
     room.clueSecondsLeft -= 1;
+
+    // Reveal the clue in growing slices as the clock runs down.
+    const elapsed = room.roundSecondsLeft - room.clueSecondsLeft;
+    const tier = elapsed >= 27 ? 4 : elapsed >= 20 ? 3 : elapsed >= 11 ? 2 : 1;
+    if (tier > room.clueStage) {
+      room.clueStage = tier;
+      broadcast(room, {
+        type: "clue_extended",
+        stage: tier,
+        secondsLeft: room.clueSecondsLeft,
+        message: CLUE_TIER_MESSAGES[tier],
+        room: getSanitizedRoom(room),
+      });
+    }
+
     if (room.clueSecondsLeft <= 0) {
-      advanceClueOnTimeout(room);
+      triggerRoundRevealed(room, {
+        type: "round_revealed",
+        message: `Waktu habis! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+      });
     }
   }, 1000);
 
@@ -1089,72 +1070,24 @@ app.prepare().then(() => {
           handleBuzzTimeout(room);
         }
 
-        // 10b. VOTE ADVANCE CLUE (Buka clue selanjutnya tanpa nunggu)
+        // 10b. HOST/ANY PLAYER: BUAT KULLAN (unlock the full clue immediately)
         else if (data.type === "vote_advance_clue" || data.type === "advance_clue") {
           const roomCode = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
           const room = rooms.get(roomCode);
           if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
-          if (room.clueStage >= 4) return; // Sudah tahap maksimal
+          if (room.clueStage >= 4) return; // Already fully revealed
 
-          const voterId = data.playerId || meta.id || playerId;
-
-          if (!room.clueVotes) room.clueVotes = new Set();
-          if (room.clueVotes.has(voterId)) {
-            room.clueVotes.delete(voterId);
-          } else {
-            room.clueVotes.add(voterId);
-          }
-
-          const activePlayers = room.players.filter((p) => !p.isDisconnected);
-          const totalActive = Math.max(1, activePlayers.length);
-
-          // Rule Zidane:
-          // Jika 1 atau 2 pemain: butuh 100% persetujuan (keduanya harus vote!)
-          // Jika lebih dari 2 pemain: baru pakai mekanisme mayoritas (> 50%)
-          const threshold = totalActive <= 2
-            ? totalActive
-            : Math.floor(totalActive / 2) + 1;
-
-          if (room.clueVotes.size >= threshold) {
-            room.clueVotes = new Set();
-            room.clueStage += 1;
-            room.clueSecondsLeft = room.clueStage === 4 ? (room.finalStageSeconds || 15) : (room.clueExtensionIntervalSeconds || 10);
-
-            // Restart the countdown for the new stage. Without this the old
-            // interval keeps ticking against the fresh budget and can advance
-            // two stages in one go.
-            if (room.stageTimer) {
-              clearInterval(room.stageTimer);
-              room.stageTimer = null;
-            }
-            if (room.clueStage < 4) {
-              room.stageTimer = setInterval(() => {
-                if (room.status !== "playing") return;
-                room.clueSecondsLeft -= 1;
-                if (room.clueSecondsLeft <= 0) {
-                  clearInterval(room.stageTimer);
-                  room.stageTimer = null;
-                  advanceClueOnTimeout(room);
-                }
-              }, 1000);
-            }
-
-            broadcast(room, {
-              type: "clue_extended",
-              stage: room.clueStage,
-              secondsLeft: room.clueSecondsLeft,
-              message: `💡 Clue tahap ${room.clueStage}/4 dibuka!`,
-              room: getSanitizedRoom(room),
-            });
-          } else {
-            broadcast(room, {
-              type: "clue_vote_updated",
-              votesCount: room.clueVotes.size,
-              totalRequired: threshold,
-              message: `${meta.name || "Pemain"} vote buka clue (${room.clueVotes.size}/${threshold})`,
-              room: getSanitizedRoom(room),
-            });
-          }
+          // No vote threshold anymore — the round runs on a single clock, so
+          // anyone who is stuck can just reveal the rest of the clue. It costs
+          // them nothing but the extra information.
+          room.clueStage = 4;
+          broadcast(room, {
+            type: "clue_extended",
+            stage: 4,
+            secondsLeft: room.clueSecondsLeft,
+            message: "💡 Full clue dibuka untuk semua!",
+            room: getSanitizedRoom(room),
+          });
         }
 
         // 11. RECONNECT SESSION (Saat HP unlock / switch tab kembali)
