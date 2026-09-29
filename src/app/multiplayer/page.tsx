@@ -43,6 +43,20 @@ import { sfx } from "@/lib/sound-fx";
 import confetti from "canvas-confetti";
 
 const AVATARS = ["👑", "🎧", "🎤", "🎸", "🎹", "🥁", "🎷", "⚡", "🕶️", "🚀"];
+
+/**
+ * Deterministic avatar from a name: the same name always yields the same
+ * emoji, so players recognise each other without picking anything.
+ */
+function autoAvatarFor(name: string): string {
+  const n = (name || "").trim().toLowerCase();
+  if (!n) return "🎧";
+  let h = 0;
+  for (let i = 0; i < n.length; i++) {
+    h = (h * 31 + n.charCodeAt(i)) % 100000;
+  }
+  return AVATARS[h % AVATARS.length];
+}
 const REACTION_EMOJIS = ["🔥", "😂", "😱", "👏", "👑", "💀"];
 const MEME_SOUNDS = [
   { id: "airhorn", label: "Horn", icon: "🎺", title: "Airhorn" },
@@ -85,7 +99,7 @@ export default function MultiplayerPage() {
 
   // Player info
   const [playerName, setPlayerName] = useState("");
-  const [avatar, setAvatar] = useState("👑");
+  const avatar = autoAvatarFor(playerName);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [view, setView] = useState<"menu" | "create" | "join" | "room" | "game">("menu");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -440,7 +454,7 @@ export default function MultiplayerPage() {
                   roomCode: data.roomCode,
                   playerId: confirmedPlayerId,
                   playerName: playerName,
-                  avatar: avatar,
+                  avatar: autoAvatarFor(playerName),
                 })
               );
             } catch {}
@@ -785,7 +799,7 @@ export default function MultiplayerPage() {
     savePlayerName(playerName.trim());
     emit("create_room", {
         playerName: playerName.trim(),
-        avatar,
+        avatar: autoAvatarFor(playerName),
         mode: selectedMode,
         filterType: selectedFilterType,
         category: selectedCategory,
@@ -803,7 +817,7 @@ export default function MultiplayerPage() {
     emit("join_room", {
         roomCode: roomCodeInput.trim().toUpperCase(),
         playerName: playerName.trim(),
-        avatar,
+        avatar: autoAvatarFor(playerName),
       });
   };
 
@@ -1049,39 +1063,22 @@ export default function MultiplayerPage() {
             </div>
           </div>
 
-          {/* Nickname + avatar on one row */}
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col gap-2.5 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl w-9 h-9 flex items-center justify-center bg-surfaceRaised border border-surfaceBorder rounded-xl shrink-0">
-                {avatar}
-              </span>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => savePlayerName(e.target.value)}
-                placeholder="Nickname kamu..."
-                className="flex-1 min-w-0 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-accent"
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-              {AVATARS.map((av) => (
-                <button
-                  key={av}
-                  onClick={() => {
-                    sfx.playClick();
-                    setAvatar(av);
-                  }}
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all shrink-0 ${
-                    avatar === av
-                      ? "bg-zinc-100 scale-105 shadow-sm"
-                      : "bg-surfaceRaised active:scale-95"
-                  }`}
-                >
-                  {av}
-                </button>
-              ))}
-            </div>
+          {/* Nickname only — the avatar is derived from the name */}
+          <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex items-center gap-2.5 shadow-sm">
+            <span
+              className="w-10 h-10 rounded-xl bg-surfaceRaised border border-surfaceBorder flex items-center justify-center text-xl shrink-0"
+              title="Avatar otomatis dari nickname"
+            >
+              {autoAvatarFor(playerName)}
+            </span>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => savePlayerName(e.target.value)}
+              placeholder="Nickname kamu..."
+              maxLength={16}
+              className="flex-1 min-w-0 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-accent"
+            />
           </div>
 
           {/* Action CTAs */}
