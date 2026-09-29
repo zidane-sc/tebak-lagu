@@ -253,11 +253,9 @@ function advanceToNextRound(room) {
   }
 }
 
-const CLUE_TIER_MESSAGES = {
-  2: "💡 Clue dibuka sedikit lebih panjang!",
-  3: "💡 Hook-nya mulai kedengeran!",
-  4: "🚨 Full clue! Buzz sekarang sebelum waktu habis!",
-};
+// Matches the client's 3-2-1 countdown overlay. The server waits this long
+// before arming the first clue so the overlay never eats clue audio.
+const KICKOFF_SECONDS = 4;
 
 function triggerRoundRevealed(room, initialPayload) {
   room.status = "revealed";
@@ -342,9 +340,11 @@ async function startRound(room) {
   // Each clue: play a slice of the song, then fall silent. After the last clue
   // there's a longer silence, and only then does the buzzer open. The buzzer is
   // locked the whole time so nobody can guess off a half-heard clip.
-  room.cluePhase = "idle"; // "idle" | "playing" | "silence" | "final_silence" | "buzzer"
+  room.cluePhase = "idle"; // "idle" | "playing" | "silence" | "final_silence"
+  // 0 means "waiting for the client kickoff to finish"; the timer arms the first
+  // clue once it is done, so the countdown overlay doesn't eat clue audio.
   room.clueIndex = 0;
-  room.clueSecondsLeft = 0;
+  room.clueSecondsLeft = KICKOFF_SECONDS;
   room.buzzCooldowns = {};
   room.buzzerOpensAt = null;
 
@@ -386,8 +386,6 @@ async function startRound(room) {
   function isLastClue() {
     return room.clueIndex >= room.cluePlayDurations.length;
   }
-
-  nextPhase();
 
   function emitCluePhase(phaseChanged) {
     broadcast(room, {
@@ -455,13 +453,34 @@ async function startRound(room) {
   broadcast(room, {
     type: "round_started",
     autoPlay: true,
+    // The client plays its own 3-2-1 kickoff. The server must not burn clue
+    // time during that, so the clue clock is armed with a countdown offset.
+    kickoffSeconds: KICKOFF_SECONDS,
     room: getSanitizedRoom(room),
   });
 
-  // The clue clock only starts once the song is loaded and clients have the
-  // room payload — starting it earlier broadcast a phase with no song attached.
+  // Wait out the client kickoff before the clue clock starts ticking, otherwise
+  // the first clue loses ~4s of audio to the countdown overlay.
   room.stageTimer = setInterval(() => {
     if (room.status !== "playing") return;
+
+    if (room.clueSecondsLeft === 0) {
+      // Countdown finished — arm the first clue on the next tick.
+      room.clueIndex = 1;
+      room.clueStage = 1;
+      room.cluePhase = "playing";
+      room.clueSecondsLeft = room.cluePlayDurations[0] || 5;
+      emitCluePhase(true);
+      return;
+    }
+
+    if (room.cluePhase === "idle") {
+      // Still inside the client kickoff — tick down silently, no point
+      // broadcasting a phase the client has no UI for yet.
+      room.clueSecondsLeft -= 1;
+      return;
+    }
+
     room.clueSecondsLeft -= 1;
 
     if (room.clueSecondsLeft > 0) {
