@@ -1228,75 +1228,121 @@ export default function MultiplayerPage() {
                   )}
                 </div>
 
-                {/* Difficulty — cumulative. TTS uses clue count instead of audio slices. */}
+                {/* Difficulty — Time Slice uses tiers, TTS uses lyric-bait count.
+                    Both modes still pick how well-known the song is. */}
                 <div>
                   <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
-                    {selectedMode === "tts" ? "JUMLAH BAIT LIRIK" : "KESULITAN LAGU"}
+                    KESULITAN LAGU
                   </label>
-                  {selectedMode === "tts" ? (
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { n: 1, label: "1 Bait", desc: "Paling susah" },
-                        { n: 2, label: "2 Bait", desc: "Seimbang" },
-                        { n: 3, label: "3 Bait", desc: "Paling gampang" },
-                      ].map((c) => {
-                        const on = clueCount === c.n;
-                        return (
-                          <button
-                            key={c.n}
-                            onClick={() => {
-                              sfx.playClick();
-                              setClueCount(c.n);
-                            }}
-                            className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
-                              on
-                                ? "border-purple-400/60 bg-purple-500/15 text-purple-300"
-                                : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
-                            }`}
-                          >
-                            <span className="block text-[11px] font-bold">{c.label}</span>
-                            <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
-                              {c.desc}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: "easy", label: "Mudah", desc: "Mega hits" },
-                        { id: "medium", label: "Sedang", desc: "+ populer" },
-                        { id: "hard", label: "Semua", desc: "Seluruhnya" },
-                      ].map((d) => {
-                        const on = selectedDifficulty === d.id;
-                        const tint =
-                          d.id === "easy"
-                            ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-300"
-                            : d.id === "medium"
-                            ? "border-amber-400/60 bg-amber-500/15 text-amber-300"
-                            : "border-rose-400/60 bg-rose-500/15 text-rose-300";
-                        return (
-                          <button
-                            key={d.id}
-                            onClick={() => {
-                              sfx.playClick();
-                              setSelectedDifficulty(d.id);
-                            }}
-                            className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
-                              on ? tint : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
-                            }`}
-                          >
-                            <span className="block text-[11px] font-bold">{d.label}</span>
-                            <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
-                              {d.desc}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "easy", label: "Mudah", desc: "Mega hits" },
+                      { id: "medium", label: "Sedang", desc: "+ populer" },
+                      { id: "hard", label: "Semua", desc: "Seluruhnya" },
+                    ].map((d) => {
+                      const on = selectedDifficulty === d.id;
+                      const tint =
+                        d.id === "easy"
+                          ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-300"
+                          : d.id === "medium"
+                          ? "border-amber-400/60 bg-amber-500/15 text-amber-300"
+                          : "border-rose-400/60 bg-rose-500/15 text-rose-300";
+                      return (
+                        <button
+                          key={d.id}
+                          onClick={() => {
+                            sfx.playClick();
+                            setSelectedDifficulty(d.id);
+                          }}
+                          className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                            on ? tint : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                          }`}
+                        >
+                          <span className="block text-[11px] font-bold">{d.label}</span>
+                          <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                            {d.desc}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Mode-specific extras */}
+                {selectedMode === "tts" && (
+                  <>
+                    {/* Voice profile */}
+                    <div>
+                      <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
+                        SUARA ROBOT
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "normal", label: "Datar", desc: "Monotone", icon: "🤖" },
+                          { id: "bass", label: "Bass", desc: "Berat & rendah", icon: "🔊" },
+                          { id: "fast", label: "Cepat", desc: "Chipmunk", icon: "⚡" },
+                        ].map((a) => {
+                          const on = selectedAudioProfile === a.id;
+                          return (
+                            <button
+                              key={a.id}
+                              onClick={() => {
+                                sfx.playClick();
+                                setSelectedAudioProfile(a.id);
+                              }}
+                              className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                                on
+                                  ? "border-purple-400/60 bg-purple-500/15 text-purple-300"
+                                  : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                              }`}
+                            >
+                              <span className="block text-base leading-none">{a.icon}</span>
+                              <span className="block text-[11px] font-bold mt-1">{a.label}</span>
+                              <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                                {a.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Lyric bait count */}
+                    <div>
+                      <label className="text-[10px] font-mono text-mutedDark font-semibold mb-1.5 block">
+                        JUMLAH BAIT LIRIK
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { n: 1, label: "1 Bait", desc: "Paling susah" },
+                          { n: 2, label: "2 Bait", desc: "Seimbang" },
+                          { n: 3, label: "3 Bait", desc: "Paling gampang" },
+                        ].map((c) => {
+                          const on = clueCount === c.n;
+                          return (
+                            <button
+                              key={c.n}
+                              onClick={() => {
+                                sfx.playClick();
+                                setClueCount(c.n);
+                              }}
+                              className={`py-2.5 px-1 rounded-xl border-2 text-center transition active:scale-95 cursor-pointer ${
+                                on
+                                  ? "border-purple-400/60 bg-purple-500/15 text-purple-300"
+                                  : "border-surfaceBorder bg-surfaceRaised text-muted hover:text-white"
+                              }`}
+                            >
+                              <span className="block text-[11px] font-bold">{c.label}</span>
+                              <span className="block text-[9px] opacity-70 leading-tight mt-0.5">
+                                {c.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Rounds */}
                 <div>
