@@ -255,11 +255,11 @@ export default function MultiplayerPage() {
     }
 
     const profile = r.audioProfile || "normal";
-    // Each tier reveals more audio from the same starting point, so the slices
-    // stay cumulative rather than replaying the same window.
-    const TIER_SECONDS = { 1: 5, 2: 9, 3: 16, 4: 30 };
-    const stage = r.clueStage || 1;
-    const maxDuration = TIER_SECONDS[stage] || 5;
+    // The server owns the sequence; mirror whatever slice it says is active.
+    const sliceIndex = (r.clueIndex || r.clueStage || 1) - 1;
+    const maxDuration = Array.isArray(r.cluePlayDurations) && r.cluePlayDurations.length
+      ? Number(r.cluePlayDurations[sliceIndex]) || 5
+      : 5;
 
     if (r.mode === "tts") {
       if (!audioRef.current) return;
@@ -485,6 +485,21 @@ export default function MultiplayerPage() {
             setTimeout(() => {
               playAudioRef.current(data.room);
             }, 250);
+          } else if (data.type === "clue_phase") {
+            setRoom(data.room);
+
+            if (data.phase === "playing") {
+              // Fresh slice of audio
+              sfx.playGong();
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate([40, 30, 60]);
+              }
+              pauseAudioRef.current();
+              setTimeout(() => playAudioRef.current(data.room), 120);
+            } else {
+              // Silence: cut the audio dead
+              pauseAudioRef.current();
+            }
           } else if (data.type === "round_started") {
             stopAndResetAudio();
             setRoom(data.room);
@@ -1560,35 +1575,57 @@ export default function MultiplayerPage() {
           {/* 🌟 UNIFIED HERO ARENA DECK (VINYL + CLEAN TIMELINE) */}
           {/* ========================================================= */}
           {(room.status === "playing" || room.status === "buzzed") && (() => {
-            const currentStage = room.clueStage || 1;
-            const maxSecondsForStage = currentStage === 4 ? 15 : 10;
-            const secondsLeft = room.clueSecondsLeft !== undefined ? room.clueSecondsLeft : maxSecondsForStage;
-            const stageProgressPct = Math.max(0, Math.min(100, (secondsLeft / maxSecondsForStage) * 100));
+            const phase = room.cluePhase || "playing";
+            const clueIndex = room.clueIndex || 1;
+            const totalClues = room.totalClues || 3;
+            const secondsLeft = Math.max(0, room.clueSecondsLeft || 0);
+            const isPlaying = phase === "playing";
+            const isSilence = phase === "silence" || phase === "final_silence";
+
+            // How long the current phase should last, for the progress ring.
+            const playDurations = Array.isArray(room.cluePlayDurations) && room.cluePlayDurations.length
+              ? room.cluePlayDurations
+              : [5, 9, 15];
+            const finalSil = Number(room.clueFinalSilenceSeconds) || 30;
+            const gap = Number(room.clueGapSeconds) || 5;
+            const phaseTotal = isPlaying
+              ? playDurations[clueIndex - 1] ?? 5
+              : phase === "final_silence"
+              ? finalSil
+              : gap;
+            const phasePct = Math.max(
+              0,
+              Math.min(100, (secondsLeft / Math.max(1, phaseTotal)) * 100)
+            );
 
             return (
-              <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col items-center gap-2.5 text-center shadow-lg relative overflow-hidden w-full">
-                {/* Header: Subtle Stage & Countdown Pill */}
+              <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col items-center gap-3 text-center shadow-lg relative overflow-hidden w-full">
+                {/* Phase banner */}
                 <div className="w-full flex items-center justify-between text-xs font-mono px-0.5">
                   <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full text-zinc-300 font-bold text-[11px]">
-                    <span>{room.mode === "tts" ? "🤖 Robot TTS" : "🎧 Heardle"}</span>
+                    <span>{room.mode === "tts" ? "🤖 Robot TTS" : "🎧 Time Slice"}</span>
                     <span className="text-zinc-500">·</span>
-                    <span className="text-accent font-extrabold">Tahap {currentStage}/4</span>
+                    <span className="text-accent font-extrabold">
+                      Clue {Math.min(clueIndex, totalClues)}/{totalClues}
+                    </span>
                   </div>
 
                   <div
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border font-mono font-bold text-xs transition-colors ${
                       secondsLeft <= 3
                         ? "bg-red-500/15 border-red-500/40 text-red-400 animate-pulse"
+                        : isSilence
+                        ? "bg-zinc-800/60 border-zinc-700 text-zinc-400"
                         : "bg-surfaceRaised border-surfaceBorder text-amber-400"
                     }`}
                   >
-                    <Timer className="w-3.5 h-3.5" />
+                    {isSilence ? <VolumeX className="w-3.5 h-3.5" /> : <Timer className="w-3.5 h-3.5" />}
                     <span>{secondsLeft}s</span>
                   </div>
                 </div>
 
-                {/* Compact deck: one vinyl, one wave, inline status */}
-                <div className="flex items-center justify-center gap-3 py-0.5">
+                {/* Vinyl + phase ring */}
+                <div className="flex items-center justify-center gap-3">
                   <VinylPlayer
                     isPlaying={isPlayingAudio}
                     coverUrl={room.status === "revealed" ? room.revealedSong?.albumCover : undefined}
@@ -1596,7 +1633,7 @@ export default function MultiplayerPage() {
                     size="sm"
                     hideTag
                   />
-                  <div className="flex flex-col items-start gap-1">
+                  <div className="flex flex-col items-start gap-1.5">
                     <AudioWaveformVisualizer
                       isPlaying={isPlayingAudio}
                       variant="emerald"
@@ -1605,70 +1642,76 @@ export default function MultiplayerPage() {
                       className="w-24 opacity-90"
                     />
                     <span className="text-[10px] font-mono text-mutedDark leading-tight">
-                      {isPlayingAudio
-                        ? room.mode === "tts"
-                          ? "Robot membacakan..."
-                          : "Clue berputar..."
-                        : "Clue siap"}
+                      {isPlaying
+                        ? `Memutar ${phaseTotal}s`
+                        : phase === "final_silence"
+                        ? "Hening akhir"
+                        : "Hening"}
                     </span>
                   </div>
                 </div>
 
-                {/* 4 Clean Segmented Stage Pills (NO TEXT SPOILERS) */}
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full max-w-sm mt-0.5">
-                  {[1, 2, 3, 4].map((stageNum) => {
-                    const isCurrent = currentStage === stageNum;
-                    const isUnlocked = currentStage >= stageNum;
-                    const label =
-                      room.mode === "tts"
-                        ? `Bait ${stageNum}`
-                        : stageNum === 1
-                        ? "5s"
-                        : stageNum === 2
-                        ? "9s"
-                        : stageNum === 3
-                        ? "18s"
-                        : "30s";
+                {/* Big phase call-out */}
+                <div
+                  key={`${phase}-${clueIndex}`}
+                  className={`clue-phase-banner animate-clue-in ${
+                    phase === "final_silence" ? "clue-phase-glow" : ""
+                  }`}
+                >
+                  {isPlaying ? (
+                    <>
+                      <span className="text-2xl">🎵</span>
+                      <span className="text-sm font-black text-emerald-300">
+                        CLUE {clueIndex}
+                      </span>
+                    </>
+                  ) : phase === "final_silence" ? (
+                    <>
+                      <span className="text-2xl">🤫</span>
+                      <span className="text-sm font-black text-zinc-300">
+                        HENING — BERSIAP!
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl">🔇</span>
+                      <span className="text-sm font-black text-zinc-400">HENING</span>
+                    </>
+                  )}
+                </div>
 
+                {/* Clue progress bars — one per clue, filling as each plays */}
+                <div className="grid grid-cols-3 gap-1.5 w-full max-w-xs">
+                  {Array.from({ length: totalClues }).map((_, i) => {
+                    const n = i + 1;
+                    const done = n < clueIndex || (n === clueIndex && !isPlaying && phase !== "final_silence");
+                    const active = n === clueIndex && isPlaying;
                     return (
                       <div
-                        key={stageNum}
-                        className={`relative h-7 rounded-lg flex items-center justify-center font-mono text-[10px] font-bold transition-all duration-300 overflow-hidden border ${
-                          isCurrent
-                            ? "border-emerald-400 bg-zinc-900 text-emerald-300 shadow-md shadow-emerald-500/20"
-                            : isUnlocked
-                            ? "border-emerald-700/60 bg-emerald-950/40 text-emerald-400"
-                            : "border-surfaceBorder bg-surfaceRaised/60 text-zinc-600"
+                        key={n}
+                        className={`h-1.5 rounded-full overflow-hidden border transition ${
+                          done
+                            ? "border-emerald-500/40 bg-emerald-500/30"
+                            : active
+                            ? "border-emerald-400/50 bg-surfaceRaised"
+                            : "border-surfaceBorder bg-surfaceRaised/60"
                         }`}
-                        title={`Tahap ${stageNum}: ${label}`}
+                        title={`Clue ${n}: ${playDurations[i] ?? 5}s`}
                       >
-                        {/* Smooth active countdown fill inside current pill */}
-                        {isCurrent && (
+                        {active && (
                           <div
-                            className="absolute inset-0 bg-emerald-500/20 transition-all duration-1000 ease-linear"
-                            style={{ width: `${stageProgressPct}%` }}
+                            className="h-full bg-emerald-400 transition-all duration-1000 ease-linear"
+                            style={{ width: `${phasePct}%` }}
                           />
                         )}
-                        <span className="relative z-10 flex items-center gap-1 select-none">
-                          {isUnlocked ? (
-                            isCurrent ? (
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            ) : (
-                              <span className="text-[10px]">✓</span>
-                            )
-                          ) : (
-                            <span className="text-[9px]">🔒</span>
-                          )}
-                          <span>{label}</span>
-                        </span>
+                        {done && <div className="h-full bg-emerald-500/60" />}
                       </div>
                     );
                   })}
                 </div>
 
-                {/* The clue runs on its own clock — the only choice left is
-                    whether everyone gives up on this round. */}
-                <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60 gap-1.5">
+                {/* Nyerah */}
+                <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60">
                   <button
                     onClick={handleSkipRound}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${

@@ -451,6 +451,10 @@ async function getMatchSongsQueue(category, difficulty, count = 5, mode = null, 
 const DEFAULT_SETTINGS = {
   buzzerTimerSeconds: 15,
   playerLivesPerRound: 3,
+  // Buzz race: the buzzer stays locked while the clues play out, then opens.
+  cluePlayDurations: [5, 9, 15],
+  clueGapSeconds: 5,
+  clueFinalSilenceSeconds: 30,
   clueExtensionIntervalSeconds: 10,
   finalStageSeconds: 15,
   disconnectGracePeriodSeconds: 45,

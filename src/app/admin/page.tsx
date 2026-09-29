@@ -43,6 +43,7 @@ import {
   Eye,
   EyeOff,
   Youtube,
+  Timer,
 } from "lucide-react";
 import { CATEGORIES, DIFFICULTIES } from "@/data/songs";
 import { ArtistsManager } from "@/components/admin/ArtistsManager";
@@ -454,6 +455,9 @@ export default function AdminDashboardPage() {
   const [gameSettings, setGameSettings] = useState<any>({
     buzzerTimerSeconds: 20,
     playerLivesPerRound: 3,
+    cluePlayDurations: [5, 9, 15],
+    clueGapSeconds: 5,
+    clueFinalSilenceSeconds: 30,
     clueExtensionIntervalSeconds: 30,
     finalStageSeconds: 90,
     disconnectGracePeriodSeconds: 45,
@@ -1822,6 +1826,85 @@ export default function AdminDashboardPage() {
                   }
                   className="bg-surfaceRaised border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
                 />
+              </div>
+
+              {/* Clue Sequence: play durations, gaps and final silence */}
+              <div className="col-span-full sm:col-span-2 rounded-2xl border border-surfaceBorder bg-surfaceRaised/50 p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-accent" />
+                  <span className="text-xs font-mono text-zinc-200 font-bold">
+                    SEQUENCE CLUE MULTIPLAYER
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted font-mono leading-relaxed">
+                  Setiap clue: main musik selama N detik, lalu hening. Setelah clue terakhir,
+                  hening lebih lama sebagai jeda sebelum ronde ditutup.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                      DURASI MUSIK PER CLUE (DETIK, PISAH KOMA)
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={(gameSettings.cluePlayDurations || [5, 9, 15]).join(",")}
+                      onBlur={(e) => {
+                        const parsed = e.target.value
+                          .split(",")
+                          .map((v) => Math.max(1, Math.min(60, parseInt(v.trim(), 10) || 5)))
+                          .filter((n) => !isNaN(n));
+                        setGameSettings({
+                          ...gameSettings,
+                          cluePlayDurations: parsed.length ? parsed : [5, 9, 15],
+                        });
+                      }}
+                      placeholder="5, 9, 15"
+                      className="bg-surface border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
+                    />
+                    <span className="text-[10px] text-mutedDark font-mono">
+                      Contoh: 5, 9, 15 → 3 clue
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                      HENING ANTAR CLUE (DETIK)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={30}
+                      value={gameSettings.clueGapSeconds ?? 5}
+                      onChange={(e) =>
+                        setGameSettings({
+                          ...gameSettings,
+                          clueGapSeconds: Math.max(0, parseInt(e.target.value, 10) || 0),
+                        })
+                      }
+                      className="bg-surface border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono text-mutedDark font-semibold">
+                      HENING AKHIR (DETIK)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={120}
+                      value={gameSettings.clueFinalSilenceSeconds ?? 30}
+                      onChange={(e) =>
+                        setGameSettings({
+                          ...gameSettings,
+                          clueFinalSilenceSeconds: Math.max(0, parseInt(e.target.value, 10) || 0),
+                        })
+                      }
+                      className="bg-surface border border-surfaceBorder rounded-xl p-2.5 text-xs text-white outline-none focus:border-accent font-mono"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Clue Interval */}

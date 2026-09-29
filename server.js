@@ -216,6 +216,15 @@ function getSanitizedRoom(room) {
           hasYoutube: !!(room.currentSong.youtubeId && room.currentSong.youtubeStatus === "ready"),
         }
       : null,
+    // Clue sequence state so every client animates the same phase
+    cluePhase: room.cluePhase || "playing",
+    clueIndex: room.clueIndex || 0,
+    totalClues: (room.cluePlayDurations || []).length,
+    cluePlayDurations: room.cluePlayDurations || [],
+    clueGapSeconds: room.clueGapSeconds || 5,
+    clueFinalSilenceSeconds: room.clueFinalSilenceSeconds || 30,
+    clueSecondsLeft: room.clueSecondsLeft || 0,
+    buzzerOpen: room.cluePhase === "buzzer",
     revealedSong: room.status === "revealed" || room.status === "game_over" ? room.currentSong : null,
   };
 }
@@ -300,6 +309,13 @@ async function startRound(room) {
   room.buzzerTimerSeconds = Number(settings.buzzerTimerSeconds) || 15;
   room.playerLivesPerRound = Number(settings.playerLivesPerRound) || 3;
   room.heardleDurations = Array.isArray(settings.heardleDurations) ? settings.heardleDurations : [5, 9, 18, 30];
+  // Clue sequence: play a slice, go quiet, play the next slice, then stay quiet
+  // and finally open the buzzer. All three are admin-configurable.
+  room.cluePlayDurations = Array.isArray(settings.cluePlayDurations) && settings.cluePlayDurations.length
+    ? settings.cluePlayDurations.map((n) => Number(n) || 5)
+    : [5, 9, 15];
+  room.clueGapSeconds = Number(settings.clueGapSeconds) || 5;
+  room.clueFinalSilenceSeconds = Number(settings.clueFinalSilenceSeconds) || 30;
 
   room.currentRound += 1;
   room.status = "playing";
@@ -310,10 +326,15 @@ async function startRound(room) {
   // Buzz race: one fixed round timer, the clue audio just gets longer. Dropped
   // the 4-stage vote gate — it was slow to play and the rounds never got long
   // enough for anyone to enjoy the tension.
-  room.clueStage = 1;
-  room.roundSecondsLeft = room.clueExtensionIntervalSeconds * 3 + 5;
-  room.clueSecondsLeft = room.roundSecondsLeft;
+  // ── Clue sequence state machine ──────────────────────────────────────────
+  // Each clue: play a slice of the song, then fall silent. After the last clue
+  // there's a longer silence, and only then does the buzzer open. The buzzer is
+  // locked the whole time so nobody can guess off a half-heard clip.
+  room.cluePhase = "idle"; // "idle" | "playing" | "silence" | "final_silence" | "buzzer"
+  room.clueIndex = 0;
+  room.clueSecondsLeft = 0;
   room.buzzCooldowns = {};
+  room.buzzerOpensAt = null;
 
   if (room.autoNextTimer) {
     clearInterval(room.autoNextTimer);
@@ -336,31 +357,65 @@ async function startRound(room) {
     playerLives,
   };
 
-  // One countdown for the whole round. The audio gets longer as it runs down.
+  function nextPhase() {
+    if (room.clueIndex < room.cluePlayDurations.length) {
+      room.clueIndex += 1;
+      room.clueStage = room.clueIndex;
+      room.cluePhase = "playing";
+      room.clueSecondsLeft = room.cluePlayDurations[room.clueIndex - 1];
+      return "playing";
+    }
+    room.cluePhase = "final_silence";
+    room.clueSecondsLeft = room.clueFinalSilenceSeconds;
+    return "final_silence";
+  }
+
+  nextPhase();
+
   room.stageTimer = setInterval(() => {
     if (room.status !== "playing") return;
     room.clueSecondsLeft -= 1;
 
-    // Reveal the clue in growing slices as the clock runs down.
-    const elapsed = room.roundSecondsLeft - room.clueSecondsLeft;
-    const tier = elapsed >= 27 ? 4 : elapsed >= 20 ? 3 : elapsed >= 11 ? 2 : 1;
-    if (tier > room.clueStage) {
-      room.clueStage = tier;
+    if (room.clueSecondsLeft > 0) {
       broadcast(room, {
-        type: "clue_extended",
-        stage: tier,
+        type: "clue_phase",
+        phase: room.cluePhase,
+        clueIndex: room.clueIndex,
+        totalClues: room.cluePlayDurations.length,
         secondsLeft: room.clueSecondsLeft,
-        message: CLUE_TIER_MESSAGES[tier],
         room: getSanitizedRoom(room),
       });
+      return;
     }
 
-    if (room.clueSecondsLeft <= 0) {
+    // A phase just ran out. Advance, or end the round after the final silence.
+    if (room.cluePhase === "playing") {
+      room.cluePhase = "silence";
+      room.clueSecondsLeft = room.clueGapSeconds;
+    } else if (room.cluePhase === "silence") {
+      nextPhase();
+    } else {
       triggerRoundRevealed(room, {
         type: "round_revealed",
-        message: `Waktu habis! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+        message: `Tidak ada yang menjawab! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
       });
+      return;
     }
+
+    broadcast(room, {
+      type: "clue_phase",
+      phase: room.cluePhase,
+      clueIndex: room.clueIndex,
+      totalClues: room.cluePlayDurations.length,
+      secondsLeft: room.clueSecondsLeft,
+      message:
+        room.cluePhase === "playing"
+          ? `🎵 Clue ${room.clueIndex}/${room.cluePlayDurations.length}`
+          : room.cluePhase === "silence"
+          ? "🔇 Hening…"
+          : "🤫 Hening… bersiap!",
+      room: getSanitizedRoom(room),
+    });
   }, 1000);
 
   // Pick next song from pre-rolled match queue (zero lag, 100% distinct, zero duplicates!)
@@ -741,6 +796,9 @@ app.prepare().then(() => {
           const roomCode = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
           const room = rooms.get(roomCode);
           if (!room || room.status !== "playing") return;
+
+          // The buzzer is open for the whole round — buzzing early is allowed,
+          // it just means you're guessing off a short clip.
 
           // Determine the player accurately across reconnections
           const callerId = data.playerId || meta.id || playerId;
