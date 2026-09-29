@@ -375,42 +375,15 @@ async function startRound(room) {
 
   nextPhase();
 
-  room.stageTimer = setInterval(() => {
-    if (room.status !== "playing") return;
-    room.clueSecondsLeft -= 1;
-
-    if (room.clueSecondsLeft > 0) {
-      broadcast(room, {
-        type: "clue_phase",
-        phase: room.cluePhase,
-        clueIndex: room.clueIndex,
-        totalClues: room.cluePlayDurations.length,
-        secondsLeft: room.clueSecondsLeft,
-        room: getSanitizedRoom(room),
-      });
-      return;
-    }
-
-    // A phase just ran out. Advance, or end the round after the final silence.
-    if (room.cluePhase === "playing") {
-      room.cluePhase = "silence";
-      room.clueSecondsLeft = room.clueGapSeconds;
-    } else if (room.cluePhase === "silence") {
-      nextPhase();
-    } else {
-      triggerRoundRevealed(room, {
-        type: "round_revealed",
-        message: `Tidak ada yang menjawab! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
-      });
-      return;
-    }
-
+  function emitCluePhase(phaseChanged) {
     broadcast(room, {
       type: "clue_phase",
       phase: room.cluePhase,
       clueIndex: room.clueIndex,
       totalClues: room.cluePlayDurations.length,
       secondsLeft: room.clueSecondsLeft,
+      // Explicit signal so the client never has to diff against stale state.
+      phaseChanged: !!phaseChanged,
       message:
         room.cluePhase === "playing"
           ? `🎵 Clue ${room.clueIndex}/${room.cluePlayDurations.length}`
@@ -419,7 +392,7 @@ async function startRound(room) {
           : "🤫 Hening… bersiap!",
       room: getSanitizedRoom(room),
     });
-  }, 1000);
+  }
 
   // Pick next song from pre-rolled match queue (zero lag, 100% distinct, zero duplicates!)
   let chosenSong = null;
@@ -473,6 +446,37 @@ async function startRound(room) {
     autoPlay: true,
     room: getSanitizedRoom(room),
   });
+
+  // The clue clock only starts once the song is loaded and clients have the
+  // room payload — starting it earlier broadcast a phase with no song attached.
+  room.stageTimer = setInterval(() => {
+    if (room.status !== "playing") return;
+    room.clueSecondsLeft -= 1;
+
+    if (room.clueSecondsLeft > 0) {
+      emitCluePhase(false);
+      return;
+    }
+
+    // A phase just ran out. Advance, or end the round after the final silence.
+    if (room.cluePhase === "playing") {
+      room.cluePhase = "silence";
+      room.clueSecondsLeft = room.clueGapSeconds;
+    } else if (room.cluePhase === "silence") {
+      nextPhase();
+    } else {
+      triggerRoundRevealed(room, {
+        type: "round_revealed",
+        message: `Tidak ada yang menjawab! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
+      });
+      return;
+    }
+
+    emitCluePhase(true);
+  }, 1000);
+
+  // Announce the opening clue so clients start audio without waiting a tick.
+  emitCluePhase(true);
 }
 
 function handleBuzzTimeout(room) {

@@ -521,19 +521,23 @@ export default function MultiplayerPage() {
               playAudioRef.current(data.room);
             }, 250);
           } else if (data.type === "clue_phase") {
+            // The server ticks clue_phase every second, so only react when it
+            // explicitly flags a phase change — otherwise the clip restarts 1s
+            // at a time.
             setRoom(data.room);
-
-            if (data.phase === "playing") {
-              // Fresh slice of audio
-              sfx.playGong();
-              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                navigator.vibrate([40, 30, 60]);
+            if (data.phaseChanged) {
+              if (data.phase === "playing") {
+                // Fresh slice of audio
+                sfx.playGong();
+                if (typeof navigator !== "undefined" && navigator.vibrate) {
+                  navigator.vibrate([40, 30, 60]);
+                }
+                pauseAudioRef.current();
+                setTimeout(() => playAudioRef.current(data.room), 120);
+              } else {
+                // Silence: cut the audio dead
+                pauseAudioRef.current();
               }
-              pauseAudioRef.current();
-              setTimeout(() => playAudioRef.current(data.room), 120);
-            } else {
-              // Silence: cut the audio dead
-              pauseAudioRef.current();
             }
           } else if (data.type === "round_started") {
             stopAndResetAudio();
