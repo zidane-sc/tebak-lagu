@@ -1713,13 +1713,14 @@ export default function MultiplayerPage() {
                       {isPlaying
                         ? `Memutar ${phaseTotal}s`
                         : phase === "final_silence"
-                        ? "Waktu terakhir"
-                        : "Dengarkan dan ingat"}
+                        ? "Kesempatan terakhir buat menjawab"
+                        : `${secondsLeft} detik menuju clue selanjutnya`}
                     </span>
                   </div>
                 </div>
 
-                {/* Big phase call-out */}
+                {/* Big phase call-out. Keyed on the phase only — including the
+                    countdown would re-trigger the pop every second. */}
                 <div
                   key={`${phase}-${clueIndex}`}
                   className={`clue-phase-banner animate-clue-in ${
@@ -1736,15 +1737,15 @@ export default function MultiplayerPage() {
                   ) : phase === "final_silence" ? (
                     <>
                       <span className="text-2xl">🚨</span>
-                      <span className="text-sm font-black text-amber-300">
-                        BUZZER SEBENTAR LAGI
+                      <span className="text-xs font-black text-amber-300">
+                        Kesempatan terakhir buat menjawab
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-2xl">💭</span>
-                      <span className="text-sm font-black text-zinc-400">
-                        UJI INGATAN
+                      <span className="text-2xl">⏳</span>
+                      <span className="text-xs font-black text-zinc-400">
+                        {secondsLeft} detik menuju clue selanjutnya
                       </span>
                     </>
                   )}
