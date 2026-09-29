@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { CATEGORIES } from "@/data/songs";
 import { ArtistSelector } from "@/components/game/ArtistSelector";
+import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 
 const GAME_MODES = [
   {
@@ -503,6 +504,13 @@ export default function HomePage() {
             <Settings className="w-3.5 h-3.5" />
             <span>Studio Admin</span>
           </Link>
+          <span>•</span>
+          <PwaInstallBanner
+            variant="inline"
+            className="hover:text-accent flex items-center gap-1 transition-colors text-zinc-400 py-1 px-1.5"
+          >
+            <span>Install App</span>
+          </PwaInstallBanner>
           <span>•</span>
           <p className="text-zinc-500 py-1">Komunitas Musik 🎧</p>
         </div>

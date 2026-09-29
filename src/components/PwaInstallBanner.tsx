@@ -8,11 +8,17 @@ import { Download, X, Smartphone } from "lucide-react";
  * old card plus a 56px icon ate a third of the viewport before you could even
  * read it.
  */
-export const PwaInstallBanner: React.FC = () => {
+export const PwaInstallBanner: React.FC<{
+  /** "banner" = the floating pill. "inline" = a permanent button you place yourself. */
+  variant?: "banner" | "inline";
+  className?: string;
+  children?: React.ReactNode;
+}> = ({ variant = "banner", className = "", children }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosHelp, setShowIosHelp] = useState(false);
 
   useEffect(() => {
     const isApp =
@@ -24,12 +30,14 @@ export const PwaInstallBanner: React.FC = () => {
     }
 
     // Stay hidden for a week after a dismiss, so it never nags twice in a session.
-    try {
-      const dismissed = localStorage.getItem("tebak_lagu_pwa_dismissed");
-      if (dismissed && Date.now() - parseInt(dismissed, 10) < 7 * 24 * 60 * 60 * 1000) {
-        return;
-      }
-    } catch {}
+    if (variant === "banner") {
+      try {
+        const dismissed = localStorage.getItem("tebak_lagu_pwa_dismissed");
+        if (dismissed && Date.now() - parseInt(dismissed, 10) < 7 * 24 * 60 * 60 * 1000) {
+          return;
+        }
+      } catch {}
+    }
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
@@ -43,7 +51,7 @@ export const PwaInstallBanner: React.FC = () => {
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIos(isIosDevice);
 
-    if (isIosDevice) {
+    if (isIosDevice && variant === "banner") {
       const timer = setTimeout(() => setShowBanner(true), 4000);
       return () => clearTimeout(timer);
     }
@@ -51,7 +59,7 @@ export const PwaInstallBanner: React.FC = () => {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
-  }, []);
+  }, [variant]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -59,7 +67,10 @@ export const PwaInstallBanner: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") setShowBanner(false);
       setDeferredPrompt(null);
+      return;
     }
+    // iOS never fires beforeinstallprompt — walk them through the manual flow.
+    if (isIos) setShowIosHelp(true);
   };
 
   const handleDismiss = () => {
@@ -69,7 +80,25 @@ export const PwaInstallBanner: React.FC = () => {
     } catch {}
   };
 
-  if (!showBanner || isStandalone) return null;
+  if (isStandalone) return null;
+
+  // Inline mode: a permanent, always-available entry point (e.g. inside a menu).
+  // Kept icon-only so it never competes with whatever it sits next to.
+  if (variant === "inline") {
+    return (
+      <button
+        onClick={handleInstallClick}
+        className={className}
+        title="Install aplikasi"
+        aria-label="Install aplikasi"
+      >
+        <Download className="h-4 w-4" />
+        {children}
+      </button>
+    );
+  }
+
+  if (!showBanner) return null;
 
   return (
     <aside
@@ -109,6 +138,17 @@ export const PwaInstallBanner: React.FC = () => {
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      {/* iOS has no install prompt, so spell the steps out. */}
+      {isIos && showIosHelp && (
+        <div className="mt-2 rounded-2xl border border-surfaceBorder bg-surface/95 p-3 shadow-lg shadow-black/60 backdrop-blur-xl">
+          <ol className="space-y-1.5 text-[11px] leading-tight text-zinc-300">
+            <li>1. Tap tombol Bagikan di Safari (kotak dengan panah ke atas)</li>
+            <li>2. Pilih &ldquo;Add to Home Screen&rdquo;</li>
+            <li>3. Ketuk &ldquo;Add&rdquo; di kanan atas</li>
+          </ol>
+        </div>
+      )}
     </aside>
   );
 };
