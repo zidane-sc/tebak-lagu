@@ -85,6 +85,18 @@ export default function HomePage() {
     } catch {}
   }, []);
 
+  const openConfigModal = (mode: any) => {
+    // Always start from a clean slate. Without this the previous run's picks stick
+    // around and players think their old difficulty is being ignored.
+    setModalFilterType("category");
+    setModalCategory("Semua Playlist");
+    setModalSelectedArtists([]);
+    setModalDifficulty("easy");
+    setModalAudioProfile("normal");
+    setModalRounds(5);
+    setConfigModalMode(mode);
+  };
+
   const handleStartGame = () => {
     if (!configModalMode) return;
     try {
@@ -208,7 +220,7 @@ export default function HomePage() {
               <button
                 type="button"
                 key={mode.id}
-                onClick={() => setConfigModalMode(mode)}
+                onClick={() => openConfigModal(mode)}
                 className={`group relative bg-gradient-to-br ${mode.bgGradient} border ${mode.borderColor} rounded-3xl p-5 transition-all duration-300 flex flex-col justify-between gap-4 text-left cursor-pointer shadow-lg hover:shadow-2xl ${mode.glowClass} active:scale-[0.99] overflow-hidden`}
               >
                 {/* Header */}

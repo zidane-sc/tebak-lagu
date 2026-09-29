@@ -84,12 +84,15 @@ export default function PlayArenaPage() {
   const [isMatchFinished, setIsMatchFinished] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Load Config from sessionStorage or fallback to URL query
+  // Load Config from sessionStorage or fallback to URL query.
+  // The stored config is consumed once so a later visit can't silently inherit
+  // the previous run's picks.
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("tebak_lagu_single_config");
       if (saved) {
         const parsed = JSON.parse(saved);
+        sessionStorage.removeItem("tebak_lagu_single_config");
         setGameConfig({
           filterType: parsed.filterType || "category",
           category: parsed.category || "Semua Playlist",
@@ -218,7 +221,10 @@ export default function PlayArenaPage() {
         colors: ["#22c55e", "#10b981", "#38bdf8", "#facc15"],
       });
 
-      const points = (config.maxGuesses - guesses.length) * 100;
+      // Score mirrors the multiplayer engine: fewer wrong guesses pays more, but
+      // a round won on the first try is worth far more than a last-guess save.
+      const wrongGuesses = guesses.length;
+      const points = Math.max(100, (config.maxGuesses - wrongGuesses) * 150);
       const newScore = score + points;
 
       setGuesses((prev) => [
@@ -307,6 +313,10 @@ export default function PlayArenaPage() {
   };
 
   const handleNextRound = () => {
+    // Score for the last round is already committed into `score`, so submit the
+    // real running total instead of a per-correct-count guess.
+    const finalScore = isWon ? score + scoreGained : score;
+
     if (roundNumber >= gameConfig.maxRounds) {
       setIsGameOver(false);
       setIsMatchFinished(true);
@@ -328,7 +338,7 @@ export default function PlayArenaPage() {
           mode: modeKey,
           category: gameConfig.category,
           difficulty: gameConfig.difficulty,
-          score: correctCount * 100,
+          score: finalScore,
         }),
       }).catch(() => {});
 
