@@ -212,8 +212,18 @@ export default function MultiplayerPage() {
     }
   }, []);
 
-  // Load saved name or auto-sync with logged in Google User
+  // Load saved name or auto-sync with logged in Google User.
+  // A manual pick always wins — logging in shouldn't overwrite a chosen nickname.
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("tebak_lagu_multi_name");
+      const manual = localStorage.getItem("tebak_lagu_multi_name_manual");
+      if (manual === "1" && saved) {
+        setPlayerName(saved);
+        return;
+      }
+    } catch {}
+
     if (user && user.name) {
       setPlayerName(user.name);
     } else {
@@ -790,6 +800,8 @@ export default function MultiplayerPage() {
     setPlayerName(name);
     try {
       localStorage.setItem("tebak_lagu_multi_name", name);
+      // Marks this as a deliberate pick so a later Google login won't clobber it.
+      localStorage.setItem("tebak_lagu_multi_name_manual", "1");
     } catch {}
   };
 
@@ -1003,13 +1015,19 @@ export default function MultiplayerPage() {
             className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition py-1.5 px-2.5 rounded-lg hover:bg-surfaceRaised active:scale-95"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Solo Mode</span>
+            <span>Solo</span>
           </Link>
         )}
 
-        <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full shadow-sm">
-          <Zap className="w-3.5 h-3.5 text-accent fill-accent" />
-          <span className="font-bold">LIVE BUZZER</span>
+        <div className="flex items-center gap-1.5">
+          {view === "menu" || view === "create" || view === "join" ? (
+            <GoogleAuthButton />
+          ) : null}
+
+          <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full shadow-sm">
+            <Zap className="w-3.5 h-3.5 text-accent fill-accent" />
+            <span className="font-bold">Multiplayer</span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -1045,21 +1063,14 @@ export default function MultiplayerPage() {
       {/* ======================================================== */}
       {view === "menu" && (
         <main className="flex-1 flex flex-col gap-3 py-2">
-          {/* Compact hero — no giant logo block eating the fold */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-accent/20 to-emerald-500/10 border border-accent/30 flex items-center justify-center text-accent shadow-md shadow-accent/10 shrink-0">
               <Zap className="w-5 h-5 fill-accent" />
             </div>
             <div className="min-w-0">
               <h2 className="text-lg font-bold tracking-tight text-white leading-tight">
-                Multiplayer Room
+                Buat atau Gabung Room
               </h2>
-              <p className="text-[11px] text-muted leading-tight">
-                Adu buzzer real-time. Siapa cepat, dapat poin.
-              </p>
-            </div>
-            <div className="ml-auto shrink-0">
-              <GoogleAuthButton />
             </div>
           </div>
 
@@ -1081,32 +1092,29 @@ export default function MultiplayerPage() {
             />
           </div>
 
-          {/* Action CTAs */}
-          <div className="flex flex-col gap-2 mt-auto">
-            <button
-              onClick={() => {
-                sfx.playClick();
-                setView("create");
-              }}
-              disabled={!isConnected || !playerName.trim()}
-              className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-accent/20 text-sm cursor-pointer"
-            >
-              <Zap className="w-4 h-4 fill-zinc-950" />
-              <span>Buat Room Baru (Host)</span>
-            </button>
+            {/* Action CTAs */}
+            <div className="flex flex-col gap-2 mt-auto">
+              <button
+                onClick={handleCreateRoom}
+                disabled={!isConnected || !playerName.trim()}
+                className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-accent/20 text-sm cursor-pointer"
+              >
+                <Zap className="w-4 h-4 fill-zinc-950" />
+                <span>Buat Room Baru (Host)</span>
+              </button>
 
-            <button
-              onClick={() => {
-                sfx.playClick();
-                setView("join");
-              }}
-              disabled={!isConnected || !playerName.trim()}
-              className="w-full bg-surface hover:bg-surfaceRaised disabled:opacity-40 text-zinc-200 border border-surfaceBorder font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer"
-            >
-              <Users className="w-4 h-4 text-muted" />
-              <span>Gabung Room dengan Kode</span>
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  sfx.playClick();
+                  setView("join");
+                }}
+                disabled={!isConnected || !playerName.trim()}
+                className="w-full bg-surface hover:bg-surfaceRaised disabled:opacity-40 text-zinc-200 border border-surfaceBorder font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer"
+              >
+                <Users className="w-4 h-4 text-muted" />
+                <span>Gabung Room dengan Kode</span>
+              </button>
+            </div>
         </main>
       )}
 
@@ -1129,32 +1137,17 @@ export default function MultiplayerPage() {
             <span className="text-xs font-mono font-semibold text-zinc-200">Pengaturan Room</span>
           </div>
 
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-5 flex flex-col gap-4 shadow-sm">
-            {/* Mode Picker */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold">
-                MODE TEBAKAN
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "heardle", label: "Time Slice (Heardle) ⏱️" },
-                  { id: "tts", label: "Robot Speech (TTS) 🤖" },
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      sfx.playClick();
-                      setSelectedMode(m.id);
-                    }}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-semibold text-left transition ${
-                      selectedMode === m.id
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+          <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3.5 shadow-sm">
+            {/* Mode is fixed to Time Slice — it is the only multiplayer mode */}
+            <div className="flex items-center gap-2.5 pb-1">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+                <Timer className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-white leading-tight">Time Slice</h3>
+                <p className="text-[10px] text-muted font-mono leading-tight">
+                  Dengerin clue, lalu buzz sebelum waktu habis
+                </p>
               </div>
             </div>
 
@@ -1237,20 +1230,17 @@ export default function MultiplayerPage() {
                 <span>TINGKAT KESULITAN</span>
                 <span className="text-accent font-bold">
                   {selectedDifficulty === "easy"
-                    ? "Mudah (Mega Hits) 🟢"
+                    ? "Mudah 🟢"
                     : selectedDifficulty === "medium"
-                    ? "Sedang (Populer) 🟡"
-                    : selectedDifficulty === "hard"
-                    ? "Sulit (Sepuh) 🔴"
-                    : "Campur (Semua) 🔀"}
+                    ? "Sedang 🟡"
+                    : "Semua 🔴"}
                 </span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
-                  { id: "easy", label: "Mudah (Mega Hits) 🟢", desc: "Lagu viral & hits sejuta umat" },
-                  { id: "medium", label: "Sedang (Populer) 🟡", desc: "Hits radio & single album" },
-                  { id: "hard", label: "Sulit (Sepuh) 🔴", desc: "Deep cuts & b-side buat sepuh" },
-                  { id: "all", label: "Campur (Semua) 🔀", desc: "Koleksi lengkap acak" },
+                  { id: "easy", label: "Mudah 🟢", desc: "Mega hits" },
+                  { id: "medium", label: "Sedang 🟡", desc: "+ populer" },
+                  { id: "hard", label: "Semua 🔴", desc: "Seluruhnya" },
                 ].map((d) => (
                   <button
                     key={d.id}
@@ -1258,51 +1248,14 @@ export default function MultiplayerPage() {
                       sfx.playClick();
                       setSelectedDifficulty(d.id);
                     }}
-                    className={`py-2 px-3 rounded-xl text-left transition flex flex-col ${
+                    className={`py-2 px-2 rounded-xl text-center transition flex flex-col items-center gap-0.5 ${
                       selectedDifficulty === d.id
                         ? "bg-zinc-100 text-zinc-950 shadow-sm"
                         : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
                     }`}
                   >
-                    <span className="text-xs font-semibold">{d.label}</span>
-                    <span className="text-[10px] opacity-75 font-mono">{d.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tipe Suara / Audio Profile */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
-                <span>TIPE SUARA / AUDIO PROFILE</span>
-                <span className="text-accent font-bold">
-                  {selectedAudioProfile === "normal"
-                    ? "Datar / Robotik 🤖"
-                    : selectedAudioProfile === "bass"
-                    ? "Bass Booster 🔊"
-                    : "Cepat / Chipmunk ⚡"}
-                </span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: "normal", label: "Datar 🤖", desc: "Monotone" },
-                  { id: "bass", label: "Bass 🔊", desc: "Berat & Low" },
-                  { id: "fast", label: "Cepat ⚡", desc: "Chipmunk" },
-                ].map((ap) => (
-                  <button
-                    key={ap.id}
-                    onClick={() => {
-                      sfx.playClick();
-                      setSelectedAudioProfile(ap.id);
-                    }}
-                    className={`py-2 px-2 rounded-xl text-center transition flex flex-col items-center ${
-                      selectedAudioProfile === ap.id
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                    }`}
-                  >
-                    <span className="text-xs font-semibold">{ap.label}</span>
-                    <span className="text-[9px] opacity-75 font-mono">{ap.desc}</span>
+                    <span className="text-[11px] font-semibold">{d.label}</span>
+                    <span className="text-[9px] opacity-75 font-mono">{d.desc}</span>
                   </button>
                 ))}
               </div>
