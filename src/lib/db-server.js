@@ -455,6 +455,8 @@ const DEFAULT_SETTINGS = {
   cluePlayDurations: [5, 9, 15],
   clueGapSeconds: 5,
   clueFinalSilenceSeconds: 30,
+  // How long the robot reads lyric stanzas in TTS multiplayer
+  ttsReadSeconds: 20,
   clueExtensionIntervalSeconds: 10,
   finalStageSeconds: 15,
   disconnectGracePeriodSeconds: 45,

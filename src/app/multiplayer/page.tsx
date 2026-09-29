@@ -306,6 +306,8 @@ export default function MultiplayerPage() {
       if (audioRef.current.src !== ttsUrl) {
         audioRef.current.src = ttsUrl;
       }
+      // TTS read is long — don't cut it short with a slice timer, the phase
+      // clock on the server decides when the clue ends.
     } else {
       // Tiers are cumulative: each one starts at the song's vocal start and
       // plays for longer, so later tiers simply contain everything the earlier
@@ -337,7 +339,11 @@ export default function MultiplayerPage() {
       if (audioRef.current.src !== previewUrl) {
         audioRef.current.src = previewUrl;
       }
-      audioRef.current.currentTime = startAt;
+      // Apple/Deezer previews are ~30s snippets that start at the vocal onset,
+      // so seeking into them by the same offset the YouTube path uses lands past
+      // the end. Clamp so there is always something to hear.
+      const previewStart = Number(clue?.startSecond) || 0;
+      audioRef.current.currentTime = Math.min(previewStart, 5);
 
       sliceTimerRef.current = setTimeout(() => {
         if (audioRef.current) {

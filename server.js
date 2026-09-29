@@ -203,10 +203,12 @@ function getSanitizedRoom(room) {
           category: room.currentSong.category,
           year: room.currentSong.year,
           lang: room.currentSong.lang || (room.currentSong.category === "Western Hits" ? "en" : "id"),
-          lyricsClues: (room.currentSong.lyricsClues || []).slice(
-            0,
-            room.mode === "tts" && room.clueCount > 0 ? room.clueCount : room.clueStage || 1
-          ),
+          // TTS shows a fixed number of stanzas chosen at room creation, so the
+          // robot reads the same lines every phase. Time Slice has no lyrics.
+          lyricsClues:
+            room.mode === "tts"
+              ? room.modeClues || (room.currentSong.lyricsClues || []).slice(0, room.clueCount || 1)
+              : [],
           allLyricsClues: room.currentSong.lyricsClues,
           clueStage: room.clueStage || 1,
           previewUrl: room.currentSong.previewResolved || room.currentSong.previewUrl,
@@ -319,6 +321,13 @@ async function startRound(room) {
     : [5, 9, 15];
   room.clueGapSeconds = Number(settings.clueGapSeconds) || 5;
   room.clueFinalSilenceSeconds = Number(settings.clueFinalSilenceSeconds) || 30;
+  // Robot TTS reads a fixed set of lyric stanzas, so the slice/gap loop would
+  // just repeat the same speech. It gets a single long read instead.
+  if (room.mode === "tts") {
+    room.cluePlayDurations = [Math.max(10, Number(settings.ttsReadSeconds) || 20)];
+    room.clueGapSeconds = 0;
+    room.clueFinalSilenceSeconds = Number(settings.buzzerTimerSeconds) || 15;
+  }
 
   room.currentRound += 1;
   room.status = "playing";
@@ -433,6 +442,9 @@ async function startRound(room) {
   chosenSong.previewResolved = preview || chosenSong.previewUrl;
 
   room.currentSong = chosenSong;
+
+  // TTS plays the same stanzas every phase, so freeze the set once per song.
+  room.modeClues = (chosenSong.lyricsClues || []).slice(0, room.clueCount || 1);
 
   if (chosenSong?.id) {
     db.execute({
