@@ -531,25 +531,11 @@ export default function MultiplayerPage() {
             setRoom(data.room);
           } else if (data.type === "next_round_tick") {
             setRoom(data.room);
-          } else if (data.type === "clue_extended") {
-            sfx.playGong();
-            setRoom(data.room);
-
-            if (typeof navigator !== "undefined" && navigator.vibrate) {
-              navigator.vibrate([60, 40, 90]);
-            }
-
-            // Cut the running clue, then start the longer one — otherwise the two
-            // play on top of each other.
-            pauseAudioRef.current();
-            setTimeout(() => {
-              playAudioRef.current(data.room);
-            }, 250);
           } else if (data.type === "clue_phase") {
             // The server ticks clue_phase every second, so only react when it
             // explicitly flags a phase change — otherwise the clip restarts 1s
-            // at a time. The 3-2-1 kickoff owns the first play, so buffer
-            // anything that lands while it is still counting.
+            // at a time. While the 3-2-1 overlay is up we only buffer the
+            // latest state; the first phase after the overlay starts the audio.
             setRoom(data.room);
             if (!data.phaseChanged) return;
             if (kickoffActiveRef.current) {
@@ -802,7 +788,10 @@ export default function MultiplayerPage() {
     };
   }, []);
 
-  // Round Kickoff Countdown Timer (3.. 2.. 1.. DENGARKAN!)
+  // Round Kickoff Countdown Timer (3.. 2.. 1.. MULAI!)
+  // Purely visual. The audio is started exactly once, by the server's first
+  // clue_phase event — having this also play audio made the two sources race
+  // and restart the clip a beat after the overlay cleared.
   useEffect(() => {
     if (roundKickoff === null) {
       kickoffActiveRef.current = false;
@@ -816,16 +805,16 @@ export default function MultiplayerPage() {
       }, 1000);
       return () => clearTimeout(timer);
     }
-    // Kickoff finished: the audio starts now, and any phase that arrived during
-    // the countdown is applied right after so the two never race.
     sfx.playGong();
     const timer = setTimeout(() => {
       setRoundKickoff(null);
       kickoffActiveRef.current = false;
+      // Start the clue the server armed while the overlay was up. Falling back
+      // to a bare play covers the case where the server had nothing buffered.
       const buffered = pendingPhaseRef.current;
       pendingPhaseRef.current = null;
-      if (buffered) {
-        applyCluePhase(buffered);
+      if (buffered?.phase === "playing") {
+        playAudioRef.current(buffered.room);
       } else {
         playAudioRef.current();
       }

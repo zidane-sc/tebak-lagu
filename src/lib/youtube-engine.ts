@@ -309,7 +309,10 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
   }, [currentSong, loadSong, updateState]);
 
   const cue = useCallback((song: YTSong) => {
-    // Muted preload — use during lobby/result screen
+    // Muted preload — use during lobby/result screen and round kickoff.
+    // cueVideoById, not loadVideoById: the latter asks the iframe to start
+    // playback, which leaks ~1s of audio before the 3-2-1 overlay clears and
+    // then gets restarted by the real clue.
     isCued.current = true;
     if (!playerRef.current) {
       pendingSong.current = song;
@@ -317,7 +320,12 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     }
     setCurrentSong(song);
     playerRef.current.mute();
-    playerRef.current.loadVideoById({ videoId: song.youtubeId, startSeconds: 0 });
+    if (typeof playerRef.current.cueVideoById === "function") {
+      playerRef.current.cueVideoById({ videoId: song.youtubeId, startSeconds: 0 });
+    } else {
+      playerRef.current.loadVideoById({ videoId: song.youtubeId, startSeconds: 0 });
+      playerRef.current.pauseVideo();
+    }
   }, []);
 
   const unmuteAndPlay = useCallback((startSecond?: number) => {
