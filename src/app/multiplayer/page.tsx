@@ -934,7 +934,7 @@ export default function MultiplayerPage() {
 
   return (
     <div
-      className={`h-[100dvh] bg-background text-zinc-100 flex flex-col justify-center gap-2 p-2.5 max-w-md mx-auto select-none relative transition-colors duration-200 ${
+      className={`min-h-[100dvh] overflow-y-auto overscroll-contain bg-background text-zinc-100 flex flex-col gap-2 p-2.5 pb-4 max-w-md mx-auto select-none relative transition-colors duration-200 ${
         screenFlash === "buzz"
           ? "ring-4 ring-amber-500 bg-amber-950/20"
           : screenFlash === "correct"
@@ -1030,7 +1030,7 @@ export default function MultiplayerPage() {
       {/* 1. MENU VIEW */}
       {/* ======================================================== */}
       {view === "menu" && (
-        <main className="my-auto flex flex-col gap-6 py-4">
+        <main className="flex-1 flex flex-col gap-6 py-4">
           <div className="text-center flex flex-col items-center gap-2">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-accent/20 to-emerald-500/10 border border-accent/30 flex items-center justify-center text-accent shadow-lg shadow-accent/10">
               <Zap className="w-8 h-8 fill-accent" />
@@ -1123,7 +1123,7 @@ export default function MultiplayerPage() {
       {/* 2. CREATE ROOM VIEW */}
       {/* ======================================================== */}
       {view === "create" && (
-        <main className="my-auto flex flex-col gap-5 py-4">
+        <main className="flex-1 flex flex-col gap-5 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => {
@@ -1363,7 +1363,7 @@ export default function MultiplayerPage() {
       {/* 3. JOIN ROOM VIEW */}
       {/* ======================================================== */}
       {view === "join" && (
-        <main className="my-auto flex flex-col gap-5 py-4">
+        <main className="flex-1 flex flex-col gap-5 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={() => {
@@ -1406,7 +1406,7 @@ export default function MultiplayerPage() {
       {/* 4. WAITING LOBBY VIEW */}
       {/* ======================================================== */}
       {view === "room" && room && (
-        <main className="my-auto flex flex-col gap-5 py-4">
+        <main className="flex-1 flex flex-col gap-5 py-4">
           {/* Room Code Showcase Banner */}
           <div className="bg-surfaceRaised border border-surfaceBorder rounded-2xl p-4 flex items-center justify-between shadow-sm">
             <div>
@@ -1541,7 +1541,7 @@ export default function MultiplayerPage() {
       {/* 5. MULTIPLAYER ARENA (THE BUZZER SHOWDOWN!) */}
       {/* ======================================================== */}
       {view === "game" && room && (
-        <main className="my-auto flex flex-col gap-3 py-2 w-full max-h-full overflow-y-auto">
+        <main className="flex-1 flex flex-col gap-3 py-2 w-full">
           {/* Compact Status Bar: round + score pills + details button */}
           <div className="bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2 flex items-center justify-between gap-2 shadow-sm">
             <span className="font-mono text-muted font-bold text-[11px] shrink-0">
