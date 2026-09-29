@@ -1,8 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Download, X, Smartphone, Sparkles } from "lucide-react";
+import { Download, X, Smartphone } from "lucide-react";
 
+/**
+ * Slim install prompt. Deliberately logo-free and single-action: on a phone the
+ * old card plus a 56px icon ate a third of the viewport before you could even
+ * read it.
+ */
 export const PwaInstallBanner: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showBanner, setShowBanner] = useState(false);
@@ -10,7 +15,6 @@ export const PwaInstallBanner: React.FC = () => {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Check if already running in standalone PWA mode
     const isApp =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
@@ -19,15 +23,14 @@ export const PwaInstallBanner: React.FC = () => {
       return;
     }
 
-    // Check if dismissed recently (within 3 days)
+    // Stay hidden for a week after a dismiss, so it never nags twice in a session.
     try {
       const dismissed = localStorage.getItem("tebak_lagu_pwa_dismissed");
-      if (dismissed && Date.now() - parseInt(dismissed, 10) < 3 * 24 * 60 * 60 * 1000) {
+      if (dismissed && Date.now() - parseInt(dismissed, 10) < 7 * 24 * 60 * 60 * 1000) {
         return;
       }
     } catch {}
 
-    // Android / Chrome / Samsung Internet beforeinstallprompt event
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -36,14 +39,12 @@ export const PwaInstallBanner: React.FC = () => {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
 
-    // iOS Detection
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIos(isIosDevice);
 
-    if (isIosDevice && !isApp) {
-      // Delay showing on iOS so it doesn't annoy user immediately
-      const timer = setTimeout(() => setShowBanner(true), 2500);
+    if (isIosDevice) {
+      const timer = setTimeout(() => setShowBanner(true), 4000);
       return () => clearTimeout(timer);
     }
 
@@ -56,9 +57,7 @@ export const PwaInstallBanner: React.FC = () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setShowBanner(false);
-      }
+      if (outcome === "accepted") setShowBanner(false);
       setDeferredPrompt(null);
     }
   };
@@ -74,58 +73,41 @@ export const PwaInstallBanner: React.FC = () => {
 
   return (
     <aside
-      aria-label="PWA Install Banner"
-      className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-50 animate-bounce-short"
+      aria-label="Install aplikasi"
+      className="fixed bottom-3 inset-x-3 z-50 mx-auto max-w-sm animate-slide-up"
     >
-      <div className="bg-surface/95 backdrop-blur-xl border-2 border-accent/40 rounded-3xl p-4 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 text-left">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* App Icon */}
-          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-zinc-950 border border-emerald-500/50 overflow-hidden shrink-0 shadow-lg shadow-emerald-500/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/icons/icon-192.png"
-              alt="Logo Tebak Lagu"
-              className="w-full h-full object-cover"
-            />
-          </div>
+      <div className="flex items-center gap-2 rounded-2xl border border-surfaceBorder bg-surface/95 px-2.5 py-2 shadow-lg shadow-black/60 backdrop-blur-xl">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent/15 text-accent">
+          <Smartphone className="h-3.5 w-3.5" />
+        </span>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h4 className="text-xs sm:text-sm font-black text-white truncate">
-                Install Tebak Lagu
-              </h4>
-              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-accent/20 border border-accent/30 text-accent font-bold">
-                APP
-              </span>
-            </div>
-            <p className="text-[11px] text-zinc-300 leading-tight mt-0.5">
-              {isIos
-                ? 'Ketuk Bagikan ➔ "Add to Home Screen"'
-                : "Fullscreen murni & minim kuota di layar utama!"}
-            </p>
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-bold leading-tight text-white">
+            {isIos ? "Tambah ke layar utama" : "Install aplikasi"}
+          </p>
+          <p className="truncate text-[10px] leading-tight text-mutedDark">
+            {isIos ? "Bagikan → Add to Home Screen" : "Fullscreen & minim kuota"}
+          </p>
         </div>
 
-        {/* Buttons */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {!isIos && deferredPrompt && (
-            <button
-              onClick={handleInstallClick}
-              className="py-2 px-3.5 rounded-xl bg-accent hover:bg-green-500 text-zinc-950 font-black text-xs shadow-md transition active:scale-95 cursor-pointer flex items-center gap-1"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Install</span>
-            </button>
-          )}
-
+        {!isIos && deferredPrompt && (
           <button
-            onClick={handleDismiss}
-            className="w-8 h-8 rounded-full bg-surfaceRaised/80 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-white flex items-center justify-center transition"
-            title="Tutup banner"
+            onClick={handleInstallClick}
+            className="flex shrink-0 items-center gap-1 rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-black text-zinc-950 transition active:scale-95 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <Download className="h-3 w-3" />
+            <span>Install</span>
           </button>
-        </div>
+        )}
+
+        <button
+          onClick={handleDismiss}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-surfaceBorder text-muted transition active:scale-95"
+          title="Tutup"
+          aria-label="Tutup"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     </aside>
   );

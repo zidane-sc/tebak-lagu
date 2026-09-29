@@ -126,6 +126,22 @@ button, a, input {
   animation: float-up 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
+/* ── PWA install prompt ─────────────────────────────────────────────────── */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.32s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
 /* ── Clue phase call-out (multiplayer) ──────────────────────────────────── */
 .clue-phase-banner {
   display: flex;
