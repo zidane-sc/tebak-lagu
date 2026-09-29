@@ -203,7 +203,10 @@ function getSanitizedRoom(room) {
           category: room.currentSong.category,
           year: room.currentSong.year,
           lang: room.currentSong.lang || (room.currentSong.category === "Western Hits" ? "en" : "id"),
-          lyricsClues: (room.currentSong.lyricsClues || []).slice(0, room.clueStage || 1),
+          lyricsClues: (room.currentSong.lyricsClues || []).slice(
+            0,
+            room.mode === "tts" && room.clueCount > 0 ? room.clueCount : room.clueStage || 1
+          ),
           allLyricsClues: room.currentSong.lyricsClues,
           clueStage: room.clueStage || 1,
           previewUrl: room.currentSong.previewResolved || room.currentSong.previewUrl,
@@ -585,6 +588,8 @@ app.prepare().then(() => {
             code: roomCode,
             hostId: playerId,
             mode: data.mode || "heardle",
+            // TTS reveals N lyric stanzas; ignored for the audio-slice mode
+            clueCount: Number(data.clueCount) || 0,
             category: data.category || "Semua Genre",
             selectedArtists: Array.isArray(data.selectedArtists) ? data.selectedArtists : [],
             filterType: data.filterType || "category",

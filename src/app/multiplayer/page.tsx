@@ -110,6 +110,8 @@ export default function MultiplayerPage() {
 
   // Room config (Create)
   const [selectedMode, setSelectedMode] = useState("heardle");
+  // TTS mode reveals lyrics instead of audio slices
+  const [clueCount, setClueCount] = useState(2);
   const [selectedFilterType, setSelectedFilterType] = useState<"category" | "artists">("category");
   const [selectedCategory, setSelectedCategory] = useState("Semua Playlist");
   const [selectedArtists, setSelectedArtists] = useState<string[]>([]);
@@ -817,6 +819,7 @@ export default function MultiplayerPage() {
         playerName: playerName.trim(),
         avatar: autoAvatarFor(playerName),
         mode: selectedMode,
+        clueCount: selectedMode === "tts" ? clueCount : 0,
         filterType: selectedFilterType,
         category: selectedCategory,
         selectedArtists,
@@ -1129,13 +1132,35 @@ export default function MultiplayerPage() {
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent shrink-0">
-                    <Timer className="w-3.5 h-3.5" />
+                    {selectedMode === "tts" ? (
+                      <Volume2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Timer className="w-3.5 h-3.5" />
+                    )}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-xs font-bold text-white leading-tight">Time Slice</h3>
-                    <p className="text-[9px] text-muted font-mono leading-tight">
-                      Dengerin clue, lalu buzz
-                    </p>
+                  <div className="min-w-0 flex-1">
+                    <label className="text-[10px] font-mono text-mutedDark font-semibold">MODE</label>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {[
+                        { id: "heardle", label: "Time Slice" },
+                        { id: "tts", label: "Robot TTS" },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            sfx.playClick();
+                            setSelectedMode(m.id);
+                          }}
+                          className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition ${
+                            selectedMode === m.id
+                              ? "bg-zinc-100 text-zinc-950"
+                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1192,31 +1217,54 @@ export default function MultiplayerPage() {
                   )}
                 </div>
 
-                {/* Difficulty — cumulative */}
+                {/* Difficulty — cumulative. TTS uses clue count instead of audio slices. */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-mono text-mutedDark font-semibold">KESULITAN</label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[
-                      { id: "easy", label: "Mudah 🟢" },
-                      { id: "medium", label: "Sedang 🟡" },
-                      { id: "hard", label: "Semua 🔴" },
-                    ].map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => {
-                          sfx.playClick();
-                          setSelectedDifficulty(d.id);
-                        }}
-                        className={`py-2 rounded-xl text-[11px] font-semibold transition ${
-                          selectedDifficulty === d.id
-                            ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                            : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                        }`}
-                      >
-                        {d.label}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold">
+                    {selectedMode === "tts" ? "JUMLAH BAIT LIRIK" : "KESULITAN"}
+                  </label>
+                  {selectedMode === "tts" ? (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[1, 2, 3].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => {
+                            sfx.playClick();
+                            setClueCount(n);
+                          }}
+                          className={`py-2 rounded-xl text-[11px] font-mono font-semibold transition ${
+                            clueCount === n
+                              ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                          }`}
+                        >
+                          {n} bait
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[
+                        { id: "easy", label: "Mudah 🟢" },
+                        { id: "medium", label: "Sedang 🟡" },
+                        { id: "hard", label: "Semua 🔴" },
+                      ].map((d) => (
+                        <button
+                          key={d.id}
+                          onClick={() => {
+                            sfx.playClick();
+                            setSelectedDifficulty(d.id);
+                          }}
+                          className={`py-2 rounded-xl text-[11px] font-semibold transition ${
+                            selectedDifficulty === d.id
+                              ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                              : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                          }`}
+                        >
+                          {d.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Rounds */}
