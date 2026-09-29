@@ -138,6 +138,10 @@ export default function MultiplayerPage() {
   const [isAudioBuffering, setIsAudioBuffering] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [roundKickoff, setRoundKickoff] = useState<number | null>(null);
+  // Refs mirror the kickoff state so the socket handler (registered once) never
+  // reads a stale value, and a phase that lands mid-countdown can be replayed.
+  const kickoffActiveRef = useRef(false);
+  const pendingPhaseRef = useRef<any>(null);
   const [showPlayerSheet, setShowPlayerSheet] = useState(false);
   const [showStickerSheet, setShowStickerSheet] = useState(false);
   const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
@@ -377,6 +381,21 @@ export default function MultiplayerPage() {
     pauseAudioRef.current = pauseAudioLocal;
   });
 
+  /** Start or cut the clue audio for a phase transition. */
+  const applyCluePhase = (data: any) => {
+    if (data.phase === "playing") {
+      sfx.playGong();
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([40, 30, 60]);
+      }
+      pauseAudioRef.current();
+      setTimeout(() => playAudioRef.current(data.room), 120);
+    } else {
+      // Quiet stretch: kill the audio dead so players can think.
+      pauseAudioRef.current();
+    }
+  };
+
   const handleToggleRoomAudio = () => {
     if (!socketRef.current || !room) return;
     const nextAction = isPlayingAudio ? "pause" : "play";
@@ -529,22 +548,15 @@ export default function MultiplayerPage() {
           } else if (data.type === "clue_phase") {
             // The server ticks clue_phase every second, so only react when it
             // explicitly flags a phase change — otherwise the clip restarts 1s
-            // at a time.
+            // at a time. The 3-2-1 kickoff owns the first play, so buffer
+            // anything that lands while it is still counting.
             setRoom(data.room);
-            if (data.phaseChanged) {
-              if (data.phase === "playing") {
-                // Fresh slice of audio
-                sfx.playGong();
-                if (typeof navigator !== "undefined" && navigator.vibrate) {
-                  navigator.vibrate([40, 30, 60]);
-                }
-                pauseAudioRef.current();
-                setTimeout(() => playAudioRef.current(data.room), 120);
-              } else {
-                // Silence: cut the audio dead
-                pauseAudioRef.current();
-              }
+            if (!data.phaseChanged) return;
+            if (kickoffActiveRef.current) {
+              pendingPhaseRef.current = data;
+              return;
             }
+            applyCluePhase(data);
           } else if (data.type === "round_started") {
             stopAndResetAudio();
             setRoom(data.room);
@@ -792,21 +804,33 @@ export default function MultiplayerPage() {
 
   // Round Kickoff Countdown Timer (3.. 2.. 1.. DENGARKAN!)
   useEffect(() => {
-    if (roundKickoff === null) return;
+    if (roundKickoff === null) {
+      kickoffActiveRef.current = false;
+      return;
+    }
+    kickoffActiveRef.current = true;
     if (roundKickoff > 0) {
       sfx.playTick(true);
       const timer = setTimeout(() => {
         setRoundKickoff(roundKickoff - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (roundKickoff === 0) {
-      sfx.playGong();
-      const timer = setTimeout(() => {
-        setRoundKickoff(null);
-        playAudioRef.current();
-      }, 600);
-      return () => clearTimeout(timer);
     }
+    // Kickoff finished: the audio starts now, and any phase that arrived during
+    // the countdown is applied right after so the two never race.
+    sfx.playGong();
+    const timer = setTimeout(() => {
+      setRoundKickoff(null);
+      kickoffActiveRef.current = false;
+      const buffered = pendingPhaseRef.current;
+      pendingPhaseRef.current = null;
+      if (buffered) {
+        applyCluePhase(buffered);
+      } else {
+        playAudioRef.current();
+      }
+    }, 600);
+    return () => clearTimeout(timer);
   }, [roundKickoff]);
 
   const savePlayerName = (name: string) => {
@@ -1689,8 +1713,8 @@ export default function MultiplayerPage() {
                       {isPlaying
                         ? `Memutar ${phaseTotal}s`
                         : phase === "final_silence"
-                        ? "Hening akhir"
-                        : "Hening"}
+                        ? "Waktu terakhir"
+                        : "Dengarkan dan ingat"}
                     </span>
                   </div>
                 </div>
@@ -1711,15 +1735,17 @@ export default function MultiplayerPage() {
                     </>
                   ) : phase === "final_silence" ? (
                     <>
-                      <span className="text-2xl">🤫</span>
-                      <span className="text-sm font-black text-zinc-300">
-                        HENING — BERSIAP!
+                      <span className="text-2xl">🚨</span>
+                      <span className="text-sm font-black text-amber-300">
+                        BUZZER SEBENTAR LAGI
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="text-2xl">🔇</span>
-                      <span className="text-sm font-black text-zinc-400">HENING</span>
+                      <span className="text-2xl">💭</span>
+                      <span className="text-sm font-black text-zinc-400">
+                        UJI INGATAN
+                      </span>
                     </>
                   )}
                 </div>

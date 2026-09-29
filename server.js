@@ -393,12 +393,6 @@ async function startRound(room) {
       secondsLeft: room.clueSecondsLeft,
       // Explicit signal so the client never has to diff against stale state.
       phaseChanged: !!phaseChanged,
-      message:
-        room.cluePhase === "playing"
-          ? `🎵 Clue ${room.clueIndex}/${room.cluePlayDurations.length}`
-          : room.cluePhase === "silence"
-          ? "🔇 Hening…"
-          : "🤫 Hening… bersiap!",
       room: getSanitizedRoom(room),
     });
   }
@@ -486,9 +480,6 @@ async function startRound(room) {
 
     emitCluePhase(true);
   }, 1000);
-
-  // Announce the opening clue so clients start audio without waiting a tick.
-  emitCluePhase(true);
 }
 
 function handleBuzzTimeout(room) {
