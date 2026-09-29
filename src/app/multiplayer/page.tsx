@@ -1752,10 +1752,15 @@ export default function MultiplayerPage() {
                 </div>
 
                 {/* Clue progress bars — one per clue, filling as each plays */}
-                <div className="grid grid-cols-3 gap-1.5 w-full max-w-xs">
+                <div
+                  className="grid gap-1.5 w-full max-w-xs"
+                  style={{ gridTemplateColumns: `repeat(${totalClues}, minmax(0, 1fr))` }}
+                >
                   {Array.from({ length: totalClues }).map((_, i) => {
                     const n = i + 1;
-                    const done = n < clueIndex || (n === clueIndex && !isPlaying && phase !== "final_silence");
+                    // A clue counts as finished once its phase ends, including the
+                    // final window that follows the last clue.
+                    const done = n < clueIndex || (n === clueIndex && !isPlaying);
                     const active = n === clueIndex && isPlaying;
                     return (
                       <div

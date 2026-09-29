@@ -382,6 +382,11 @@ async function startRound(room) {
     return "final_silence";
   }
 
+  /** True when the next phase would open a new clue (so a gap belongs between). */
+  function isLastClue() {
+    return room.clueIndex >= room.cluePlayDurations.length;
+  }
+
   nextPhase();
 
   function emitCluePhase(phaseChanged) {
@@ -466,8 +471,15 @@ async function startRound(room) {
 
     // A phase just ran out. Advance, or end the round after the final silence.
     if (room.cluePhase === "playing") {
-      room.cluePhase = "silence";
-      room.clueSecondsLeft = room.clueGapSeconds;
+      if (isLastClue()) {
+        // No more clues coming — go straight to the buzzer window instead of
+        // burning the short inter-clue gap first.
+        room.cluePhase = "final_silence";
+        room.clueSecondsLeft = room.clueFinalSilenceSeconds;
+      } else {
+        room.cluePhase = "silence";
+        room.clueSecondsLeft = room.clueGapSeconds;
+      }
     } else if (room.cluePhase === "silence") {
       nextPhase();
     } else {
