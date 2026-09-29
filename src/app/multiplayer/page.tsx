@@ -396,6 +396,25 @@ export default function MultiplayerPage() {
     }
   };
 
+  /**
+   * Re-align audio with the server's phase after a (re)connect. A fresh page or
+   * a reconnected socket has no player, so the running clue would otherwise stay
+   * silent until the next phase transition.
+   */
+  const syncAudioToServerPhase = (r: any) => {
+    if (!r) return;
+    if (r.status !== "playing" && r.status !== "buzzed") return;
+    // Don't talk over the kickoff overlay or an active guess.
+    if (kickoffActiveRef.current) return;
+    if (room.buzzState?.buzzedPlayerId) return;
+    if (r.cluePhase === "playing") {
+      playAudioRef.current(r);
+    } else {
+      // Silence phase (or unknown) — make sure nothing is left playing.
+      pauseAudioRef.current();
+    }
+  };
+
   const handleToggleRoomAudio = () => {
     if (!socketRef.current || !room) return;
     const nextAction = isPlayingAudio ? "pause" : "play";
@@ -476,6 +495,9 @@ export default function MultiplayerPage() {
               setView("room");
             } else {
               setView("game");
+              // Reconnected mid-round: this client has no player yet, so the
+              // running clue would stay silent without an explicit restart.
+              syncAudioToServerPhase(data.room);
             }
             return;
           }
@@ -500,6 +522,9 @@ export default function MultiplayerPage() {
               setView("room");
             } else {
               setView("game");
+              // Coming back mid-round: no player exists on this client, so the
+              // running clue has to be kicked off explicitly.
+              setTimeout(() => syncAudioToServerPhase(data.room), 250);
             }
           } else if (data.type === "reconnect_failed") {
             // Do not delete immediately if mid-game, attempt re-sync with roomCode
@@ -512,6 +537,7 @@ export default function MultiplayerPage() {
                     type: "join_room",
                     roomCode: sess.roomCode,
                     playerName: sess.playerName || playerName,
+                    avatar: sess.avatar || autoAvatarFor(sess.playerName || playerName),
                     playerId: sess.playerId
                   });
                   return;

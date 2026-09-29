@@ -733,6 +733,57 @@ app.prepare().then(() => {
           }
 
           const isMidGame = room.status !== "lobby";
+          // Reuse the id the client already had when it re-joins after a failed
+          // reconnect, so the returning player keeps their name, score and lives
+          // instead of appearing as a fresh "Pemain N".
+          const rejoining = data.playerId
+            ? room.players.find((p) => p.id === data.playerId)
+            : null;
+          if (rejoining) {
+            rejoining.socket = socket;
+            rejoining.socketId = socket.id;
+            rejoining.ws = socket;
+            rejoining.isDisconnected = false;
+            if (rejoining.disconnectTimeout) {
+              clearTimeout(rejoining.disconnectTimeout);
+              rejoining.disconnectTimeout = null;
+            }
+            playerId = rejoining.id;
+            meta.id = rejoining.id;
+            meta.roomCode = code;
+            meta.name = rejoining.name;
+            socket.join(code);
+
+            if (room.buzzState?.playerLives && room.buzzState.playerLives[rejoining.id] === undefined) {
+              room.buzzState.playerLives[rejoining.id] = room.playerLivesPerRound || 3;
+            }
+            if (room.buzzState?.lockedOutPlayerIds) {
+              room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(
+                (id) => id !== rejoining.id
+              );
+            }
+
+            sendTo(socket, {
+              type: "reconnected",
+              roomCode: code,
+              playerId: rejoining.id,
+              room: getSanitizedRoom(room),
+            });
+            broadcast(
+              room,
+              {
+                type: "player_connection_change",
+                playerId: rejoining.id,
+                playerName: rejoining.name,
+                isConnected: true,
+                message: `${rejoining.name} kembali online! ⚡`,
+                room: getSanitizedRoom(room),
+              },
+              socket
+            );
+            return;
+          }
+
           const player = {
             id: playerId,
             name: data.playerName || `Pemain ${room.players.length + 1}`,
