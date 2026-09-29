@@ -41,6 +41,7 @@ import { ArtistSelector } from "@/components/game/ArtistSelector";
 import { useAuth } from "@/lib/auth-context";
 import { sfx } from "@/lib/sound-fx";
 import confetti from "canvas-confetti";
+import { CATEGORIES } from "@/data/songs";
 
 const AVATARS = ["👑", "🎧", "🎤", "🎸", "🎹", "🥁", "🎷", "⚡", "🕶️", "🚀"];
 
@@ -101,7 +102,10 @@ export default function MultiplayerPage() {
   const [playerName, setPlayerName] = useState("");
   const avatar = autoAvatarFor(playerName);
   const [roomCodeInput, setRoomCodeInput] = useState("");
-  const [view, setView] = useState<"menu" | "create" | "join" | "room" | "game">("menu");
+  // `view` drives which screen is mounted. Create/join live as tabs inside the
+  // menu screen now, so they get their own tab state instead of their own view.
+  const [view, setView] = useState<"menu" | "room" | "game">("menu");
+  const [menuTab, setMenuTab] = useState<"create" | "join">("create");
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Room config (Create)
@@ -207,7 +211,7 @@ export default function MultiplayerPage() {
       const urlRoom = params.get("room") || params.get("code");
       if (urlRoom) {
         setRoomCodeInput(urlRoom.toUpperCase().trim());
-        setView("join");
+        setMenuTab("join");
       }
     }
   }, []);
@@ -1020,9 +1024,7 @@ export default function MultiplayerPage() {
         )}
 
         <div className="flex items-center gap-1.5">
-          {view === "menu" || view === "create" || view === "join" ? (
-            <GoogleAuthButton />
-          ) : null}
+          {view === "menu" ? <GoogleAuthButton /> : null}
 
           <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full shadow-sm">
             <Zap className="w-3.5 h-3.5 text-accent fill-accent" />
@@ -1092,259 +1094,201 @@ export default function MultiplayerPage() {
             />
           </div>
 
-            {/* Action CTAs */}
-            <div className="flex flex-col gap-2 mt-auto">
-              <button
-                onClick={handleCreateRoom}
-                disabled={!isConnected || !playerName.trim()}
-                className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-accent/20 text-sm cursor-pointer"
-              >
-                <Zap className="w-4 h-4 fill-zinc-950" />
-                <span>Buat Room Baru (Host)</span>
-              </button>
-
+            {/* Tab switcher: create / join */}
+            <div className="flex items-center gap-1 bg-surfaceRaised p-0.5 rounded-xl border border-surfaceBorder">
               <button
                 onClick={() => {
                   sfx.playClick();
-                  setView("join");
+                  setMenuTab("create");
                 }}
-                disabled={!isConnected || !playerName.trim()}
-                className="w-full bg-surface hover:bg-surfaceRaised disabled:opacity-40 text-zinc-200 border border-surfaceBorder font-semibold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer"
+                className={`flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition ${
+                  menuTab === "create"
+                    ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                    : "text-muted hover:text-white"
+                }`}
               >
-                <Users className="w-4 h-4 text-muted" />
-                <span>Gabung Room dengan Kode</span>
+                Buat Room
+              </button>
+              <button
+                onClick={() => {
+                  sfx.playClick();
+                  setMenuTab("join");
+                }}
+                className={`flex-1 py-2 px-2 rounded-lg text-[11px] font-bold transition ${
+                  menuTab === "join"
+                    ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                    : "text-muted hover:text-white"
+                }`}
+              >
+                Gabung Room
               </button>
             </div>
-        </main>
-      )}
 
-      {/* ======================================================== */}
-      {/* 2. CREATE ROOM VIEW */}
-      {/* ======================================================== */}
-      {view === "create" && (
-        <main className="flex-1 flex flex-col gap-5 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => {
-                sfx.playClick();
-                setView("menu");
-              }}
-              className="text-xs text-muted hover:text-white flex items-center gap-1 py-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Kembali</span>
-            </button>
-            <span className="text-xs font-mono font-semibold text-zinc-200">Pengaturan Room</span>
-          </div>
-
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3.5 shadow-sm">
-            {/* Mode is fixed to Time Slice — it is the only multiplayer mode */}
-            <div className="flex items-center gap-2.5 pb-1">
-              <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/30 flex items-center justify-center text-accent shrink-0">
-                <Timer className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-bold text-white leading-tight">Time Slice</h3>
-                <p className="text-[10px] text-muted font-mono leading-tight">
-                  Dengerin clue, lalu buzz sebelum waktu habis
-                </p>
-              </div>
-            </div>
-
-            {/* Playlist atau Pilih Penyanyi */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-mono text-mutedDark font-semibold">
-                  PILIH LAGU DARI
-                </label>
-                <div className="flex items-center gap-1 bg-surfaceRaised p-0.5 rounded-xl border border-surfaceBorder">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfx.playClick();
-                      setSelectedFilterType("category");
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                      selectedFilterType === "category"
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    🎵 Playlist
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      sfx.playClick();
-                      setSelectedFilterType("artists");
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                      selectedFilterType === "artists"
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    🎤 Pilih Penyanyi
-                  </button>
+            {/* Panel: create */}
+            {menuTab === "create" && (
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+                    <Timer className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-xs font-bold text-white leading-tight">Time Slice</h3>
+                    <p className="text-[9px] text-muted font-mono leading-tight">
+                      Dengerin clue, lalu buzz
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {selectedFilterType === "category" ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "Semua Playlist", label: "Semua Playlist 🔀" },
-                    { id: "Galau Hits", label: "Galau Hits 💔" },
-                    { id: "Nostalgia 2000s", label: "Nostalgia 2000s 🎸" },
-                    { id: "Anthem Tongkrongan", label: "Tongkrongan 🍻" },
-                    { id: "Pop Jawa & Koplo", label: "Jawa & Koplo 💃" },
-                    { id: "Western Hits", label: "Western Hits 🌎" },
-                    { id: "Rap", label: "Rap 🎤" },
-                  ].map((c) => (
+                {/* Playlist / Artist */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1 bg-surfaceRaised p-0.5 rounded-lg border border-surfaceBorder">
                     <button
-                      key={c.id}
                       onClick={() => {
                         sfx.playClick();
-                        setSelectedCategory(c.id);
+                        setSelectedFilterType("category");
                       }}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition ${
-                        selectedCategory === c.id
-                          ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                          : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition ${
+                        selectedFilterType === "category"
+                          ? "bg-zinc-100 text-zinc-950"
+                          : "text-muted"
                       }`}
                     >
-                      {c.label}
+                      🎵 Playlist
                     </button>
-                  ))}
+                    <button
+                      onClick={() => {
+                        sfx.playClick();
+                        setSelectedFilterType("artists");
+                      }}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition ${
+                        selectedFilterType === "artists"
+                          ? "bg-zinc-100 text-zinc-950"
+                          : "text-muted"
+                      }`}
+                    >
+                      🎤 Penyanyi
+                    </button>
+                  </div>
+
+                  {selectedFilterType === "category" ? (
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-accent"
+                    >
+                      {CATEGORIES.filter((c) => c !== "Semua Playlist").map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto">
+                      <ArtistSelector
+                        selectedArtists={selectedArtists}
+                        onChange={setSelectedArtists}
+                      />
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <ArtistSelector
-                  selectedArtists={selectedArtists}
-                  onChange={setSelectedArtists}
+
+                {/* Difficulty — cumulative */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold">KESULITAN</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: "easy", label: "Mudah 🟢" },
+                      { id: "medium", label: "Sedang 🟡" },
+                      { id: "hard", label: "Semua 🔴" },
+                    ].map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => {
+                          sfx.playClick();
+                          setSelectedDifficulty(d.id);
+                        }}
+                        className={`py-2 rounded-xl text-[11px] font-semibold transition ${
+                          selectedDifficulty === d.id
+                            ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                            : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rounds */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono text-mutedDark font-semibold">RONDE</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[3, 5, 10].map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => {
+                          sfx.playClick();
+                          setMaxRounds(r);
+                        }}
+                        className={`py-2 rounded-xl text-[11px] font-mono font-semibold transition ${
+                          maxRounds === r
+                            ? "bg-zinc-100 text-zinc-950 shadow-sm"
+                            : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCreateRoom}
+                  disabled={
+                    !isConnected ||
+                    !playerName.trim() ||
+                    (selectedFilterType === "artists" && selectedArtists.length === 0)
+                  }
+                  className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-accent/20 text-sm cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-zinc-950" />
+                  <span>
+                    {selectedFilterType === "artists" && selectedArtists.length === 0
+                      ? "Pilih Minimal 1 Penyanyi"
+                      : "Buat Room"}
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Panel: join */}
+            {menuTab === "join" && (
+              <div className="flex flex-col gap-2.5">
+                <label className="text-[10px] font-mono text-mutedDark font-semibold text-center">
+                  KODE ROOM DARI HOST
+                </label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={roomCodeInput}
+                  onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                  placeholder="KODE"
+                  onKeyDown={(e) => e.key === "Enter" && roomCodeInput.length >= 3 && handleJoinRoom()}
+                  className="w-full text-center font-mono text-2xl font-extrabold tracking-widest bg-surfaceRaised border border-surfaceBorder rounded-xl py-3 text-white uppercase outline-none focus:border-accent"
                 />
-              )}
-            </div>
-
-            {/* Tingkat Kesulitan / Popularitas */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
-                <span>TINGKAT KESULITAN</span>
-                <span className="text-accent font-bold">
-                  {selectedDifficulty === "easy"
-                    ? "Mudah 🟢"
-                    : selectedDifficulty === "medium"
-                    ? "Sedang 🟡"
-                    : "Semua 🔴"}
-                </span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: "easy", label: "Mudah 🟢", desc: "Mega hits" },
-                  { id: "medium", label: "Sedang 🟡", desc: "+ populer" },
-                  { id: "hard", label: "Semua 🔴", desc: "Seluruhnya" },
-                ].map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => {
-                      sfx.playClick();
-                      setSelectedDifficulty(d.id);
-                    }}
-                    className={`py-2 px-2 rounded-xl text-center transition flex flex-col items-center gap-0.5 ${
-                      selectedDifficulty === d.id
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                    }`}
-                  >
-                    <span className="text-[11px] font-semibold">{d.label}</span>
-                    <span className="text-[9px] opacity-75 font-mono">{d.desc}</span>
-                  </button>
-                ))}
+                <button
+                  onClick={handleJoinRoom}
+                  disabled={!isConnected || !playerName.trim() || roomCodeInput.length < 3}
+                  className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md shadow-accent/20 cursor-pointer"
+                >
+                  <Users className="w-4 h-4 fill-zinc-950" />
+                  <span>Masuk Room</span>
+                </button>
               </div>
-            </div>
-
-            {/* Rounds count */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold">
-                JUMLAH RONDE
-              </label>
-              <div className="flex items-center gap-2">
-                {[3, 5, 10].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => {
-                      sfx.playClick();
-                      setMaxRounds(r);
-                    }}
-                    className={`flex-1 py-2 rounded-xl text-xs font-mono font-semibold transition ${
-                      maxRounds === r
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                    }`}
-                  >
-                    {r} Ronde
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Submit create */}
-            <button
-              onClick={handleCreateRoom}
-              disabled={selectedFilterType === "artists" && selectedArtists.length === 0}
-              className="w-full mt-2 bg-accent hover:bg-green-500 disabled:opacity-40 disabled:pointer-events-none text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md shadow-accent/20 cursor-pointer"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>
-                {selectedFilterType === "artists" && selectedArtists.length === 0
-                  ? "Pilih Minimal 1 Penyanyi 🎤"
-                  : "Buka Room Sekarang"}
-              </span>
-            </button>
-          </div>
+            )}
         </main>
       )}
 
-      {/* ======================================================== */}
-      {/* 3. JOIN ROOM VIEW */}
-      {/* ======================================================== */}
-      {view === "join" && (
-        <main className="flex-1 flex flex-col gap-5 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => {
-                sfx.playClick();
-                setView("menu");
-              }}
-              className="text-xs text-muted hover:text-white flex items-center gap-1 py-1"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Kembali</span>
-            </button>
-            <span className="text-xs font-mono font-semibold text-zinc-200">Gabung Room</span>
-          </div>
-
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-6 flex flex-col gap-4 text-center shadow-sm">
-            <label className="text-xs text-muted font-medium">
-              Masukkan 4 digit kode room dari Host:
-            </label>
-            <input
-              type="text"
-              maxLength={4}
-              value={roomCodeInput}
-              onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-              placeholder="KODE"
-              className="w-full text-center font-mono text-3xl font-extrabold tracking-widest bg-surfaceRaised border border-surfaceBorder rounded-2xl py-4 text-white uppercase outline-none focus:border-accent"
-            />
-
-            <button
-              onClick={handleJoinRoom}
-              disabled={roomCodeInput.length < 3}
-              className="w-full bg-accent hover:bg-green-500 disabled:opacity-40 text-zinc-950 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm shadow-md shadow-accent/20 cursor-pointer"
-            >
-              <span>Masuk ke Ruangan ➔</span>
-            </button>
-          </div>
-        </main>
-      )}
 
       {/* ======================================================== */}
       {/* 4. WAITING LOBBY VIEW */}
