@@ -871,16 +871,6 @@ export default function MultiplayerPage() {
     });
   };
 
-  const handleAdvanceClue = () => {
-    if (!socketRef.current || !socketRef.current?.connected || !room) return;
-    sfx.playClick();
-    emit("vote_advance_clue", {
-      roomCode: room.code,
-      playerId: myPlayerId || myPlayer?.id,
-      playerName: myPlayer?.name || playerName
-    });
-  };
-
   const handleForfeitBuzz = () => {
     if (!socketRef.current || !socketRef.current?.connected || !room) return;
     sfx.playWrong();
@@ -1676,20 +1666,9 @@ export default function MultiplayerPage() {
                   })}
                 </div>
 
-                {/* Action Toolbar: reveal the full clue, or skip. No vote gate —
-                    the round runs on one clock and the clue opens for everyone. */}
+                {/* The clue runs on its own clock — the only choice left is
+                    whether everyone gives up on this round. */}
                 <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60 gap-1.5">
-                  {currentStage < 4 && (
-                    <button
-                      onClick={handleAdvanceClue}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer bg-surfaceRaised hover:bg-zinc-800 border-surfaceBorder text-amber-300 hover:border-amber-500/40"
-                      title="Buka seluruh clue untuk semua pemain"
-                    >
-                      <span>💡</span>
-                      <span>Buka Semua</span>
-                    </button>
-                  )}
-
                   <button
                     onClick={handleSkipRound}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition active:scale-95 cursor-pointer ${

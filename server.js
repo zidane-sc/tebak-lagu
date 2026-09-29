@@ -1070,26 +1070,6 @@ app.prepare().then(() => {
           handleBuzzTimeout(room);
         }
 
-        // 10b. HOST/ANY PLAYER: BUAT KULLAN (unlock the full clue immediately)
-        else if (data.type === "vote_advance_clue" || data.type === "advance_clue") {
-          const roomCode = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
-          const room = rooms.get(roomCode);
-          if (!room || (room.status !== "playing" && room.status !== "buzzed")) return;
-          if (room.clueStage >= 4) return; // Already fully revealed
-
-          // No vote threshold anymore — the round runs on a single clock, so
-          // anyone who is stuck can just reveal the rest of the clue. It costs
-          // them nothing but the extra information.
-          room.clueStage = 4;
-          broadcast(room, {
-            type: "clue_extended",
-            stage: 4,
-            secondsLeft: room.clueSecondsLeft,
-            message: "💡 Full clue dibuka untuk semua!",
-            room: getSanitizedRoom(room),
-          });
-        }
-
         // 11. RECONNECT SESSION (Saat HP unlock / switch tab kembali)
         else if (data.type === "reconnect") {
           const code = (data.roomCode || meta.roomCode || "").toUpperCase().trim();
