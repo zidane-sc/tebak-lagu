@@ -1671,23 +1671,9 @@ export default function MultiplayerPage() {
                   })}
                 </div>
 
-                {/* Action Toolbar: Replay + Clue + Skip, no clutter */}
+                {/* Action Toolbar: Clue + Skip. No replay — it hands the answer
+                    to whoever presses it again, which breaks the buzz race. */}
                 <div className="flex items-center justify-center w-full pt-2 border-t border-surfaceBorder/60 gap-1.5">
-                  {/* Replay — always available, this is the "listen again" escape hatch */}
-                  <button
-                    onClick={() => playAudioLocal()}
-                    disabled={isAudioBuffering}
-                    className="flex items-center gap-1.5 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder text-zinc-300 px-3 py-2 rounded-xl text-xs font-semibold transition active:scale-95 cursor-pointer"
-                    title="Dengarkan ulang clue"
-                  >
-                    {isAudioBuffering ? (
-                      <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />
-                    ) : (
-                      <RotateCcw className="w-3.5 h-3.5 text-accent" />
-                    )}
-                    <span>Ulang</span>
-                  </button>
-
                   {currentStage < 4 && (() => {
                     const activeCount = Math.max(1, room.players?.filter((p: any) => !p.isDisconnected).length || 1);
                     const requiredVotes =
