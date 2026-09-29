@@ -1002,57 +1002,61 @@ export default function MultiplayerPage() {
         )}
       </div>
 
-      {/* Top Header */}
-      <header className="w-full flex items-center justify-between pb-2 border-b border-surfaceBorder z-10">
-        {view === "room" || view === "game" ? (
-          <button
-            onClick={() => {
-              sfx.playClick();
-              setShowExitConfirm(true);
-            }}
-            className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition py-1.5 px-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 active:scale-95 cursor-pointer font-semibold"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar</span>
-          </button>
-        ) : (
-          <Link
-            href="/"
-            onClick={() => sfx.playClick()}
-            className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition py-1.5 px-2.5 rounded-lg hover:bg-surfaceRaised active:scale-95"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Solo</span>
-          </Link>
-        )}
+      {/* Top Header — compact: back + title on the left, actions on the right */}
+      <header className="w-full flex items-center justify-between gap-2 pb-2 border-b border-surfaceBorder z-10 shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {view === "room" || view === "game" ? (
+            <button
+              onClick={() => {
+                sfx.playClick();
+                setShowExitConfirm(true);
+              }}
+              className="shrink-0 p-2 rounded-lg text-red-400 hover:text-red-300 transition bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 active:scale-95 cursor-pointer"
+              title="Keluar dari room"
+              aria-label="Keluar"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <Link
+              href="/"
+              onClick={() => sfx.playClick()}
+              className="shrink-0 p-2 rounded-lg text-muted hover:text-white transition hover:bg-surfaceRaised active:scale-95"
+              title="Kembali ke Solo"
+              aria-label="Kembali"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Link>
+          )}
 
-        <div className="flex items-center gap-1.5">
-          {view === "menu" ? <GoogleAuthButton /> : null}
-
-          <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-200 bg-surfaceRaised border border-surfaceBorder px-2.5 py-1 rounded-full shadow-sm">
-            <Zap className="w-3.5 h-3.5 text-accent fill-accent" />
-            <span className="font-bold">Multiplayer</span>
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold text-white leading-tight truncate">Multiplayer</h1>
+            {view === "menu" ? (
+              <p className="text-[10px] text-mutedDark font-mono leading-tight truncate">
+                {isConnected ? "Siap bermain" : "Menghubungkan..."}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Sound Toggle */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {view === "menu" ? <GoogleAuthButton /> : null}
+
           <button
             onClick={toggleSound}
-            className="p-1.5 rounded-lg text-muted hover:text-white bg-surfaceRaised border border-surfaceBorder transition"
-            title={soundEnabled ? "Mute SFX" : "Unmute SFX"}
+            className="p-2 rounded-lg text-muted hover:text-white bg-surfaceRaised border border-surfaceBorder transition"
+            title={soundEnabled ? "Matikan SFX" : "Nyalakan SFX"}
+            aria-label="Toggle sound"
           >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-accent" /> : <VolumeX className="w-3.5 h-3.5 text-zinc-500" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4 text-accent" /> : <VolumeX className="w-4 h-4 text-zinc-500" />}
           </button>
 
-          <div className="flex items-center gap-1 text-[11px] font-mono">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-accent shadow-sm shadow-accent/50" : "bg-red-500 animate-pulse"
-              }`}
-            />
-            <span className="text-mutedDark">{isConnected ? "Online" : "Connecting"}</span>
-          </div>
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              isConnected ? "bg-accent shadow-sm shadow-accent/50" : "bg-red-500 animate-pulse"
+            }`}
+            title={isConnected ? "Online" : "Menghubungkan"}
+          />
         </div>
       </header>
 
@@ -2042,11 +2046,6 @@ export default function MultiplayerPage() {
           </div>
         </div>
       )}
-
-      {/* Footer */}
-      <footer className="w-full text-center py-2 text-[11px] text-mutedDark font-mono z-10">
-        Tebak Lagu Multiplayer · Real-Time WebSockets
-      </footer>
 
       {/* Social Share Modal */}
       <SocialShareModal
