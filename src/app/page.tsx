@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
-import { SocialShareModal } from "@/components/SocialShareModal";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { sfx } from "@/lib/sound-fx";
@@ -21,7 +20,6 @@ import {
   X,
   Play,
   Settings,
-  Share2,
   Sparkles,
   Flame,
   Radio,
@@ -69,7 +67,6 @@ const GAME_MODES = [
 export default function HomePage() {
   const router = useRouter();
   const [score, setScore] = useState(0);
-  const [showShareModal, setShowShareModal] = useState(false);
 
   // Single Player Mode Configuration Modal State
   const [configModalMode, setConfigModalMode] = useState<any>(null);
@@ -107,35 +104,22 @@ export default function HomePage() {
 
   return (
     <div className="min-h-[100dvh] text-zinc-100 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-4xl mx-auto selection:bg-accentDim selection:text-accent relative">
-      {/* Top Floating Glass Header */}
-      <header className="w-full flex items-center justify-between p-3 sm:p-4 rounded-2xl glass-panel shadow-lg shadow-black/20 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-zinc-950 border border-emerald-500/50 overflow-hidden flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
+      {/* Top Floating Glass Header — compact: logo + auth */}
+      <header className="w-full flex items-center justify-between p-2.5 sm:p-3 rounded-2xl glass-panel shadow-lg shadow-black/20 z-10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-emerald-500/50 overflow-hidden flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/icon-192.png" alt="Tebak Lagu" className="w-full h-full object-cover" />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-extrabold text-base sm:text-lg tracking-tight neon-shimmer">
-                TEBAK LAGU
-              </span>
-              <span className="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30 text-accent font-bold shrink-0">
-                LIVE
-              </span>
-            </div>
-            <p className="text-[11px] text-muted leading-none mt-0.5">Jukebox Audio Trivia</p>
+          <div className="min-w-0">
+            <span className="font-extrabold text-sm sm:text-base tracking-tight neon-shimmer">
+              TEBAK LAGU
+            </span>
           </div>
         </div>
 
-        {/* Global Player Stats & Google Login */}
+        {/* Google Login */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="w-10 h-10 rounded-xl bg-surfaceRaised/80 hover:bg-zinc-800 border border-surfaceBorder text-muted hover:text-white flex items-center justify-center transition active:scale-95 cursor-pointer shadow-sm shrink-0"
-            title="Bagikan ke Teman (WA, IG, TikTok)"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
           <GoogleAuthButton />
         </div>
       </header>
@@ -523,16 +507,6 @@ export default function HomePage() {
           <p className="text-zinc-500 py-1">Komunitas Musik 🎧</p>
         </div>
       </footer>
-
-      {/* Social Share Modal */}
-      <SocialShareModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        title="Ajak Teman Main Tebak Lagu"
-        score={score}
-        modeTitle="Adu Telinga Dewa"
-        shareUrl="https://tebak-lagu-live.fly.dev/"
-      />
     </div>
   );
 }
