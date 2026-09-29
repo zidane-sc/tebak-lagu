@@ -934,7 +934,7 @@ export default function MultiplayerPage() {
 
   return (
     <div
-      className={`min-h-[100dvh] overflow-y-auto overscroll-contain bg-background text-zinc-100 flex flex-col gap-2 p-2.5 pb-4 max-w-md mx-auto select-none relative transition-colors duration-200 ${
+      className={`min-h-[100dvh] bg-background text-zinc-100 flex flex-col gap-2 p-2.5 pb-4 max-w-md mx-auto select-none relative transition-colors duration-200 ${
         screenFlash === "buzz"
           ? "ring-4 ring-amber-500 bg-amber-950/20"
           : screenFlash === "correct"
@@ -1030,47 +1030,41 @@ export default function MultiplayerPage() {
       {/* 1. MENU VIEW */}
       {/* ======================================================== */}
       {view === "menu" && (
-        <main className="flex-1 flex flex-col gap-6 py-4">
-          <div className="text-center flex flex-col items-center gap-2">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-accent/20 to-emerald-500/10 border border-accent/30 flex items-center justify-center text-accent shadow-lg shadow-accent/10">
-              <Zap className="w-8 h-8 fill-accent" />
+        <main className="flex-1 flex flex-col gap-3 py-2">
+          {/* Compact hero — no giant logo block eating the fold */}
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-accent/20 to-emerald-500/10 border border-accent/30 flex items-center justify-center text-accent shadow-md shadow-accent/10 shrink-0">
+              <Zap className="w-5 h-5 fill-accent" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight text-white">
-              Multiplayer Room
-            </h2>
-            <p className="text-xs text-muted max-w-xs mx-auto">
-              Adu cepat pencet Buzzer real-time bareng teman atau pasangan! Siapa cepat dia dapat poin.
-            </p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold tracking-tight text-white leading-tight">
+                Multiplayer Room
+              </h2>
+              <p className="text-[11px] text-muted leading-tight">
+                Adu buzzer real-time. Siapa cepat, dapat poin.
+              </p>
+            </div>
+            <div className="ml-auto shrink-0">
+              <GoogleAuthButton />
+            </div>
           </div>
 
-          {/* User Auth Bar */}
-          <div className="flex items-center justify-between bg-surface border border-surfaceBorder rounded-2xl p-3 px-4 shadow-sm">
+          {/* Nickname + avatar on one row */}
+          <div className="bg-surface border border-surfaceBorder rounded-2xl p-3 flex flex-col gap-2.5 shadow-sm">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-muted uppercase">Status:</span>
-              <span className="text-xs font-semibold text-white">
-                {user ? user.name : "Tamu (Guest)"}
+              <span className="text-2xl w-9 h-9 flex items-center justify-center bg-surfaceRaised border border-surfaceBorder rounded-xl shrink-0">
+                {avatar}
               </span>
-            </div>
-            <GoogleAuthButton />
-          </div>
-
-          {/* Profile Name & Avatar */}
-          <div className="bg-surface border border-surfaceBorder rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
-            <label className="text-[11px] font-mono text-mutedDark font-semibold">
-              NICKNAME & AVATAR PEMAIN
-            </label>
-            <div className="flex items-center gap-2">
               <input
                 type="text"
                 value={playerName}
                 onChange={(e) => savePlayerName(e.target.value)}
-                placeholder="Ketik namamu..."
-                className="flex-1 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-accent"
+                placeholder="Nickname kamu..."
+                className="flex-1 min-w-0 bg-surfaceRaised border border-surfaceBorder rounded-xl px-3 py-2.5 text-sm text-white placeholder-zinc-500 outline-none focus:border-accent"
               />
             </div>
 
-            {/* Avatar Picker */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {AVATARS.map((av) => (
                 <button
                   key={av}
@@ -1078,10 +1072,10 @@ export default function MultiplayerPage() {
                     sfx.playClick();
                     setAvatar(av);
                   }}
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all shrink-0 ${
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all shrink-0 ${
                     avatar === av
-                      ? "bg-zinc-100 text-zinc-950 scale-105 shadow-sm font-bold"
-                      : "bg-surfaceRaised hover:bg-zinc-800 text-white border border-surfaceBorder"
+                      ? "bg-zinc-100 scale-105 shadow-sm"
+                      : "bg-surfaceRaised active:scale-95"
                   }`}
                 >
                   {av}
@@ -1091,7 +1085,7 @@ export default function MultiplayerPage() {
           </div>
 
           {/* Action CTAs */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 mt-auto">
             <button
               onClick={() => {
                 sfx.playClick();
