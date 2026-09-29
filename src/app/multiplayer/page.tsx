@@ -148,6 +148,14 @@ export default function MultiplayerPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Close any open sheet when the view changes, otherwise a full-screen
+  // overlay stays mounted and swallows every tap (looks like the nav is stuck).
+  useEffect(() => {
+    setShowPlayerSheet(false);
+    setShowStickerSheet(false);
+    setShowExitConfirm(false);
+  }, [view, room?.status]);
+
   const { user } = useAuth();
 
   // ── Audio Unlock (mobile autoplay policy) ────────────────────────────────
