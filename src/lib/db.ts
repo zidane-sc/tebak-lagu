@@ -691,7 +691,7 @@ export async function updateUserStats(
  */
 export async function updateUserProfile(
   userId: string,
-  fields: { name?: string; bio?: string; favoriteArtist?: string }
+  fields: { name?: string; bio?: string; favoriteArtist?: string; avatar?: string }
 ): Promise<DbUser | null> {
   const sets: string[] = [];
   const args: any[] = [];
@@ -707,6 +707,10 @@ export async function updateUserProfile(
     sets.push("favorite_artist = ?");
     args.push(fields.favoriteArtist);
   }
+  if (fields.avatar !== undefined) {
+    sets.push("avatar = ?");
+    args.push(fields.avatar);
+  }
   if (sets.length === 0) return getUserById(userId);
 
   sets.push("updated_at = CURRENT_TIMESTAMP");
@@ -715,6 +719,21 @@ export async function updateUserProfile(
     sql: `UPDATE users SET ${sets.join(", ")} WHERE id = ? AND is_active = 1;`,
     args,
   });
+
+  // Sync updated name and avatar to player's leaderboard rows so the changes reflect globally
+  if (fields.name !== undefined) {
+    await db.execute({
+      sql: "UPDATE leaderboard SET player_name = ? WHERE user_id = ?;",
+      args: [fields.name, userId],
+    });
+  }
+  if (fields.avatar !== undefined) {
+    await db.execute({
+      sql: "UPDATE leaderboard SET player_avatar = ? WHERE user_id = ?;",
+      args: [fields.avatar, userId],
+    });
+  }
+
   return getUserById(userId);
 }
 

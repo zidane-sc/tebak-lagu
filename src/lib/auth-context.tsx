@@ -22,7 +22,7 @@ interface AuthContextType {
   logout: () => void;
   syncScore: (pointsGained: number, isWin?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
-  saveProfile: (fields: { name?: string; bio?: string; favoriteArtist?: string }) => Promise<boolean>;
+  saveProfile: (fields: { name?: string; bio?: string; favoriteArtist?: string; avatar?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 6. Save profile fields the player owns
-  const saveProfile = async (fields: { name?: string; bio?: string; favoriteArtist?: string }) => {
+  const saveProfile = async (fields: { name?: string; bio?: string; favoriteArtist?: string; avatar?: string }) => {
     try {
       const res = await fetch("/api/auth/profile", {
         method: "PATCH",
