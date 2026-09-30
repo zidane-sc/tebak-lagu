@@ -36,6 +36,7 @@ const checks = [
   ["verify-clue-phase-parity.js", "node"],
   ["check-catalogue-restore.js", "node"],
   ["verify-recovery.js", "node"],
+  ["check-vocal-offset.js", "node"],
 ];
 
 
