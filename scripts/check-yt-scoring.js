@@ -1,115 +1,109 @@
-// Scoring self-check for the YouTube ID resolver. Run:
+// Scoring self-check for the YouTube resolver. Run:
 //   node scripts/check-yt-scoring.js
 //
-// A wrong video id is worse than a missing one: the game plays the wrong song
-// while showing the right title. These assertions pin the rejection rules.
+// A wrong video id is worse than a missing one: the game displays the right
+// title while playing a different recording. These assertions pin the
+// rejection rules in src/lib/youtube-matcher.js, which the batch worker and
+// the admin picker both use.
 const assert = require("assert");
+const {
+  scoreResult, titleOverlap, parseDuration, isNonOriginal, isCompilation,
+  isDurationPlausible, isAcceptable, MIN_OVERLAP, MAX_TRACK_SECONDS,
+} = require("../src/lib/youtube-matcher.js");
 
-const OFFICIAL_KEYWORDS = [
-  "official audio", "official video", "official mv", "official music video", "vevo",
-  "sony music", "warner music", "universal music", "musica studio", "gp records",
-  "nagaswara", "hits records", "indie pop",
-];
+const t = (title, channel, duration) => ({ title, channel, duration, videoId: "xxxxxxxxxxx" });
 
-// Non-original uploads: covers, remixes, live cuts and sped-up edits all play
-// differently from the studio track, so a wrong pick makes the clue a lie.
-// Includes `remaster(ed) 20xx` because those are re-recordings, not masters.
-const NON_ORIGINAL =
-  /\b(remix|cover|live|acoustic|instrumental|nightcore|slowed|sped\s*up|8d|karaoke|mashup|flip|night\s*core)\b/i;
-
-// Strip credits and tags so "Title (feat. X) [Official Video]" normalises to
-// the same core words as the database title.
-function norm(s) {
-  return (s || "")
-    .toLowerCase()
-    .replace(/\(.*?\)|\[[^\]]*\]/g, " ")
-    .replace(/[–—\-_]+/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Mirrors scoreResult() in scripts/enrich-youtube-ids.js.
-function scoreResult(result, artist, title) {
-  let score = 0;
-  const titleLow = (result.title || "").toLowerCase();
-  const channelLow = (result.channel || "").toLowerCase();
-  const artistLow = artist.toLowerCase();
-  const songLow = title.toLowerCase();
-
-  if (channelLow.includes(artistLow.split(" ")[0])) score += 30;
-  if (titleLow.includes(songLow.split(" ")[0])) score += 20;
-  for (const kw of OFFICIAL_KEYWORDS) {
-    if (titleLow.includes(kw) || channelLow.includes(kw)) { score += 15; break; }
-  }
-  return score;
-}
-
-// Fraction of the database title's words that must appear in the upload title.
-// "Hello" vs "Hello Kitty Theme" scores 1/1 = 1.0 and still passes, so this
-// guards against wildly different titles, not against shared prefixes. The
-// NON_ORIGINAL check is what blocks the actual wrong-song cases.
-function titleOverlap(want, got) {
-  const w = norm(want).split(" ");
-  const g = new Set(norm(got).split(" "));
-  if (w.length === 0) return 0;
-  return w.filter((t) => g.has(t)).length / w.length;
-}
-
-function judge(result, artist, title) {
-  const s = scoreResult(result, artist, title);
-  const haystack = `${result.title || ""} ${result.channel || ""}`;
-  const rejected = NON_ORIGINAL.test(haystack);
-  const overlap = titleOverlap(title, result.title);
-  const fullTitleMatch = overlap >= 0.75;
-  return { accepted: s >= 30 && !rejected && fullTitleMatch, score: s, rejected, fullTitleMatch, overlap };
-}
-
-const t = (title, channel) => ({ title, channel });
-
-// 1. The remix that slipped through at score 50 must now be rejected.
+// 1. The remix that slipped through at score 50 must be rejected.
 assert.strictEqual(
-  judge(t("Summer Feelings (feat. Charlie Puth) [Jengi Remix]", "Lennon Stella"), "Lennon Stella",
-        "Summer Feelings (feat. Charlie Puth)").accepted,
-  false,
-  "a remix must not be accepted as the master"
-);
+  isAcceptable(t("Summer Feelings (feat. Charlie Puth) [Jengi Remix]", "Lennon Stella", "3:52"),
+               "Lennon Stella", "Summer Feelings (feat. Charlie Puth)"),
+  false, "a remix must not be accepted as the master");
 
 // 2. Genuine official uploads still pass.
 const genuine = [
-  ["Timbaland - Carry Out (Official Music Video) ft. Justin Timberlake", "Timbaland", "Timbaland", "Carry Out (feat. Justin Timberlake)"],
-  ["Gabby Barrett - I Hope (Official Music Video)", "Gabby Barrett", "Gabby Barrett", "I Hope (feat. Charlie Puth)"],
-  ["Clean Bandit & Topic - Drive (feat. Wes Nelson) [Official Video]", "Clean Bandit & Topic", "Clean Bandit & Topic", "Drive (feat. Wes Nelson)"],
-  ["Dewa 19 - Kangen (Official Music Video)", "Dewa 19", "Dewa 19", "Kangen (feat. Didi Kempot)"],
+  ["Timbaland - Carry Out (Official Music Video) ft. Justin Timberlake", "Timbaland", "3:38", "Timbaland", "Carry Out (feat. Justin Timberlake)"],
+  ["Gabby Barrett - I Hope (Official Music Video)", "Gabby Barrett", "3:32", "Gabby Barrett", "I Hope (feat. Charlie Puth)"],
+  ["Clean Bandit & Topic - Drive (feat. Wes Nelson) [Official Video]", "Clean Bandit & Topic", "3:30", "Clean Bandit & Topic", "Drive (feat. Wes Nelson)"],
+  ["Dewa 19 - Kangen (Official Music Video)", "Dewa 19", "4:12", "Dewa 19", "Kangen (feat. Didi Kempot)"],
+  ["BTS (방탄소년단) 'Make It Right (feat. Lauv)' Official MV", "HYBE LABELS", "3:50", "BTS", "Make It Right (feat. Lauv)"],
+  ["Monita Tahalea - 168 (Official Audio)", "Monita Tahalea", "3:31", "Monita Tahalea", "168"],
+  ["Jamrud - Sugali (Official Audio)", "Jamrud Musica", "4:01", "Iwan Fals", "Sugali"],
 ];
-for (const [ytTitle, channel, artist, title] of genuine) {
-  const j = judge(t(ytTitle, channel), artist, title);
-  assert.strictEqual(j.accepted, true, `official upload must be accepted: ${ytTitle} (${JSON.stringify(j)})`);
-  assert.strictEqual(j.rejected, false, `official upload must not be flagged non-original: ${ytTitle}`);
+for (const [ytTitle, channel, dur, artist, title] of genuine) {
+  assert.strictEqual(isAcceptable(t(ytTitle, channel, dur), artist, title), true,
+    `official upload must be accepted: ${ytTitle}`);
+  assert.strictEqual(isNonOriginal(t(ytTitle, channel, dur)), false,
+    `official upload must not be flagged non-original: ${ytTitle}`);
 }
 
 // 3. Weak matches stay out: a random upload with no channel/keyword signal.
-const weak = judge(t("Summer Feelings Lyrical Video", "randomchannel99"), "Lennon Stella", "Summer Feelings");
-assert.strictEqual(weak.score, 20);
-assert.ok(weak.score < 30, "a lyrical video with no official signal must fall under the threshold");
+assert.ok(scoreResult(t("Summer Feelings Lyrical Video", "randomchannel99", "3:40"), "Lennon Stella", "Summer Feelings") < 30,
+  "a lyrical video with no official signal must fall under the threshold");
 
-// 4. Cover / live / karaoke / remix must be rejected regardless of score.
+// 4. Non-original uploads are rejected regardless of score.
 for (const bad of [
   "Summer Feelings (Cover by SomeGuy)", "Summer Feelings Live at Java Rockin' Land",
   "Summer Feelings (Karaoke Version)", "Summer Feelings (Slowed + Reverb)",
   "Summer Feelings (Acoustic Cover)", "Summer Feelings Nightcore",
   "Summer Feelings (Jengkoki Remix)", "Summer Feelings (Flip Version)",
+  "Summer Feelings 8D Audio", "Summer Feelings (Instrumental)",
+  "Summer Feelings (2002 Digital Remaster)", "Summer Feelings (Piano Version)",
+  "Summer Feelings (Single Edit)", "Summer Feelings (Remastered 2011)",
 ]) {
-  assert.strictEqual(judge(t(bad, "Lennon Stella"), "Lennon Stella", "Summer Feelings").rejected, true, `"${bad}" must be rejected`);
+  assert.strictEqual(isNonOriginal(t(bad, "Lennon Stella", "3:30")), true, `"${bad}" must be rejected`);
 }
 
-// 5. An unrelated upload is rejected on the title, not just the score.
-const unrelated = judge(t("Winter Nights (Piano Cover)", "Lo-Fi Channel"), "Adele", "Hello");
-assert.strictEqual(unrelated.fullTitleMatch, false, "an unrelated upload must fail the title match");
-assert.strictEqual(unrelated.accepted, false);
+// 5. Compilations and long uploads are rejected on duration even when the
+//    title contains the song name — this is what let a 90-minute "Love Songs"
+//    collection through on a title match.
+const comp = t("Gagal Move On Di Lagu VIRGOUN | Virgoun's Most Devastating Love Songs", "Virgoun", "1:12:44");
+assert.strictEqual(isCompilation(comp), true, "a love-songs compilation must be flagged");
+assert.strictEqual(isDurationPlausible(comp), false, "a 72-minute upload is not a single track");
+assert.strictEqual(isAcceptable(comp, "Virgoun", "Move On"), false, "a compilation must never be accepted");
+assert.ok(MAX_TRACK_SECONDS >= 11 * 60, "a long radio edit must stay acceptable");
+assert.strictEqual(isDurationPlausible(t("Song", "Channel", "11:30")), true, "11:30 is within the cap");
 
-// 6. Feat. credits in the DB title are stripped, not treated as a mismatch.
-const feat = judge(t("Kangen (Official Music Video)", "Dewa 19"), "Dewa 19", "Kangen (feat. Didi Kempot)");
-assert.strictEqual(feat.fullTitleMatch, true, "parenthetical credits must not break the title match");
+// 6. Duration parsing, including the formats YouTube actually returns.
+assert.strictEqual(parseDuration("3:45"), 225);
+assert.strictEqual(parseDuration("1:02:03"), 3723);
+assert.strictEqual(parseDuration("3 min"), 180);
+assert.strictEqual(parseDuration(""), null);
+assert.strictEqual(parseDuration(undefined), null);
+assert.strictEqual(parseDuration("LIVE"), null);
+// An unknown duration must not be treated as a rejection: YouTube omits it often.
+assert.strictEqual(isDurationPlausible(t("Song", "Channel", "")), true, "unknown duration must stay acceptable");
+assert.strictEqual(isDurationPlausible(t("Song", "Channel", "0:00")), false, "a zero-length upload is not playable");
 
-console.log("yt-scoring: all 6 groups passed");
+// 7. An unrelated upload fails the title check, not just the score.
+const unrelated = t("Winter Nights (Piano Cover)", "Lo-Fi Channel", "3:20");
+assert.ok(titleOverlap("Hello", unrelated.title) < MIN_OVERLAP, "an unrelated upload must fail the title overlap");
+assert.strictEqual(isAcceptable(unrelated, "Adele", "Hello"), false);
+
+// 8. Feat. credits in the DB title are stripped, not treated as a mismatch.
+assert.strictEqual(titleOverlap("Kangen (feat. Didi Kempot)", "Kangen"), 1,
+  "parenthetical credits must not break the title overlap");
+
+// 9. A candidate with no video id is never acceptable.
+assert.strictEqual(isAcceptable({ title: "Kangen", channel: "Dewa 19", duration: "4:12" }, "Dewa 19", "Kangen"), false,
+  "a candidate without a video id must be rejected");
+
+
+// 10. The selection loop, not just the gate. The highest-scoring candidate is
+//     often a lyric-only upload; a good official video in second place must
+//     still be found. Pinned here because the worker used to judge only
+//     scored[0] and reported "not found" for songs that had a correct upload.
+function pickAcceptable(candidates, artist, title) {
+  return candidates.find((c) => isAcceptable(c, artist, title)) || null;
+}
+const pool = [
+  { title: "Andmesh Kamaleng - Jangan Rubah Takdirku (Lirik)", channel: "Happy Sing", duration: "3:53", videoId: "a" },
+  { title: "Andmesh Kamaleng - Jangan Rubah Takdirku (Official Music Video)", channel: "HITS Records", duration: "4:09", videoId: "b" },
+  { title: "Judika ft Andmesh - Jangan rubah takdirku (Live Version)", channel: "Kamaleng Music", duration: "4:30", videoId: "c" },
+];
+const picked = pickAcceptable(pool, "Andmesh", "Jangan Rubah Takdirku");
+assert.ok(picked, "a valid candidate in second place must still be selected");
+assert.strictEqual(picked.videoId, "b", "must pick the official video, not the lyric upload or the live cut");
+assert.strictEqual(pickAcceptable(pool.slice(0, 1), "Andmesh", "Jangan Rubah Takdirku"), null,
+  "when only a lyric upload exists, return nothing rather than a wrong id");
+
+console.log("yt-scoring: all 10 groups passed");

@@ -2,25 +2,10 @@ import { NextResponse } from "next/server";
 import { db, initDb } from "@/lib/db";
 import https from "https";
 import { requireAdmin } from "@/lib/admin-guard";
+import { OFFICIAL_KEYWORDS, isNonOriginal, titleOverlap, MIN_OVERLAP } from "@/lib/youtube-matcher";
 
 export const dynamic = "force-dynamic";
 
-const OFFICIAL_KEYWORDS = [
-  "official audio",
-  "official video",
-  "official music video",
-  "official mv",
-  "vevo",
-  "sony music",
-  "warner music",
-  "universal music",
-  "musica studio",
-  "musica studios",
-  "gp records",
-  "nagaswara",
-  "hits records",
-  "indie pop",
-];
 
 interface YTCandidate {
   videoId: string;
@@ -28,6 +13,9 @@ interface YTCandidate {
   channel: string;
   duration: string;
   score: number;
+  flaggedNonOriginal?: boolean;
+  titleOverlap?: number;
+  lowTitleOverlap?: boolean;
 }
 
 function fetchYouTubeSearch(query: string): Promise<Omit<YTCandidate, "score">[]> {
@@ -121,11 +109,10 @@ function scoreCandidate(c: Omit<YTCandidate, "score">, artist: string, title: st
       break;
     }
   }
-  // Penalise obvious noise: live cover, karaoke, lyric video by fan channel
-  const noise = ["karaoke", "cover band", "tributa", "instrumental cover", "sped up", "slowed"];
-  for (const n of noise) {
-    if (titleLow.includes(n)) score -= 25;
-  }
+  // Penalise obvious noise. The exhaustive list lives in youtube-matcher.js so
+  // this picker and the batch worker reject the same uploads; scoring is kept
+  // separate because a human still gets to choose from the results.
+  if (isNonOriginal(c)) score -= 40;
 
   return score;
 }
@@ -149,7 +136,15 @@ export async function GET(request: Request) {
     const candidates = await fetchYouTubeSearch(`${artist} ${title}`);
 
     const scored: YTCandidate[] = candidates
-      .map((c) => ({ ...c, score: scoreCandidate(c, artist, title) }))
+      .map((c) => ({
+        ...c,
+        score: scoreCandidate(c, artist, title),
+        // Surfaced so the admin can see *why* a candidate is flagged instead
+        // of picking the top-scoring one blindly.
+        flaggedNonOriginal: isNonOriginal(c),
+        titleOverlap: Number(titleOverlap(title, c.title).toFixed(2)),
+        lowTitleOverlap: titleOverlap(title, c.title) < MIN_OVERLAP,
+      }))
       .sort((a, b) => b.score - a.score);
 
     return NextResponse.json({

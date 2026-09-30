@@ -7,6 +7,7 @@
  */
 
 const { createClient } = require("@libsql/client");
+const { isAcceptable, isNonOriginal, titleOverlap, scoreResult } = require("../src/lib/youtube-matcher.js");
 const https = require("https");
 const path = require("path");
 
@@ -20,44 +21,8 @@ const DELAY_MS = 800; // be polite to YouTube
 // Tracks video IDs already assigned in this run so two songs never share one video
 const claimedIds = new Set();
 
-// Non-original uploads play differently from the studio track, so a wrong pick
-// makes the clue a lie: the game would show "Shape of You" while playing a
-// cover. Covers, remixes, live cuts and sped-up edits are all rejected.
-const NON_ORIGINAL =
-  /\b(remix|cover|live|acoustic|instrumental|nightcore|slowed|sped\s*up|8d|karaoke|mashup|flip)\b/i;
-
-// Strip credits and tags so "Title (feat. X) [Official Video]" normalises to
-// the same core words as the database title.
-function normalizeTitle(s) {
-  return (s || "")
-    .toLowerCase()
-    .replace(/\(.*?\)|\[[^\]]*\]/g, " ")
-    .replace(/[–—\-_]+/g, " ")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Share of the database title's words present in the upload title. Guards
-// against an unrelated video scoring well on channel name alone.
-function titleOverlap(want, got) {
-  const w = normalizeTitle(want).split(" ");
-  const g = new Set(normalizeTitle(got).split(" "));
-  if (w.length === 0) return 0;
-  return w.filter((t) => g.has(t)).length / w.length;
-}
-
-// Preferred official label keywords (higher priority)
-const OFFICIAL_KEYWORDS = [
-  "official audio", "official video", "official mv",
-  "official music video", "vevo",
-  "sony music", "warner music", "universal music",
-  "musica studio", "gp records", "nagaswara",
-  "hits records", "indie pop",
-];
-
 function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function fetchYouTubeSearch(query) {
@@ -125,24 +90,6 @@ function fetchYouTubeSearch(query) {
   });
 }
 
-function scoreResult(result, artist, title) {
-  let score = 0;
-  const titleLow = (result.title || "").toLowerCase();
-  const channelLow = (result.channel || "").toLowerCase();
-  const artistLow = artist.toLowerCase();
-  const songLow = title.toLowerCase();
-
-  // Channel name matching artist
-  if (channelLow.includes(artistLow.split(" ")[0])) score += 30;
-  // Title contains song name
-  if (titleLow.includes(songLow.split(" ")[0])) score += 20;
-  // Official keywords
-  for (const kw of OFFICIAL_KEYWORDS) {
-    if (titleLow.includes(kw) || channelLow.includes(kw)) { score += 15; break; }
-  }
-  return score;
-}
-
 async function findYouTubeId(artist, title) {
   const query = `${artist} ${title}`;
   const results = await fetchYouTubeSearch(query);
@@ -152,16 +99,13 @@ async function findYouTubeId(artist, title) {
   const scored = results.map(r => ({ ...r, score: scoreResult(r, artist, title) }));
   scored.sort((a, b) => b.score - a.score);
 
-  // Reject weak matches — a wrong video is worse than no video, since a wrong
-  // ID makes the game play the wrong song.
-  const best = scored[0];
-  if (!best || best.score < 30) return null;
-
-  // Reject covers, remixes, live cuts and sped-up edits outright.
-  if (NON_ORIGINAL.test(`${best.title || ""} ${best.channel || ""}`)) return null;
-
-  // Reject videos whose title barely overlaps ours, even at a high score.
-  if (titleOverlap(title, best.title) < 0.75) return null;
+  // Judge every candidate, not just the top scorer. The highest-scoring result
+  // is often a lyric-only upload or a live cut, and rejecting on that alone
+  // threw away songs where a perfectly good official video sat in second place.
+  // Rejecting a wrong video is worse than no video, since a wrong ID makes the
+  // game play the wrong song.
+  const best = scored.find((c) => isAcceptable(c, artist, title));
+  if (!best) return null;
 
   // Reject an ID already claimed by another song in this run
   if (claimedIds.has(best.videoId)) return null;
