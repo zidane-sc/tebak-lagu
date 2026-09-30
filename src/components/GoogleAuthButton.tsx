@@ -100,7 +100,7 @@ export const GoogleAuthButton: React.FC = () => {
 
         {/* User Stats Dropdown */}
         {open && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-surface border border-surfaceBorder rounded-2xl p-4 shadow-2xl z-50 animate-fade-in flex flex-col gap-3">
+          <div className="absolute right-0 top-full mt-2 w-64 bg-[#0e0e11] border border-surfaceBorderHover rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.75)] z-50 flex flex-col gap-3">
             <div className="flex items-center gap-2.5 pb-3 border-b border-surfaceBorder">
               {user.avatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -189,7 +189,22 @@ export const GoogleAuthButton: React.FC = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-[300px] bg-surface border border-surfaceBorder rounded-2xl p-4 shadow-2xl z-50 animate-fade-in flex flex-col gap-3">
+        <>
+          {/* Tap outside to dismiss. A popover with no backdrop cannot be closed by
+              tapping away, and on a phone the card lands over the page content. */}
+          <div
+            className="fixed inset-0 z-40 sm:hidden"
+            onClick={() => {
+              setOpen(false);
+              setAuthError(null);
+            }}
+          />
+          <div
+            className="absolute right-0 top-full mt-2 w-[268px] bg-[#0e0e11] border border-surfaceBorderHover
+                       rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.75)] z-50 flex flex-col gap-3 relative"
+          >
+          {/* ml-auto on the icon row did nothing: the row only holds the shield and
+              the copy, so the button never got pushed right. It needs its own row. */}
           <div className="flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-accent shrink-0 mt-0.5" />
             <div>
@@ -199,7 +214,16 @@ export const GoogleAuthButton: React.FC = () => {
               </p>
             </div>
           </div>
-
+          <button
+            onClick={() => {
+              setOpen(false);
+              setAuthError(null);
+            }}
+            aria-label="Tutup"
+            className="absolute -top-2 -right-2 p-1.5 rounded-full bg-[#0e0e11] border border-surfaceBorderHover text-muted hover:text-white transition shadow-lg"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
           {authError && (
             <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-xl">
               {authError}
@@ -221,16 +245,17 @@ export const GoogleAuthButton: React.FC = () => {
             )}
           </div>
 
-          <button
-            onClick={() => {
-              setOpen(false);
-              setAuthError(null);
-            }}
-            className="text-[11px] text-muted hover:text-white transition font-mono"
-          >
-            Lanjut 作为 Tamu ➔
-          </button>
-        </div>
+            <button
+              onClick={() => {
+                setOpen(false);
+                setAuthError(null);
+              }}
+              className="text-[11px] text-muted hover:text-white transition font-mono"
+            >
+              Lanjut 作为 Tamu ➔
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
