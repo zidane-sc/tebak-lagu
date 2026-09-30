@@ -78,6 +78,32 @@ function parseDuration(duration) {
   return null;
 }
 
+/**
+ * For short titles the overlap test is nearly meaningless: a song called "Ah"
+ * or "Kekal" overlaps 100% with any upload containing that word, so the wrong
+ * artist's song passes. 308 of the catalogue's ready songs have single-word
+ * titles, so this is not a corner case.
+ *
+ * Requiring the artist's name in the upload title is the signal that survives:
+ * a one-word title still has to be attached to the right artist. Only applied
+ * when the title is a single short token — for a full title the existing
+ * overlap check is stronger than an artist-name guess.
+ */
+const SHORT_TITLE_MAX_CHARS = 8;
+
+function needsArtistCheck(title) {
+  const t = normalizeTitle(title);
+  if (!t) return false;
+  return t.length <= SHORT_TITLE_MAX_CHARS || !t.includes(" ");
+}
+
+function artistMatches(candidate, artist) {
+  const a = normalizeTitle(artist);
+  if (!a) return true;
+  const hay = normalizeTitle(`${candidate.title || ""} ${candidate.channel || ""}`);
+  return a.split(" ").some((tok) => tok.length > 2 && hay.includes(tok));
+}
+
 function isNonOriginal(candidate) {
   return NON_ORIGINAL.test(`${candidate.title || ""} ${candidate.channel || ""}`);
 }
@@ -126,6 +152,8 @@ function isAcceptable(candidate, artist, title) {
   if (isCompilation(candidate)) return false;
   if (!isDurationPlausible(candidate)) return false;
   if (titleOverlap(title, candidate.title) < MIN_OVERLAP) return false;
+  // A one-word title overlaps anything, so require the artist to appear too.
+  if (needsArtistCheck(title) && !artistMatches(candidate, artist)) return false;
   return true;
 }
 
@@ -141,6 +169,8 @@ module.exports = {
   parseDuration,
   isNonOriginal,
   isCompilation,
+  needsArtistCheck,
+  artistMatches,
   isDurationPlausible,
   scoreResult,
   isAcceptable,

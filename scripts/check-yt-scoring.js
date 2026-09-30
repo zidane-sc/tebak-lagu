@@ -8,7 +8,8 @@
 const assert = require("assert");
 const {
   scoreResult, titleOverlap, parseDuration, isNonOriginal, isCompilation,
-  isDurationPlausible, isAcceptable, MIN_OVERLAP, MAX_TRACK_SECONDS,
+  isDurationPlausible, isAcceptable, needsArtistCheck, artistMatches,
+  MIN_OVERLAP, MAX_TRACK_SECONDS,
 } = require("../src/lib/youtube-matcher.js");
 
 const t = (title, channel, duration) => ({ title, channel, duration, videoId: "xxxxxxxxxxx" });
@@ -27,7 +28,7 @@ const genuine = [
   ["Dewa 19 - Kangen (Official Music Video)", "Dewa 19", "4:12", "Dewa 19", "Kangen (feat. Didi Kempot)"],
   ["BTS (방탄소년단) 'Make It Right (feat. Lauv)' Official MV", "HYBE LABELS", "3:50", "BTS", "Make It Right (feat. Lauv)"],
   ["Monita Tahalea - 168 (Official Audio)", "Monita Tahalea", "3:31", "Monita Tahalea", "168"],
-  ["Jamrud - Sugali (Official Audio)", "Jamrud Musica", "4:01", "Iwan Fals", "Sugali"],
+  ["Jamrud - Sugali (Official Audio)", "Jamrud Musica", "4:01", "Jamrud", "Sugali"],
 ];
 for (const [ytTitle, channel, dur, artist, title] of genuine) {
   assert.strictEqual(isAcceptable(t(ytTitle, channel, dur), artist, title), true,
@@ -106,4 +107,30 @@ assert.strictEqual(picked.videoId, "b", "must pick the official video, not the l
 assert.strictEqual(pickAcceptable(pool.slice(0, 1), "Andmesh", "Jangan Rubah Takdirku"), null,
   "when only a lyric upload exists, return nothing rather than a wrong id");
 
-console.log("yt-scoring: all 10 groups passed");
+
+// 11. Short titles need an artist check. "Bento" by Iwan Fals was resolved to
+//     SWAMI's "Bento (Visual Concert)" because the one-word title overlaps
+//     100% with any upload containing "bento". 308 ready songs have
+//     single-word titles, so this class of mistake is not rare.
+const wrongArtist = t("SWAMI - Bento (Visual Concert)", "Musica Studios", "3:12");
+assert.strictEqual(needsArtistCheck("Bento"), true, "a one-word title needs the artist check");
+assert.strictEqual(artistMatches(wrongArtist, "Iwan Fals"), false, "SWAMI's upload must not match Iwan Fals");
+assert.strictEqual(isAcceptable(wrongArtist, "Iwan Fals", "Bento"), false,
+  "another artist's same-titled song must be rejected");
+
+// The correct one still passes.
+const rightArtist = t("Iwan Fals - Bento (Official Music Video)", "Musica Studios", "3:45");
+assert.strictEqual(isAcceptable(rightArtist, "Iwan Fals", "Bento"), true,
+  "the right artist's upload must still be accepted");
+
+// Short-but-real titles work, including when the artist appears in the channel.
+assert.strictEqual(isAcceptable(t("Kekal", "Nadin Amizah - Topic", "3:32"), "Nadin Amizah", "Kekal"), true,
+  "a one-word title on the artist's own channel must pass");
+assert.strictEqual(isAcceptable(t("Kekal (Official Audio)", "Nadin Amizah", "3:32"), "Nadin Amizah", "Kekal"), true);
+
+// A full title does not need the artist check, so an upload titled only with
+// the song name is not rejected for lack of an artist mention.
+assert.strictEqual(needsArtistCheck("Aku Ingin Engkau"), false,
+  "a multi-word title keeps the stronger overlap check");
+
+console.log("yt-scoring: all 11 groups passed");
