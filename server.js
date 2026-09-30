@@ -50,6 +50,19 @@ function pickRoomSettings(settings) {
   };
 }
 
+/**
+ * Lives to grant a player who has no entry yet in the current round.
+ *
+ * Every path that needs a default must go through this. Five sites hardcoded 3,
+ * which silently overrode playerLivesPerRound the moment an admin set it to
+ * anything else — the setting was live in Studio Admin and ignored by the code
+ * that actually ran.
+ */
+function freshLives(room) {
+  const n = Number(room?.playerLivesPerRound);
+  return Number.isFinite(n) && n > 0 ? n : 3;
+}
+
 /** Tuning for a brand-new room: the admin's saved values, defaults if the read fails. */
 async function loadRoomSettings() {
   try {
@@ -683,7 +696,7 @@ app.prepare().then(() => {
             if (!room.buzzState) room.buzzState = { playerLives: {} };
             if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
             if (room.buzzState.playerLives[existingPlayer.id] === undefined) {
-              room.buzzState.playerLives[existingPlayer.id] = 3;
+              room.buzzState.playerLives[existingPlayer.id] = freshLives(room);
             }
             if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[existingPlayer.id] > 0) {
               room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(id => id !== existingPlayer.id);
@@ -783,7 +796,7 @@ app.prepare().then(() => {
           room.players.push(player);
           if (room.buzzState) {
             if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
-            room.buzzState.playerLives[playerId] = 3;
+            room.buzzState.playerLives[playerId] = freshLives(room);
           }
 
           meta.roomCode = code;
@@ -909,7 +922,7 @@ app.prepare().then(() => {
           // Check if this player has lives remaining in this round
           if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
           if (room.buzzState.playerLives[player.id] === undefined) {
-            room.buzzState.playerLives[player.id] = 3;
+            room.buzzState.playerLives[player.id] = freshLives(room);
           }
 
           if (room.buzzState.playerLives[player.id] <= 0) {
@@ -1033,7 +1046,7 @@ app.prepare().then(() => {
             const allOut =
               room.players.length > 0 &&
               room.players.every(
-                (p) => (room.buzzState.playerLives[p.id] ?? 3) <= 0
+                (p) => (room.buzzState.playerLives[p.id] ?? freshLives(room)) <= 0
               );
 
             if (allOut) {
@@ -1198,7 +1211,7 @@ app.prepare().then(() => {
               if (!room.buzzState) room.buzzState = { playerLives: {} };
               if (!room.buzzState.playerLives) room.buzzState.playerLives = {};
               if (room.buzzState.playerLives[player.id] === undefined) {
-                room.buzzState.playerLives[player.id] = 3;
+                room.buzzState.playerLives[player.id] = freshLives(room);
               }
               // Un-lockout player on reconnect if they still have lives
               if (room.buzzState.lockedOutPlayerIds && room.buzzState.playerLives[player.id] > 0) {

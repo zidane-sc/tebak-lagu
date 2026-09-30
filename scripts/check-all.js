@@ -38,6 +38,7 @@ const checks = [
   ["verify-recovery.js", "node"],
   ["check-vocal-offset.js", "node"],
   ["check-guess-matcher.js", "node"],
+  ["check-buzz-lives.js", "node"],
 ];
 
 
