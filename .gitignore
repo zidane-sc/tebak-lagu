@@ -38,3 +38,6 @@ npm-debug.log*
 /data/*.sqlite*
 yarn-debug.log*
 yarn-error.log*
+
+# Generated admin passcode (never commit)
+tl-passcode.txt

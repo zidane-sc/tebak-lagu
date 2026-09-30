@@ -478,30 +478,39 @@ export default function AdminDashboardPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // Check PIN from storage
+  // Session state comes from the httpOnly cookie the server sets — the old
+  // localStorage flag only told the UI what to draw, it never gated anything.
   useEffect(() => {
-    const savedPin = localStorage.getItem("tebak_lagu_admin_auth");
-    if (savedPin === "unlocked") {
-      setIsUnlocked(true);
+    if (localStorage.getItem("tebak_lagu_admin_auth") === "unlocked") {
+      fetch("/api/admin/session", { method: "DELETE" }).finally(() => {
+        localStorage.removeItem("tebak_lagu_admin_auth");
+      });
     }
   }, []);
 
-  const handleUnlock = (e?: React.FormEvent) => {
+  const handleUnlock = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (pinInput.trim().toLowerCase() === "zidane" || pinInput.trim() === "1234" || pinInput.trim() === "admin") {
+    setPinError(false);
+    const res = await fetch("/api/admin/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passcode: pinInput.trim() }),
+    });
+    if (res.ok) {
       setIsUnlocked(true);
       localStorage.setItem("tebak_lagu_admin_auth", "unlocked");
-      setPinError(false);
       showToast("Selamat datang di Studio Admin! 👑");
     } else {
       setPinError(true);
+      setPinInput("");
     }
   };
 
-  const handleLock = () => {
+  const handleLock = async () => {
     setIsUnlocked(false);
     localStorage.removeItem("tebak_lagu_admin_auth");
     setPinInput("");
+    await fetch("/api/admin/session", { method: "DELETE" });
   };
 
   // Debounce search input
@@ -1123,7 +1132,7 @@ export default function AdminDashboardPage() {
           <form onSubmit={handleUnlock} className="w-full flex flex-col gap-3">
             <input
               type="password"
-              placeholder="Masukkan Passcode (zidane)"
+              placeholder="Masukkan Passcode"
               value={pinInput}
               onChange={(e) => setPinInput(e.target.value)}
               className="w-full text-center font-mono text-base bg-surfaceRaised border border-surfaceBorder focus:border-accent rounded-xl py-3 text-white outline-none transition"
@@ -1132,7 +1141,7 @@ export default function AdminDashboardPage() {
 
             {pinError && (
               <span className="text-xs text-rose-400 font-mono animate-shake">
-                Passcode salah! Gunakan: zidane
+                Passcode salah.
               </span>
             )}
 

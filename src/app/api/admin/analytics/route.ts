@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { initDb, getAnalyticsData } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const data = await getAnalyticsData();

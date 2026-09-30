@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { db, getSongsPaged, initDb, rowToSong } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 // GET: Paginated list & search from persistent database
 export async function GET(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const { searchParams } = new URL(request.url);
@@ -31,6 +35,9 @@ export async function GET(request: Request) {
 
 // POST: Add new song to persistent database
 export async function POST(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const body = await request.json();
@@ -150,6 +157,9 @@ export async function POST(request: Request) {
 
 // PUT: Edit existing song in persistent database
 export async function PUT(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const body = await request.json();
@@ -254,6 +264,9 @@ export async function PUT(request: Request) {
 
 // DELETE: Delete song from persistent database
 export async function DELETE(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const { searchParams } = new URL(request.url);
@@ -288,6 +301,9 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const body = await request.json();

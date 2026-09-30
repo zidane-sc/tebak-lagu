@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { initDb, getSettingsFromDb, saveSettingToDb } from "@/lib/db";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,10 @@ const DEFAULT_SETTINGS = {
   ttsCluesProgression: [1, 2, 3, 4],
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const dbSettings = await getSettingsFromDb();
@@ -32,6 +36,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const body = await request.json();

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, initDb } from "@/lib/db";
 import https from "https";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,9 @@ function scoreCandidate(c: Omit<YTCandidate, "score">, artist: string, title: st
 }
 
 export async function GET(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     const { searchParams } = new URL(request.url);
     const title = (searchParams.get("title") || "").trim();
@@ -160,6 +164,9 @@ export async function GET(request: Request) {
 
 // POST: Batch enrich songs that don't have youtube_id yet
 export async function POST(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(100, Math.max(5, parseInt(searchParams.get("limit") || "25", 10)));

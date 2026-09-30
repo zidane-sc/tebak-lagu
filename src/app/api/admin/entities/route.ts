@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { db, initDb, getSettingsFromDb, saveSettingToDb } from "@/lib/db";
 import { seedArtists } from "@/scripts/seed-artists";
+import { requireAdmin } from "@/lib/admin-guard";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const { searchParams } = new URL(request.url);
@@ -257,6 +261,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const denied = requireAdmin(request);
+  if (denied) return denied;
+
   try {
     await initDb();
     const body = await request.json();
