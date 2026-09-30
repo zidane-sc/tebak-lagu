@@ -107,7 +107,10 @@ async function findYouTubeId(artist, title) {
   const best = scored.find((c) => isAcceptable(c, artist, title));
   if (!best) return null;
 
-  // Reject an ID already claimed by another song in this run
+  // Reject an ID already claimed by another song. The set is seeded from the
+  // database at startup, so a re-run cannot hand a second song a video that
+  // an earlier run already assigned — which is how 50 ids ended up shared
+  // across two songs each, with one of the pair always wrong.
   if (claimedIds.has(best.videoId)) return null;
   claimedIds.add(best.videoId);
 
@@ -119,6 +122,15 @@ async function main() {
   console.log(`   Limit: ${LIMIT} | Dry-run: ${DRY_RUN}\n`);
 
   await db.execute("PRAGMA journal_mode = WAL;");
+
+  // Seed the claim set with every id already assigned, so this run cannot
+  // collide with a previous one.
+  const existing = await db.execute(`
+    SELECT youtube_id FROM songs
+    WHERE youtube_id IS NOT NULL AND youtube_id != '' AND youtube_id != 'pending';
+  `);
+  for (const r of existing.rows) claimedIds.add(r.youtube_id);
+  console.log(`🔒 ${claimedIds.size} video ids already claimed by other songs`);
 
   // Fetch pending songs (optionally filtered by category)
   let sql = `
