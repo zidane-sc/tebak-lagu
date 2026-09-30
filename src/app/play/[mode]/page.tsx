@@ -376,7 +376,7 @@ export default function PlayArenaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-between">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Top Header */}
       <ScoreHeader
         title={config.title}
@@ -384,16 +384,23 @@ export default function PlayArenaPage() {
         score={score}
       />
 
-      {/* Main Arena Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto flex flex-col justify-center items-center p-4 gap-5 my-auto">
+      {/*
+        Compact arena. This was justify-center inside a min-h-screen, which on a
+        tall phone floated the whole stack into the middle of the screen with
+        empty space above and below, and pushed the guess box below the fold.
+        justify-start with a tighter gap keeps the deck, the tag row and the
+        guess field in one viewport, and the bottom padding leaves room for the
+        Android navigation bar.
+      */}
+      <main className="flex-1 w-full max-w-lg mx-auto flex flex-col justify-start items-center px-4 pt-3 pb-24 gap-3">
         {/* Playlist & Difficulty Tags */}
-        <div className="flex items-center gap-2 flex-wrap justify-center">
-          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-accent">
+        <div className="flex items-center gap-1.5 flex-wrap justify-center">
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2 py-0.5 rounded-full text-[10px] font-mono text-accent">
             🎯 {gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0
               ? `${gameConfig.selectedArtists.length} Artis Pilihan`
               : gameConfig.category}
           </span>
-          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[11px] font-mono text-zinc-300">
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-300">
             {gameConfig.difficulty === "easy"
               ? "🟢 Mudah"
               : gameConfig.difficulty === "medium"

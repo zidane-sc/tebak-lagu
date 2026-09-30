@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleAuthButton } from "@/components/GoogleAuthButton";
+import { OptionCards, ROUND_OPTIONS } from "@/components/OptionCards";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { sfx } from "@/lib/sound-fx";
@@ -462,29 +463,13 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* 4. Jumlah Ronde */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-mono text-mutedDark font-semibold flex items-center justify-between">
-                <span>{configModalMode.id === "tts" ? "4. JUMLAH RONDE" : "3. JUMLAH RONDE"}</span>
-                <span className="text-accent font-bold">{modalRounds} Ronde</span>
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[3, 5, 10, 15].map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setModalRounds(r)}
-                    className={`py-2 px-2 rounded-xl text-center transition text-xs font-semibold ${
-                      modalRounds === r
-                        ? "bg-zinc-100 text-zinc-950 shadow-sm"
-                        : "bg-surfaceRaised border border-surfaceBorder text-muted hover:text-white"
-                    }`}
-                  >
-                    {r} Ronde
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* 4. Jumlah Ronde — same control as the multiplayer room panel */}
+            <OptionCards<number>
+              label={configModalMode.id === "tts" ? "4. JUMLAH RONDE" : "3. JUMLAH RONDE"}
+              options={ROUND_OPTIONS}
+              value={modalRounds}
+              onChange={setModalRounds}
+            />
 
             {/* Action CTA Button */}
             <button
