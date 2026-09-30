@@ -295,7 +295,11 @@ async function getRandomSong(category, difficulty, mode = null, artists = null) 
   // "hard" and "all" add no constraint — hard is the full pool.
 
   if (mode === "heardle") {
-    sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";
+    // Time Slice is YouTube-only. The 30s Apple/Deezer preview was a second
+    // audio path with different behaviour: its tiers overran the clip, so the
+    // last tier ended in silence, and a preview can only ever be 30 seconds
+    // regardless of how long the tier asks for.
+    sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL AND s.youtube_id != ''";
   } else if (mode === "tts") {
     sql += " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
   }
@@ -304,17 +308,14 @@ async function getRandomSong(category, difficulty, mode = null, artists = null) 
 
   const res = await db.execute({ sql, args });
   if (res.rows.length === 0) {
-    // Drop ONLY the mode requirement, keep playlist/difficulty/artist filters
+    // Drop ONLY the lyrics requirement. The YouTube requirement is absolute for
+    // Time Slice: relaxing it would hand the client a song it cannot play, and
+    // with the Apple preview path removed there is nothing to fall back to.
     const relaxed = await db.execute({
-      sql: sql
-        .replace(
-          " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
-          ""
-        )
-        .replace(
-          " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL",
-          ""
-        ),
+      sql: sql.replace(
+        " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
+        ""
+      ),
       args,
     });
     if (relaxed.rows.length > 0) {
@@ -383,7 +384,11 @@ async function getMatchSongsQueue(category, difficulty, count = 5, mode = null, 
   // "hard" and "all" add no constraint — hard is the full pool.
 
   if (mode === "heardle") {
-    sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";
+    // Time Slice is YouTube-only. The 30s Apple/Deezer preview was a second
+    // audio path with different behaviour: its tiers overran the clip, so the
+    // last tier ended in silence, and a preview can only ever be 30 seconds
+    // regardless of how long the tier asks for.
+    sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL AND s.youtube_id != ''";
   } else if (mode === "tts") {
     sql += " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
   }

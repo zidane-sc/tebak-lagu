@@ -76,4 +76,29 @@ assert.strictEqual(zero, 0);
 assert.ok(zero !== null, "a zero offset must be a value, not a miss");
 assert.notStrictEqual(zero, undefined);
 
-console.log("vocal-offset: all 7 groups passed");
+// 8. Time Slice is YouTube-only. The 30s Apple/Deezer preview was a second
+//    audio path with different behaviour: the 22s and 30s tiers ran past the
+//    end of the clip and ended in silence, and a preview has no way to honour a
+//    start offset. The server must never hand this mode a song it cannot play,
+//    including through the relaxation path.
+{
+  const heardleFilter =
+    " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL AND s.youtube_id != ''";
+  const sql = "SELECT s.* FROM songs s WHERE (s.is_active = 1 OR s.is_active IS NULL)" + heardleFilter;
+  assert.ok(sql.includes("youtube_id != ''"),
+    "an empty-string youtube_id must not satisfy the Time Slice filter");
+  assert.ok(!sql.includes("lyrics_clues"),
+    "the lyrics filter belongs to TTS, not Time Slice");
+
+  // The relaxation must strip the lyrics requirement and nothing else. If it
+  // also stripped the YouTube one, the client would receive a song with no
+  // playable audio.
+  const relaxed = sql.replace(
+    " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
+    ""
+  );
+  assert.strictEqual(relaxed, sql,
+    "the Time Slice filter must survive relaxation untouched");
+}
+
+console.log("vocal-offset: all 8 groups passed");

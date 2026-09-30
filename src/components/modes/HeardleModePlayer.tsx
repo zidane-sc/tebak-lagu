@@ -1,17 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Timer, Play, Square, Loader2, Shuffle } from "lucide-react";
-import { SoundBars } from "@/components/SoundBars";
+import { Timer, Play, Square, Loader2 } from "lucide-react";
 import { VinylPlayer } from "@/components/VinylPlayer";
 import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
-import { sfx } from "@/lib/sound-fx";
 
 interface HeardleModePlayerProps {
-  previewUrl?: string;
   searchQuery: string;
-  startSecond?: number;
-  unlockedLevel: number; // 0 to 5
+  unlockedLevel: number; // 0 to durations.length - 1
   isGameOver?: boolean;
   customDurations?: number[];
   // YouTube engine props
@@ -26,10 +22,19 @@ interface HeardleModePlayerProps {
 // Stepped unlocked durations in seconds (Fair, exciting progression starting at 3s)
 const DEFAULT_DURATIONS = [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
 
+/**
+ * Time Slice plays through YouTube only.
+ *
+ * The Apple/Deezer 30s preview used to be the fallback whenever a track had no
+ * YouTube id. It was a different game with the same label: a preview is 30
+ * seconds no matter how long the tier asks for, so the 22s and 30s tiers ran
+ * past the end of the clip and the last tier ended in silence. There is also no
+ * way to pick a start offset on a preview, so the same song behaved differently
+ * depending on which source won. The server no longer selects songs without a
+ * YouTube id for this mode.
+ */
 export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
-  previewUrl: initialPreview,
   searchQuery,
-  startSecond,
   unlockedLevel,
   isGameOver = false,
   customDurations,
@@ -40,14 +45,8 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   onYoutubePause,
   ytEngineState,
 }) => {
-  // Use YouTube if available and ready, fallback to preview_url
-  const useYouTube = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview || null);
-  const [isLoading, setIsLoading] = useState(false);
+  const canPlay = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [previewStart, setPreviewStart] = useState<number>(0);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const durations =
@@ -55,108 +54,49 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
       ? customDurations
       : DEFAULT_DURATIONS;
   const maxAllowedDuration = durations[Math.min(unlockedLevel, durations.length - 1)];
+  const maxDuration = durations[durations.length - 1];
 
   const stopPlayback = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    if (isPlaying) onYoutubePause?.();
     setIsPlaying(false);
   };
 
-  // 1. Force stop playback when game over modal is active
+  // Stop when the game-over modal opens, when a tier is unlocked, and on unmount.
   useEffect(() => {
-    if (isGameOver) {
-      stopPlayback();
-    }
+    if (isGameOver) stopPlayback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameOver]);
 
-  // 2. Stop playback whenever level is unlocked/skipped or song changes
   useEffect(() => {
     stopPlayback();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unlockedLevel, searchQuery]);
 
-  // 3. Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopPlayback();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      onYoutubePause?.();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Where the Apple/Deezer 30s preview slice begins. An explicit admin
-  // override wins; otherwise 0.
-  //
-  // This used to fall back to a random 0-7s offset. Two problems: the same
-  // song behaved differently depending on whether YouTube was available (YT
-  // started at a fixed 20s), and a random offset re-rolled on every mount, so
-  // the same song could hand out a different slice each time. It also meant
-  // the admin's start_second field was the only way to get a fixed start.
-  useEffect(() => {
-    const override = Number(startSecond);
-    setPreviewStart(Number.isFinite(override) && override > 0 ? override : 0);
-  }, [searchQuery, startSecond]);
-
-  // Fetch Deezer preview only if YouTube is NOT available
-  useEffect(() => {
-    if (useYouTube) {
-      setIsLoading(false);
-      return;
-    }
-    if (!initialPreview && searchQuery) {
-      setIsLoading(true);
-      fetch(`/api/preview?q=${encodeURIComponent(searchQuery)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.previewUrl) setPreviewUrl(data.previewUrl);
-        })
-        .catch(() => {})
-        .finally(() => setIsLoading(false));
-    } else if (initialPreview) {
-      setPreviewUrl(initialPreview);
-    }
-  }, [initialPreview, searchQuery, useYouTube]);
 
   const handlePlay = () => {
     if (isPlaying) {
       stopPlayback();
-      if (useYouTube) onYoutubePause?.();
       return;
     }
+    if (!canPlay) return;
 
     setIsPlaying(true);
-
-    // ── YouTube path ──────────────────────────────────────────
-    if (useYouTube) {
-      const startSec = youtubeStartSecond ?? previewStart;
-      onYoutubePlay!(startSec);
-      // Auto-stop after allowed duration
-      timerRef.current = setTimeout(() => {
-        onYoutubePause?.();
-        setIsPlaying(false);
-      }, maxAllowedDuration * 1000);
-      return;
-    }
-
-    // ── Fallback: HTML5 audio preview ─────────────────────────
-    if (!audioRef.current || !previewUrl) {
+    onYoutubePlay!(youtubeStartSecond ?? 0);
+    timerRef.current = setTimeout(() => {
+      onYoutubePause?.();
       setIsPlaying(false);
-      return;
-    }
-
-    audioRef.current.currentTime = previewStart;
-    audioRef.current
-      .play()
-      .then(() => {
-        timerRef.current = setTimeout(() => {
-          stopPlayback();
-        }, maxAllowedDuration * 1000);
-      })
-      .catch(() => {
-        setIsPlaying(false);
-      });
+    }, maxAllowedDuration * 1000);
   };
 
   return (
@@ -166,11 +106,6 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         <div className="flex items-center gap-1.5 font-mono text-[11px] text-mutedDark uppercase tracking-wider">
           <Timer className="w-3.5 h-3.5 text-accent" />
           <span>Time Slice Engine</span>
-        </div>
-
-        <div className="flex items-center gap-1 bg-surfaceRaised px-2 py-0.5 rounded text-[11px] font-mono text-muted border border-surfaceBorder">
-          <Shuffle className="w-3 h-3 text-mutedDark" />
-          <span>Detik Acak</span>
         </div>
       </div>
 
@@ -184,17 +119,23 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
 
         <button
           onClick={handlePlay}
-          disabled={isLoading || (!previewUrl && !useYouTube)}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all transform active:scale-95 shadow-md cursor-pointer ${
+          disabled={!canPlay}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all transform active:scale-95 shadow-md ${
+            canPlay ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+          } ${
             isPlaying
               ? "bg-red-500 hover:bg-red-600 text-white ring-4 ring-red-500/20"
               : "bg-zinc-100 hover:bg-white text-zinc-950"
           }`}
-          title={isPlaying ? "Hentikan" : `Putar ${maxAllowedDuration}s`}
+          title={
+            !canPlay
+              ? "Video belum siap — lagu ini tidak bisa dimuat"
+              : isPlaying
+              ? "Hentikan"
+              : `Putar ${maxAllowedDuration}s`
+          }
         >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin text-zinc-600" />
-          ) : isPlaying ? (
+          {isPlaying ? (
             <>
               <Square className="w-4 h-4 fill-current" />
               <span>Hentikan Audio</span>
@@ -214,6 +155,11 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
             Audio tidak bisa dimuat — video ini tidak tersedia.
           </p>
         )}
+        {!canPlay && ytEngineState !== "unavailable" && (
+          <p className="text-[11px] text-mutedDark font-mono text-center">
+            Video untuk lagu ini belum siap. advancing ke lagu lain.
+          </p>
+        )}
       </div>
 
       {/* Hardware-Style Segmented Timeline Bar */}
@@ -221,12 +167,14 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         <div className="flex justify-between items-center text-xs font-mono">
           <span className="text-mutedDark">DURASI TERBUKA</span>
           <span className="text-zinc-100 font-semibold">
-            {maxAllowedDuration}s <span className="text-mutedDark">/ 30.0s</span>
+            {maxAllowedDuration}s <span className="text-mutedDark">/ {maxDuration}s</span>
           </span>
         </div>
 
-        {/* 6 Segment Progress Blocks (Precision Track) */}
-        <div className="grid grid-cols-6 gap-1.5 h-2.5">
+        <div
+          className="grid gap-1.5 h-2.5"
+          style={{ gridTemplateColumns: `repeat(${durations.length}, minmax(0, 1fr))` }}
+        >
           {durations.map((dur, index) => {
             const isUnlocked = index <= unlockedLevel;
             return (
@@ -242,12 +190,9 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         </div>
 
         <p className="text-[11px] text-mutedDark text-center mt-0.5">
-          Cuplikan dipotong di detik acak. Salah tebak membuka durasi lebih panjang.
+          Cuplikan selalu mulai dari vokal. Salah tebak membuka durasi lebih panjang.
         </p>
       </div>
-
-      {/* Hidden native audio element */}
-      {previewUrl && <audio ref={audioRef} src={previewUrl} preload="auto" />}
     </div>
   );
 };

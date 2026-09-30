@@ -338,6 +338,10 @@ export default function MultiplayerPage() {
       }
 
       // ── Fallback: HTML5 audio ─────────────────────────────────
+      // Kept deliberately. Time Slice only selects songs that have a YouTube
+      // id, but an IFrame player can still fail on a device or a network, and
+      // a 30-second preview is better than silence. The 5s clamp below is why
+      // the tiers cannot overrun this source the way they could before.
       if (!audioRef.current) return;
       const previewUrl = clue?.previewUrl || "";
       if (audioRef.current.src !== previewUrl) {

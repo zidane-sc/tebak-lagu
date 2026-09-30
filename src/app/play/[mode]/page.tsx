@@ -63,7 +63,6 @@ export default function PlayArenaPage() {
   const [song, setSong] = useState<Song | null>(null);
   const [roundNumber, setRoundNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
   const [albumCover, setAlbumCover] = useState<string | undefined>(undefined);
 
   // YouTube Audio Engine (persistent singleton)
@@ -127,6 +126,10 @@ export default function PlayArenaPage() {
 
   // Fetch Server Tuned Settings (durations, tts progression)
   const [serverSettings, setServerSettings] = useState<any>(null);
+  // Full-length preview for the results screen. This is not the Time Slice
+  // audio path: Time Slice is YouTube-only now, but the game-over modal still
+  // plays the song through so a player can hear what they missed.
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -172,8 +175,8 @@ export default function PlayArenaPage() {
         if (data.song) {
           const s = data.song;
           setSong(s);
+                setAlbumCover(s.albumCover);
           setPreviewUrl(s.previewResolved || s.previewUrl);
-          setAlbumCover(s.albumCover);
           // Cue YouTube player (muted preload) if youtube_id exists
           if (s.youtubeId && s.youtubeStatus === "ready") {
             ytEngine.cue({ youtubeId: s.youtubeId, startSecond: s.youtubeStartSecond ?? 20, title: s.title, artist: s.artist });
@@ -418,9 +421,7 @@ export default function PlayArenaPage() {
 
         {modeKey === "heardle" && (
           <HeardleModePlayer
-            previewUrl={previewUrl}
             searchQuery={song.searchQuery}
-            startSecond={song.startSecond}
             unlockedLevel={unlockedHeardleLevel}
             isGameOver={isGameOver}
             customDurations={serverSettings?.heardleDurations}
