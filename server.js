@@ -13,6 +13,7 @@ const handle = app.getRequestHandler();
 const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats, getSettingsFromDb } = require("./src/lib/db-server.js");
 // One defaults object for the socket engine, the admin API and the client.
 const { DEFAULT_SETTINGS, resolveSettings } = require("./src/lib/game-settings.js");
+const { advanceClueState, KICKOFF_SECONDS } = require("./src/lib/clue-phase.js");
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -278,7 +279,7 @@ function advanceToNextRound(room) {
 
 // Matches the client's 3-2-1 countdown overlay. The server waits this long
 // before arming the first clue so the overlay never eats clue audio.
-const KICKOFF_SECONDS = 4;
+// KICKOFF_SECONDS now comes from src/lib/clue-phase.js (single source).
 
 function triggerRoundRevealed(room, initialPayload) {
   room.status = "revealed";
@@ -386,24 +387,6 @@ async function startRound(room) {
     playerLives,
   };
 
-  function nextPhase() {
-    if (room.clueIndex < room.cluePlayDurations.length) {
-      room.clueIndex += 1;
-      room.clueStage = room.clueIndex;
-      room.cluePhase = "playing";
-      room.clueSecondsLeft = room.cluePlayDurations[room.clueIndex - 1];
-      return "playing";
-    }
-    room.cluePhase = "final_silence";
-    room.clueSecondsLeft = room.clueFinalSilenceSeconds;
-    return "final_silence";
-  }
-
-  /** True when the next phase would open a new clue (so a gap belongs between). */
-  function isLastClue() {
-    return room.clueIndex >= room.cluePlayDurations.length;
-  }
-
   function emitCluePhase(phaseChanged) {
     broadcast(room, {
       type: "clue_phase",
@@ -477,56 +460,36 @@ async function startRound(room) {
   });
 
   // Wait out the client kickoff before the clue clock starts ticking, otherwise
-  // the first clue loses ~4s of audio to the countdown overlay.
+  // the first clue loses ~4s of audio to the countdown overlay. The decision of
+  // what phase comes next lives in src/lib/clue-phase.js; this timer only
+  // counts and applies the result.
   room.stageTimer = setInterval(() => {
     if (room.status !== "playing") return;
 
-    if (room.clueSecondsLeft === 0) {
-      // Countdown finished — arm the first clue on the next tick.
-      room.clueIndex = 1;
-      room.clueStage = 1;
-      room.cluePhase = "playing";
-      room.clueSecondsLeft = room.cluePlayDurations[0] || 5;
-      emitCluePhase(true);
-      return;
-    }
-
-    if (room.cluePhase === "idle") {
-      // Still inside the client kickoff — tick down silently, no point
-      // broadcasting a phase the client has no UI for yet.
-      room.clueSecondsLeft -= 1;
-      return;
-    }
-
-    room.clueSecondsLeft -= 1;
-
-    if (room.clueSecondsLeft > 0) {
-      emitCluePhase(false);
-      return;
-    }
-
-    // A phase just ran out. Advance, or end the round after the final silence.
-    if (room.cluePhase === "playing") {
-      if (isLastClue()) {
-        // No more clues coming — go straight to the buzzer window instead of
-        // burning the short inter-clue gap first.
-        room.cluePhase = "final_silence";
-        room.clueSecondsLeft = room.clueFinalSilenceSeconds;
-      } else {
-        room.cluePhase = "silence";
-        room.clueSecondsLeft = room.clueGapSeconds;
+    const { state, action, phaseChanged } = advanceClueState(
+      { phase: room.cluePhase, index: room.clueIndex, secondsLeft: room.clueSecondsLeft },
+      {
+        playDurations: room.cluePlayDurations,
+        gapSeconds: room.clueGapSeconds,
+        finalSilenceSeconds: room.clueFinalSilenceSeconds,
       }
-    } else if (room.cluePhase === "silence") {
-      nextPhase();
-    } else {
+    );
+    room.cluePhase = state.phase;
+    room.clueIndex = state.index;
+    room.clueStage = state.index;
+    room.clueSecondsLeft = state.secondsLeft;
+
+    if (action === "reveal") {
       triggerRoundRevealed(room, {
         type: "round_revealed",
         message: `Tidak ada yang menjawab! Jawabannya adalah: ${room.currentSong?.title} - ${room.currentSong?.artist}`,
       });
       return;
     }
-
-    emitCluePhase(true);
+    // Emit on every tick: the client's countdown UI reads room.clueSecondsLeft
+    // from the snapshot and would freeze without it. `phaseChanged` is what
+    // tells the client this is not a new phase, so it must not restart audio.
+    emitCluePhase(phaseChanged);
   }, 1000);
 }
 

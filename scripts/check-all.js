@@ -32,6 +32,8 @@ const checks = [
   ["check-game-settings.js", "node"],
   ["check-health-probe.js", "node"],
   ["check-yt-scoring.js", "node"],
+  ["check-clue-phase.js", "node"],
+  ["verify-clue-phase-parity.js", "node"],
 ];
 
 
