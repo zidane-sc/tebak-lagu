@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { LogOut, Trophy, Award, Gamepad2, X, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Trophy, Award, Gamepad2, X, Loader2, Sparkles, ShieldCheck, UserCog } from "lucide-react";
 
 export const GoogleAuthButton: React.FC = () => {
   const { user, isLoggedIn, logout, loginWithCredential } = useAuth();
@@ -137,6 +138,15 @@ export const GoogleAuthButton: React.FC = () => {
                 <span className="text-[9px] text-muted font-mono">Menang</span>
               </div>
             </div>
+
+            <Link
+              href="/profile"
+              onClick={() => setShowDropdown(false)}
+              className="w-full py-2 px-3 rounded-xl bg-surfaceRaised hover:bg-accent/10 text-muted hover:text-accent text-xs font-medium border border-surfaceBorder transition flex items-center justify-center gap-1.5"
+            >
+              <UserCog className="w-3.5 h-3.5" />
+              <span>Profil &amp; Statistik</span>
+            </Link>
 
             <button
               onClick={() => {

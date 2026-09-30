@@ -280,6 +280,20 @@ export async function initDb() {
     `CREATE INDEX IF NOT EXISTS idx_player_sessions_user ON player_sessions(user_id);`
   );
 
+  // Profile fields. Added with ALTER rather than in the CREATE TABLE because the
+  // column only exists here; CREATE TABLE IF NOT EXISTS is a no-op on a database
+  // created before this shipped, so the new columns would never appear.
+  for (const col of [
+    "ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''",
+    "ALTER TABLE users ADD COLUMN favorite_artist TEXT DEFAULT ''",
+  ]) {
+    try {
+      await db.execute(col);
+    } catch {
+      // "duplicate column name" — already there, which is the normal case.
+    }
+  }
+
   // 2. Check if songs table is empty -> Auto-seed from songs.json
   const countRes = await db.execute("SELECT COUNT(*) as total FROM songs;");
   const count = Number(countRes.rows[0]?.total || 0);
@@ -559,6 +573,8 @@ export interface DbUser {
   email: string;
   name: string;
   avatar: string;
+  bio: string;
+  favorite_artist: string;
   total_score: number;
   games_played: number;
   wins: number;
@@ -575,6 +591,8 @@ export function rowToUser(row: any): DbUser | null {
     email: String(row.email),
     name: String(row.name),
     avatar: row.avatar || "",
+    bio: row.bio || "",
+    favorite_artist: row.favorite_artist || "",
     total_score: Number(row.total_score || 0),
     games_played: Number(row.games_played || 0),
     wins: Number(row.wins || 0),
@@ -659,6 +677,44 @@ export async function updateUserStats(
     args: [Math.max(0, pointsGained), isWin ? 1 : 0, userId],
   });
 
+  return getUserById(userId);
+}
+
+// -------------------------------------------------------------
+// PROFILE
+// -------------------------------------------------------------
+
+/**
+ * Update the fields a player owns. Email and id are not editable: the account is
+ * the Google identity, and letting either change would break the link between a
+ * score and the account that earned it.
+ */
+export async function updateUserProfile(
+  userId: string,
+  fields: { name?: string; bio?: string; favoriteArtist?: string }
+): Promise<DbUser | null> {
+  const sets: string[] = [];
+  const args: any[] = [];
+  if (fields.name !== undefined) {
+    sets.push("name = ?");
+    args.push(fields.name);
+  }
+  if (fields.bio !== undefined) {
+    sets.push("bio = ?");
+    args.push(fields.bio);
+  }
+  if (fields.favoriteArtist !== undefined) {
+    sets.push("favorite_artist = ?");
+    args.push(fields.favoriteArtist);
+  }
+  if (sets.length === 0) return getUserById(userId);
+
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  args.push(userId);
+  await db.execute({
+    sql: `UPDATE users SET ${sets.join(", ")} WHERE id = ? AND is_active = 1;`,
+    args,
+  });
   return getUserById(userId);
 }
 

@@ -41,6 +41,7 @@ const checks = [
   ["check-buzz-lives.js", "node"],
   ["check-song-artists.js", "node"],
   ["check-session-guard.js", "node"],
+  ["check-profile-fields.js", "node"],
 ];
 
 

@@ -7,6 +7,8 @@ export interface AuthUser {
   email: string;
   name: string;
   avatar: string;
+  bio: string;
+  favorite_artist: string;
   total_score: number;
   games_played: number;
   wins: number;
@@ -20,6 +22,7 @@ interface AuthContextType {
   logout: () => void;
   syncScore: (pointsGained: number, isWin?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  saveProfile: (fields: { name?: string; bio?: string; favoriteArtist?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   syncScore: async () => {},
   refreshProfile: async () => {},
+  saveProfile: async () => false,
 });
 
 const AUTH_STORAGE_KEY = "tebak_lagu_user_auth";
@@ -127,6 +131,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
   };
 
+  // 6. Save profile fields the player owns
+  const saveProfile = async (fields: { name?: string; bio?: string; favoriteArtist?: string }) => {
+    try {
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        setUser(data.user);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+        return true;
+      }
+    } catch (e) {
+      console.error("Save profile error:", e);
+    }
+    return false;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -137,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         syncScore,
         refreshProfile,
+        saveProfile,
       }}
     >
       {children}
