@@ -570,7 +570,7 @@ function handleBuzzTimeout(room) {
     const msg =
       newLives > 0
         ? `Waktu ${penaltyPlayerName} habis! Sisa nyawa ${penaltyPlayerName}: ${newLives}/3. Buzzer terbuka kembali!`
-        : `Waktu ${penaltyPlayerName} habis dan nyawanya habis (0/3)! Pemain lain silakan memencet Buzzer!`;
+        : `Waktu ${penaltyPlayerName} habis dan nyawanya habis (0/${room.playerLivesPerRound})! Pemain lain silakan memencet Buzzer!`;
     broadcast(room, {
       type: "buzz_resumed",
       resumeAudio: true,
@@ -940,7 +940,7 @@ app.prepare().then(() => {
           if (room.buzzState.playerLives[player.id] <= 0) {
             sendTo(socket, {
                 type: "buzz_rejected",
-                message: "Nyawa tebakanmu sudah habis di ronde ini (0/3)!",
+                message: `Nyawa tebakanmu sudah habis di ronde ini (0/${room.playerLivesPerRound})!`,
               });
             return;
           }
@@ -1075,7 +1075,7 @@ app.prepare().then(() => {
               const msg =
                 newLives > 0
                   ? `Tebakan ${player.name} belum tepat! Sisa nyawa ${player.name}: ${newLives}/3. Buzzer terbuka kembali!`
-                  : `Tebakan ${player.name} belum tepat dan nyawanya habis (0/3)! Pemain lain silakan Buzzer!`;
+                  : `Tebakan ${player.name} belum tepat dan nyawanya habis (0/${room.playerLivesPerRound})! Pemain lain silakan Buzzer!`;
               broadcast(room, {
                 type: "guess_result",
                 isCorrect: false,

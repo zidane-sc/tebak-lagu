@@ -1850,9 +1850,9 @@ export default function MultiplayerPage() {
             <div className="flex flex-col items-center justify-center py-2 gap-2">
               <button
                 onClick={handleBuzz}
-                disabled={(myPlayer?.lives ?? 3) <= 0 || isCooldown}
+                disabled={(myPlayer?.lives ?? 0) <= 0 || isCooldown}
                 className={`w-28 h-28 rounded-full text-white font-black text-2xl tracking-wider flex flex-col items-center justify-center select-none transition-all ${
-                  (myPlayer?.lives ?? 3) <= 0
+                  (myPlayer?.lives ?? 0) <= 0
                     ? "bg-zinc-800 border-4 border-zinc-700 opacity-40 cursor-not-allowed text-zinc-500 shadow-none"
                     : isCooldown
                     ? "bg-amber-950/40 border-4 border-amber-500/60 text-amber-300 cursor-not-allowed shadow-lg shadow-amber-500/10 animate-pulse"
@@ -1860,18 +1860,18 @@ export default function MultiplayerPage() {
                 }`}
               >
                 <span>
-                  {(myPlayer?.lives ?? 3) <= 0
+                  {(myPlayer?.lives ?? 0) <= 0
                     ? "HABIS!"
                     : isCooldown
                     ? `${cooldownSeconds}s`
                     : "BUZZ!"}
                 </span>
                 <span className="text-[9px] font-mono font-bold tracking-widest uppercase opacity-90 mt-0.5">
-                  {(myPlayer?.lives ?? 3) <= 0
-                    ? "NYAWA 0/3"
+                  {(myPlayer?.lives ?? 0) <= 0
+                    ? `NYAWA 0/${room?.settings?.playerLivesPerRound ?? 3}`
                     : isCooldown
                     ? "TUNGGU"
-                    : `NYAWA ${myPlayer?.lives ?? 3}/3`}
+                    : `NYAWA ${myPlayer?.lives ?? room?.settings?.playerLivesPerRound ?? 3}/${room?.settings?.playerLivesPerRound ?? 3}`}
                 </span>
               </button>
             </div>

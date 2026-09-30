@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "next lint",
-    "test": "node scripts/check-all.js"
+    "test": "node scripts/check-all.js",
+    "check:live": "node scripts/check-live-guess.js",
+    "check:phase": "node scripts/check-live-phase.js"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
