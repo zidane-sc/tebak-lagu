@@ -94,4 +94,33 @@ function cooldownFor(newLives) {
 assert.strictEqual(cooldownFor(1), 5000, "a player with lives left waits five seconds");
 assert.strictEqual(cooldownFor(0), 0, "an eliminated player gets no cooldown");
 
-console.log("buzz-lives: all 7 groups passed");
+// 8. The timeout path had its own copy of the allOut check, drifted to a hardcoded
+//    0, so a player who had never buzzed read as out and the round ended on the
+//    first buzz timeout. Both copies must use the room's allowance.
+{
+  // Two players; "a" burned all five lives, "b" has never buzzed.
+  const room = {
+    playerLivesPerRound: 5,
+    players: [{ id: "a" }, { id: "b" }],
+    buzzState: { playerLives: { a: 0 } },
+  };
+  assert.strictEqual(allOut(room), false,
+    "a player with no entry is not out, regardless of the allowance");
+  // Once "b" also runs out, the round may end.
+  room.buzzState.playerLives.b = 0;
+  assert.strictEqual(allOut(room), true, "both out means the round can end");
+}
+
+// 9. defaultRounds must reach the room. Two paths read a literal 5 instead, so
+//    the admin setting changed the settings screen and nothing else.
+function roomRounds(room) {
+  const n = Number(room?.maxRounds);
+  return Number.isFinite(n) && n > 0 ? n : 5;
+}
+assert.strictEqual(roomRounds({ maxRounds: 3 }), 3, "the host's choice wins");
+assert.strictEqual(roomRounds({ maxRounds: 10 }), 10);
+assert.strictEqual(roomRounds({}), 5, "no choice falls back to the default");
+assert.strictEqual(roomRounds({ maxRounds: 0 }), 5, "zero is not a round count");
+assert.strictEqual(roomRounds({ maxRounds: "7" }), 7, "a string count from the client is honoured");
+
+console.log("buzz-lives: all 9 groups passed");

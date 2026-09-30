@@ -63,6 +63,15 @@ function freshLives(room) {
   return Number.isFinite(n) && n > 0 ? n : 3;
 }
 
+/**
+ * Rounds in a match. The room reads the host's choice; a room created without
+ * one falls back to the admin-configured defaultRounds, not a literal 5.
+ */
+function roomRounds(room) {
+  const n = Number(room?.maxRounds);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_SETTINGS.defaultRounds;
+}
+
 /** Tuning for a brand-new room: the admin's saved values, defaults if the read fails. */
 async function loadRoomSettings() {
   try {
@@ -541,10 +550,13 @@ function handleBuzzTimeout(room) {
     room.buzzState.buzzTimer = null;
   }
 
-  // Check if ALL active players have exhausted all 3 lives
+  // Check if all active players have exhausted their lives. This duplicates the
+  // check in the wrong-guess handler; it had drifted to a hardcoded 0, so a
+  // player who had not buzzed read as out and the round ended on the first
+  // timeout.
   const allOut =
     room.players.length > 0 &&
-    room.players.every((p) => (room.buzzState.playerLives[p.id] || 0) <= 0);
+    room.players.every((p) => (room.buzzState.playerLives[p.id] ?? freshLives(room)) <= 0);
 
   if (allOut) {
     // Round over, reveal song (Hangus!)
@@ -628,7 +640,7 @@ app.prepare().then(() => {
             filterType: data.filterType || "category",
             difficulty: data.difficulty || "easy",
             audioProfile: data.audioProfile || "normal",
-            maxRounds: data.maxRounds || 5,
+            maxRounds: Number(data.maxRounds) || DEFAULT_SETTINGS.defaultRounds,
             currentRound: 0,
             status: "lobby",
             players: [player],
@@ -862,7 +874,7 @@ app.prepare().then(() => {
             const queue = await getMatchSongsQueue(
               room.filterType === "artists" ? null : room.category,
               room.difficulty,
-              room.maxRounds || 5,
+              roomRounds(room),
               room.mode,
               room.filterType === "artists" ? room.selectedArtists : null
             );
