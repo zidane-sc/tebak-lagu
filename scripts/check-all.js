@@ -39,6 +39,7 @@ const checks = [
   ["check-vocal-offset.js", "node"],
   ["check-guess-matcher.js", "node"],
   ["check-buzz-lives.js", "node"],
+  ["check-song-artists.js", "node"],
 ];
 
 
