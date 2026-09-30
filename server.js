@@ -11,6 +11,8 @@ const handle = app.getRequestHandler();
 
 // Database connection (LibSQL / SQLite persistent engine)
 const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats, getSettingsFromDb } = require("./src/lib/db-server.js");
+// One defaults object for the socket engine, the admin API and the client.
+const { DEFAULT_SETTINGS, resolveSettings } = require("./src/lib/game-settings.js");
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -32,6 +34,27 @@ function generateRoomCode() {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return rooms.has(code) ? generateRoomCode() : code;
+}
+
+/** The subset of tuning that rides along on the room object. */
+function pickRoomSettings(settings) {
+  return {
+    clueExtensionIntervalSeconds: settings.clueExtensionIntervalSeconds,
+    finalStageSeconds: settings.finalStageSeconds,
+    buzzerTimerSeconds: settings.buzzerTimerSeconds,
+    playerLivesPerRound: settings.playerLivesPerRound,
+    heardleDurations: settings.heardleDurations,
+  };
+}
+
+/** Tuning for a brand-new room: the admin's saved values, defaults if the read fails. */
+async function loadRoomSettings() {
+  try {
+    return pickRoomSettings(resolveSettings(await getSettingsFromDb()));
+  } catch (err) {
+    console.error("> Failed to load settings for new room, using defaults:", err.message);
+    return pickRoomSettings(DEFAULT_SETTINGS);
+  }
 }
 
 function broadcast(room, payload, excludeSocket = null) {
@@ -186,11 +209,11 @@ function getSanitizedRoom(room) {
       streak: p.streak || 0,
     })),
     settings: {
-      clueExtensionIntervalSeconds: room.clueExtensionIntervalSeconds || 10,
-      finalStageSeconds: room.finalStageSeconds || 15,
-      buzzerTimerSeconds: room.buzzerTimerSeconds || 15,
-      playerLivesPerRound: room.playerLivesPerRound || 3,
-      heardleDurations: room.heardleDurations || [5, 9, 18, 30],
+      clueExtensionIntervalSeconds: room.clueExtensionIntervalSeconds,
+      finalStageSeconds: room.finalStageSeconds,
+      buzzerTimerSeconds: room.buzzerTimerSeconds,
+      playerLivesPerRound: room.playerLivesPerRound,
+      heardleDurations: room.heardleDurations,
     },
     buzzedPlayer: room.buzzState?.buzzedPlayerId
       ? {
@@ -226,8 +249,8 @@ function getSanitizedRoom(room) {
     clueIndex: room.clueIndex || 0,
     totalClues: (room.cluePlayDurations || []).length,
     cluePlayDurations: room.cluePlayDurations || [],
-    clueGapSeconds: room.clueGapSeconds || 5,
-    clueFinalSilenceSeconds: room.clueFinalSilenceSeconds || 30,
+    clueGapSeconds: room.clueGapSeconds,
+    clueFinalSilenceSeconds: room.clueFinalSilenceSeconds,
     clueSecondsLeft: room.clueSecondsLeft || 0,
     buzzerOpen: room.cluePhase === "buzzer",
     revealedSong: room.status === "revealed" || room.status === "game_over" ? room.currentSong : null,
@@ -306,25 +329,19 @@ function triggerRoundRevealed(room, initialPayload) {
 
 async function startRound(room) {
   // Load dynamic server configuration from SQLite!
-  const settings = await getSettingsFromDb();
-  room.clueExtensionIntervalSeconds = Number(settings.clueExtensionIntervalSeconds) || 10;
-  room.finalStageSeconds = Number(settings.finalStageSeconds) || 15;
-  room.buzzerTimerSeconds = Number(settings.buzzerTimerSeconds) || 15;
-  room.playerLivesPerRound = Number(settings.playerLivesPerRound) || 3;
-  room.heardleDurations = Array.isArray(settings.heardleDurations) ? settings.heardleDurations : [5, 9, 18, 30];
+  const settings = resolveSettings(await getSettingsFromDb());
+  Object.assign(room, pickRoomSettings(settings));
   // Clue sequence: play a slice, go quiet, play the next slice, then stay quiet
   // and finally open the buzzer. All three are admin-configurable.
-  room.cluePlayDurations = Array.isArray(settings.cluePlayDurations) && settings.cluePlayDurations.length
-    ? settings.cluePlayDurations.map((n) => Number(n) || 5)
-    : [5, 9, 15];
-  room.clueGapSeconds = Number(settings.clueGapSeconds) || 5;
-  room.clueFinalSilenceSeconds = Number(settings.clueFinalSilenceSeconds) || 30;
+  room.cluePlayDurations = settings.cluePlayDurations;
+  room.clueGapSeconds = settings.clueGapSeconds;
+  room.clueFinalSilenceSeconds = settings.clueFinalSilenceSeconds;
   // Robot TTS reads a fixed set of lyric stanzas, so the slice/gap loop would
   // just repeat the same speech. It gets a single long read instead.
   if (room.mode === "tts") {
-    room.cluePlayDurations = [Math.max(10, Number(settings.ttsReadSeconds) || 20)];
+    room.cluePlayDurations = [Math.max(10, settings.ttsReadSeconds)];
     room.clueGapSeconds = 0;
-    room.clueFinalSilenceSeconds = Number(settings.buzzerTimerSeconds) || 15;
+    room.clueFinalSilenceSeconds = settings.buzzerTimerSeconds;
   }
 
   room.currentRound += 1;
@@ -638,6 +655,11 @@ app.prepare().then(() => {
             status: "lobby",
             players: [player],
             currentSong: null,
+            // Seed the tuning before the first broadcast. startRound reloads it
+            // from SQLite, but a lobby snapshot is sent before any round runs,
+            // and previously that snapshot fell through to hardcoded `|| 10`
+            // defaults that disagreed with the admin's saved values.
+            ...(await loadRoomSettings()),
             buzzState: {
               buzzedPlayerId: null,
               buzzedPlayerName: null,
@@ -755,7 +777,7 @@ app.prepare().then(() => {
             socket.join(code);
 
             if (room.buzzState?.playerLives && room.buzzState.playerLives[rejoining.id] === undefined) {
-              room.buzzState.playerLives[rejoining.id] = room.playerLivesPerRound || 3;
+              room.buzzState.playerLives[rejoining.id] = room.playerLivesPerRound;
             }
             if (room.buzzState?.lockedOutPlayerIds) {
               room.buzzState.lockedOutPlayerIds = room.buzzState.lockedOutPlayerIds.filter(
@@ -944,7 +966,7 @@ app.prepare().then(() => {
           room.buzzState.buzzedPlayerName = player.name;
 
           // Start guess countdown based on server settings
-          const allowedSec = room.buzzerTimerSeconds || 15;
+          const allowedSec = room.buzzerTimerSeconds;
           if (room.buzzState.buzzTimer) clearTimeout(room.buzzState.buzzTimer);
           room.buzzState.buzzTimer = setTimeout(() => {
             handleBuzzTimeout(room);

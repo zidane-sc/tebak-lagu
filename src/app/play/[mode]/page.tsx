@@ -16,6 +16,7 @@ import { useYouTubeEngine } from "@/lib/youtube-engine";
 import { isGuessCorrect } from "@/lib/guess-matcher";
 import { Loader2, Trophy, RotateCcw, Home, Sparkles, CheckCircle2, XCircle, Share2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
+import { DEFAULT_SETTINGS } from "@/lib/game-settings";
 
 const MODE_CONFIG: Record<
   string,
@@ -126,7 +127,7 @@ export default function PlayArenaPage() {
   const [serverSettings, setServerSettings] = useState<any>(null);
 
   useEffect(() => {
-    fetch("/api/admin/settings")
+    fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => setServerSettings(data))
       .catch(() => {});
@@ -142,7 +143,7 @@ export default function PlayArenaPage() {
     setIsGameOver(false);
     setIsWon(false);
     setGuesses([]);
-    setActiveClueCount(serverSettings?.ttsCluesProgression?.[0] || 1);
+    setActiveClueCount(serverSettings?.ttsCluesProgression?.[0] ?? DEFAULT_SETTINGS.ttsCluesProgression[0]);
     setUnlockedHeardleLevel(0);
     setScoreGained(0);
 
@@ -264,11 +265,12 @@ export default function PlayArenaPage() {
       setGuesses(newGuesses);
 
       const cluesTotal = song.lyricsClues?.length || 4;
-      const ttsProgression = serverSettings?.ttsCluesProgression || [1, 2, 3, 4];
+      const ttsProgression = serverSettings?.ttsCluesProgression ?? DEFAULT_SETTINGS.ttsCluesProgression;
       const nextTtsIdx = Math.min(ttsProgression.length - 1, newGuesses.length);
       const nextTtsCount = ttsProgression[nextTtsIdx] ?? (newGuesses.length + 1);
       setActiveClueCount(Math.min(cluesTotal, nextTtsCount));
-      setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
+      const levels = (serverSettings?.heardleDurations ?? DEFAULT_SETTINGS.heardleDurations).length;
+      setUnlockedHeardleLevel((prev) => Math.min(levels - 1, prev + 1));
 
       if (newGuesses.length >= config.maxGuesses) {
         setIsWon(false);
@@ -300,11 +302,12 @@ export default function PlayArenaPage() {
     setGuesses(newGuesses);
 
     const cluesTotal = song.lyricsClues?.length || 4;
-    const ttsProgression = serverSettings?.ttsCluesProgression || [1, 2, 3, 4];
+    const ttsProgression = serverSettings?.ttsCluesProgression ?? DEFAULT_SETTINGS.ttsCluesProgression;
     const nextTtsIdx = Math.min(ttsProgression.length - 1, newGuesses.length);
     const nextTtsCount = ttsProgression[nextTtsIdx] ?? (newGuesses.length + 1);
     setActiveClueCount(Math.min(cluesTotal, nextTtsCount));
-    setUnlockedHeardleLevel((prev) => Math.min(5, prev + 1));
+    const levels = (serverSettings?.heardleDurations ?? DEFAULT_SETTINGS.heardleDurations).length;
+      setUnlockedHeardleLevel((prev) => Math.min(levels - 1, prev + 1));
 
     if (newGuesses.length >= config.maxGuesses) {
       setIsWon(false);

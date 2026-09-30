@@ -1,25 +1,9 @@
 import { NextResponse } from "next/server";
 import { initDb, getSettingsFromDb, saveSettingToDb } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-guard";
+import { resolveSettings } from "@/lib/game-settings";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_SETTINGS = {
-  buzzerTimerSeconds: 20,
-  playerLivesPerRound: 3,
-  clueExtensionIntervalSeconds: 30,
-  finalStageSeconds: 90,
-  disconnectGracePeriodSeconds: 45,
-  defaultRounds: 5,
-  defaultDifficulty: "easy",
-  defaultAudioProfile: "normal",
-  allowMidGameJoin: true,
-  consensusVoteSkip: true,
-  // Time Slice progression (seconds for Level 1 - 6)
-  heardleDurations: [3.0, 5.0, 9.0, 15.0, 22.0, 30.0],
-  // Robot Speech TTS progression (stanzas opened per attempt)
-  ttsCluesProgression: [1, 2, 3, 4],
-};
 
 export async function GET(request: Request) {
   const denied = requireAdmin(request);
@@ -28,8 +12,7 @@ export async function GET(request: Request) {
   try {
     await initDb();
     const dbSettings = await getSettingsFromDb();
-    const merged = { ...DEFAULT_SETTINGS, ...dbSettings };
-    return NextResponse.json(merged);
+    return NextResponse.json(resolveSettings(dbSettings));
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -43,7 +26,7 @@ export async function POST(request: Request) {
     await initDb();
     const body = await request.json();
     const current = await getSettingsFromDb();
-    const updated = { ...DEFAULT_SETTINGS, ...current, ...body };
+    const updated = resolveSettings({ ...current, ...body });
 
     for (const [key, value] of Object.entries(updated)) {
       await saveSettingToDb(key, value);
