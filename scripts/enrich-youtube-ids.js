@@ -20,6 +20,33 @@ const DELAY_MS = 800; // be polite to YouTube
 // Tracks video IDs already assigned in this run so two songs never share one video
 const claimedIds = new Set();
 
+// Non-original uploads play differently from the studio track, so a wrong pick
+// makes the clue a lie: the game would show "Shape of You" while playing a
+// cover. Covers, remixes, live cuts and sped-up edits are all rejected.
+const NON_ORIGINAL =
+  /\b(remix|cover|live|acoustic|instrumental|nightcore|slowed|sped\s*up|8d|karaoke|mashup|flip)\b/i;
+
+// Strip credits and tags so "Title (feat. X) [Official Video]" normalises to
+// the same core words as the database title.
+function normalizeTitle(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/\(.*?\)|\[[^\]]*\]/g, " ")
+    .replace(/[–—\-_]+/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Share of the database title's words present in the upload title. Guards
+// against an unrelated video scoring well on channel name alone.
+function titleOverlap(want, got) {
+  const w = normalizeTitle(want).split(" ");
+  const g = new Set(normalizeTitle(got).split(" "));
+  if (w.length === 0) return 0;
+  return w.filter((t) => g.has(t)).length / w.length;
+}
+
 // Preferred official label keywords (higher priority)
 const OFFICIAL_KEYWORDS = [
   "official audio", "official video", "official mv",
@@ -129,6 +156,12 @@ async function findYouTubeId(artist, title) {
   // ID makes the game play the wrong song.
   const best = scored[0];
   if (!best || best.score < 30) return null;
+
+  // Reject covers, remixes, live cuts and sped-up edits outright.
+  if (NON_ORIGINAL.test(`${best.title || ""} ${best.channel || ""}`)) return null;
+
+  // Reject videos whose title barely overlaps ours, even at a high score.
+  if (titleOverlap(title, best.title) < 0.75) return null;
 
   // Reject an ID already claimed by another song in this run
   if (claimedIds.has(best.videoId)) return null;
