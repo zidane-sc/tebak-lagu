@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { LogOut, Trophy, Award, Gamepad2, X, Loader2, Sparkles, ShieldCheck, UserCog } from "lucide-react";
@@ -13,7 +14,38 @@ export const GoogleAuthButton: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
   const isLoggedOut = !isLoggedIn;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  /**
+   * The card is portalled to <body>, so it has to be positioned from the
+   * trigger's measured position. It used to live inside the header, which put
+   * it behind the header's own backdrop-filter — the glass panel was blurring
+   * what was drawn over it, so the card looked translucent and stuck to the nav.
+   */
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const place = () => {
+      const r = triggerRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const cardWidth = 268;
+      // Right-align with the trigger, then clamp so the card never leaves the
+      // viewport on a narrow phone.
+      const left = Math.max(8, Math.min(r.right - cardWidth, window.innerWidth - cardWidth - 8));
+      setAnchor({ top: r.bottom + 8, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, isLoggedIn]);
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -77,6 +109,7 @@ export const GoogleAuthButton: React.FC = () => {
     return (
       <div className="relative">
         <button
+          ref={triggerRef}
           onClick={() => setOpen(!open)}
           className="flex items-center gap-2 bg-surfaceRaised hover:bg-zinc-800 border border-surfaceBorder rounded-full py-1 pl-1.5 pr-3 text-xs font-medium text-white transition active:scale-95 shadow-sm"
         >
@@ -98,70 +131,74 @@ export const GoogleAuthButton: React.FC = () => {
           </span>
         </button>
 
-        {/* User Stats Dropdown */}
-        {open && (
-          <div className="absolute right-0 top-full mt-2 w-64 bg-[#0e0e11] border border-surfaceBorderHover rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.75)] z-50 flex flex-col gap-3">
-            <div className="flex items-center gap-2.5 pb-3 border-b border-surfaceBorder">
-              {user.avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-10 h-10 rounded-full object-cover border border-surfaceBorder shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/40 text-accent flex items-center justify-center font-bold text-base shrink-0">
-                  {user.name.charAt(0).toUpperCase()}
+        {/* User Stats Dropdown — portalled out of the header, see useEffect above. */}
+        {open &&
+          mounted &&
+          anchor &&
+          createPortal(
+            <div
+              className="fixed z-[60] w-64 bg-[#0e0e11] border border-surfaceBorderHover rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.8)] flex flex-col gap-3"
+              style={{ top: anchor.top, left: anchor.left }}
+            >
+              <div className="flex items-center gap-2.5 pb-3 border-b border-surfaceBorder">
+                {user.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-full object-cover border border-surfaceBorder shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/40 text-accent flex items-center justify-center font-bold text-base shrink-0">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-bold text-sm text-white truncate">{user.name}</p>
+                  <p className="text-[10px] text-muted truncate font-mono">{user.email}</p>
                 </div>
-              )}
-              <div className="min-w-0">
-                <p className="font-bold text-sm text-white truncate">{user.name}</p>
-                <p className="text-[10px] text-muted truncate font-mono">{user.email}</p>
-              </div>
-            </div>
-
-            {/* Stats Overview */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
-                <Trophy className="w-3.5 h-3.5 text-accent mx-auto mb-1" />
-                <span className="block text-xs font-bold text-white font-mono">{user.total_score}</span>
-                <span className="text-[9px] text-muted font-mono">Poin</span>
               </div>
 
-              <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
-                <Gamepad2 className="w-3.5 h-3.5 text-sky-400 mx-auto mb-1" />
-                <span className="block text-xs font-bold text-white font-mono">{user.games_played}</span>
-                <span className="text-[9px] text-muted font-mono">Game</span>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
+                  <Trophy className="w-3.5 h-3.5 text-accent mx-auto mb-1" />
+                  <span className="block text-xs font-bold text-white font-mono">{user.total_score}</span>
+                  <span className="text-[9px] text-muted font-mono">Poin</span>
+                </div>
+                <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
+                  <Gamepad2 className="w-3.5 h-3.5 text-sky-400 mx-auto mb-1" />
+                  <span className="block text-xs font-bold text-white font-mono">{user.games_played}</span>
+                  <span className="text-[9px] text-muted font-mono">Game</span>
+                </div>
+                <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
+                  <Award className="w-3.5 h-3.5 text-amber-400 mx-auto mb-1" />
+                  <span className="block text-xs font-bold text-white font-mono">{user.wins}</span>
+                  <span className="text-[9px] text-muted font-mono">Menang</span>
+                </div>
               </div>
 
-              <div className="bg-surfaceRaised p-2 rounded-xl border border-surfaceBorder">
-                <Award className="w-3.5 h-3.5 text-amber-400 mx-auto mb-1" />
-                <span className="block text-xs font-bold text-white font-mono">{user.wins}</span>
-                <span className="text-[9px] text-muted font-mono">Menang</span>
-              </div>
-            </div>
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                className="w-full py-2 px-3 rounded-xl bg-surfaceRaised hover:bg-accent/10 text-muted hover:text-accent text-xs font-medium border border-surfaceBorder transition flex items-center justify-center gap-1.5"
+              >
+                <UserCog className="w-3.5 h-3.5" />
+                <span>Profil &amp; Statistik</span>
+              </Link>
 
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
-              className="w-full py-2 px-3 rounded-xl bg-surfaceRaised hover:bg-accent/10 text-muted hover:text-accent text-xs font-medium border border-surfaceBorder transition flex items-center justify-center gap-1.5"
-            >
-              <UserCog className="w-3.5 h-3.5" />
-              <span>Profil &amp; Statistik</span>
-            </Link>
-
-            <button
-              onClick={() => {
-                logout();
-                setOpen(false);
-              }}
-              className="w-full mt-1 py-2 px-3 rounded-xl bg-surfaceRaised hover:bg-red-500/20 text-muted hover:text-red-400 text-xs font-medium border border-surfaceBorder transition flex items-center justify-center gap-1.5"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Keluar Akun</span>
-            </button>
-          </div>
-        )}
+              <button
+                onClick={() => {
+                  logout();
+                  setOpen(false);
+                }}
+                className="w-full mt-1 py-2 px-3 rounded-xl bg-surfaceRaised hover:bg-red-500/20 text-muted hover:text-red-400 text-xs font-medium border border-surfaceBorder transition flex items-center justify-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar Akun</span>
+              </button>
+            </div>,
+            document.body
+          )}
       </div>
     );
   }
@@ -176,6 +213,7 @@ export const GoogleAuthButton: React.FC = () => {
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-bold py-1.5 px-3.5 rounded-full text-xs shadow-sm transition active:scale-95 cursor-pointer"
       >
@@ -188,75 +226,65 @@ export const GoogleAuthButton: React.FC = () => {
         <span>Masuk Google</span>
       </button>
 
-      {open && (
-        <>
-          {/* Tap outside to dismiss. A popover with no backdrop cannot be closed by
-              tapping away, and on a phone the card lands over the page content. */}
-          <div
-            className="fixed inset-0 z-40 sm:hidden"
-            onClick={() => {
-              setOpen(false);
-              setAuthError(null);
-            }}
-          />
-          <div
-            className="absolute right-0 top-full mt-2 w-[268px] bg-[#0e0e11] border border-surfaceBorderHover
-                       rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.75)] z-50 flex flex-col gap-3 relative"
-          >
-          {/* ml-auto on the icon row did nothing: the row only holds the shield and
-              the copy, so the button never got pushed right. It needs its own row. */}
-          <div className="flex items-start gap-2">
-            <ShieldCheck className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold text-white">Simpan rekormu</p>
-              <p className="text-[11px] text-muted leading-relaxed mt-0.5">
-                Poin, profil, dan statistikmu tersimpan di akun ini.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setOpen(false);
-              setAuthError(null);
-            }}
-            aria-label="Tutup"
-            className="absolute -top-2 -right-2 p-1.5 rounded-full bg-[#0e0e11] border border-surfaceBorderHover text-muted hover:text-white transition shadow-lg"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-          {authError && (
-            <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-xl">
-              {authError}
-            </div>
-          )}
-
-          <div className="flex flex-col items-center justify-center w-full min-h-[44px]">
-            {isSubmitting ? (
-              <div className="flex items-center gap-2 text-xs font-mono text-accent py-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Memverifikasi…</span>
-              </div>
-            ) : clientId ? (
-              <div ref={googleBtnContainerRef} className="min-h-[44px] flex items-center justify-center" />
-            ) : (
-              <p className="text-[11px] text-muted text-center leading-relaxed">
-                Client ID Google belum disetel. Kamu tetap bisa bermain sebagai Tamu.
-              </p>
-            )}
-          </div>
-
-            <button
-              onClick={() => {
-                setOpen(false);
-                setAuthError(null);
-              }}
-              className="text-[11px] text-muted hover:text-white transition font-mono"
+      {open &&
+        mounted &&
+        anchor &&
+        createPortal(
+          <>
+            {/* Tap outside to dismiss. */}
+            <div className="fixed inset-0 z-[55]" onClick={() => { setOpen(false); setAuthError(null); }} />
+            <div
+              className="fixed z-[60] w-[268px] bg-[#0e0e11] border border-surfaceBorderHover rounded-2xl p-4 shadow-[0_18px_48px_rgba(0,0,0,0.8)] flex flex-col gap-3"
+              style={{ top: anchor.top, left: anchor.left }}
             >
-              Lanjut 作为 Tamu ➔
-            </button>
-          </div>
-        </>
-      )}
+              <div className="flex items-start gap-2 pr-6">
+                <ShieldCheck className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-white">Simpan rekormu</p>
+                  <p className="text-[11px] text-muted leading-relaxed mt-0.5">
+                    Poin, profil, dan statistikmu tersimpan di akun ini.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setOpen(false); setAuthError(null); }}
+                aria-label="Tutup"
+                className="absolute -top-2 -right-2 p-1.5 rounded-full bg-[#0e0e11] border border-surfaceBorderHover text-muted hover:text-white transition shadow-lg"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+
+              {authError && (
+                <div className="w-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs p-2.5 rounded-xl">
+                  {authError}
+                </div>
+              )}
+
+              <div className="flex flex-col items-center justify-center w-full min-h-[44px]">
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2 text-xs font-mono text-accent py-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Memverifikasi…</span>
+                  </div>
+                ) : clientId ? (
+                  <div ref={googleBtnContainerRef} className="min-h-[44px] flex items-center justify-center" />
+                ) : (
+                  <p className="text-[11px] text-muted text-center leading-relaxed">
+                    Client ID Google belum disetel. Kamu tetap bisa bermain sebagai Tamu.
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => { setOpen(false); setAuthError(null); }}
+                className="text-[11px] text-muted hover:text-white transition font-mono"
+              >
+                Lanjut 作为 Tamu ➔
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 };
