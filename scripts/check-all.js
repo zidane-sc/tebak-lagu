@@ -37,6 +37,7 @@ const checks = [
   ["check-catalogue-restore.js", "node"],
   ["verify-recovery.js", "node"],
   ["check-vocal-offset.js", "node"],
+  ["check-guess-matcher.js", "node"],
 ];
 
 

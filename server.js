@@ -14,6 +14,8 @@ const { db, initDb, getRandomSong, getMatchSongsQueue, getCatalogStats, getSetti
 // One defaults object for the socket engine, the admin API and the client.
 const { DEFAULT_SETTINGS, resolveSettings } = require("./src/lib/game-settings.js");
 const { advanceClueState, KICKOFF_SECONDS } = require("./src/lib/clue-phase.js");
+const { isGuessCorrect } = require("./src/lib/guess-matcher.js");
+
 initDb().then(async () => {
   const stats = await getCatalogStats();
   console.log(`> Database Connected: ${stats.total} persistent songs ready in SQLite.`);
@@ -955,56 +957,17 @@ app.prepare().then(() => {
           }
 
           const player = room.players.find((p) => p.id === playerId);
-          const cleanStr = (s) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "").trim();
 
-          // Shared rules with solo mode (see src/lib/guess-matcher.ts):
-          // - a guess is right when it names the song
-          // - artist alone only counts for very short titles
-          // - an empty guess is never right
-          // - partial title must be >=3 chars and >=60% of the target length
-          // - one typo is forgiven
-          const withinOneEdit = (a, b) => {
-            if (Math.abs(a.length - b.length) > 1) return false;
-            let i = 0, j = 0, edits = 0;
-            while (i < a.length && j < b.length) {
-              if (a[i] === b[j]) { i++; j++; continue; }
-              if (++edits > 1) return false;
-              if (a.length > b.length) i++;
-              else if (a.length < b.length) j++;
-              else { i++; j++; }
-            }
-            if (i < a.length || j < b.length) edits++;
-            return edits <= 1;
-          };
-
-          const guessTitle = cleanStr(data.title);
-          const guessArtist = cleanStr(data.artist);
-          const targetTitle = cleanStr(room.currentSong?.title);
-          const targetArtist = cleanStr(room.currentSong?.artist);
-
-          if (!guessTitle && !guessArtist) return;
-
-          const titleHit =
-            targetTitle.length > 0 &&
-            guessTitle.length > 0 &&
-            (guessTitle === targetTitle ||
-              guessTitle.includes(targetTitle) ||
-              (targetTitle.includes(guessTitle) &&
-                guessTitle.length >= 3 &&
-                guessTitle.length / targetTitle.length >= 0.6));
-          const artistHit =
-            targetArtist.length > 0 &&
-            guessArtist.length > 0 &&
-            (guessArtist === targetArtist ||
-              targetArtist.includes(guessArtist) ||
-              guessArtist.includes(targetArtist));
-          const nearTitle =
-            !titleHit &&
-            targetTitle.length >= 5 &&
-            guessTitle.length >= 5 &&
-            withinOneEdit(guessTitle, targetTitle);
-
-          const isMatch = titleHit || nearTitle || (artistHit && targetTitle.length <= 4);
+          // Shared with solo mode via src/lib/guess-matcher.ts. This used to be
+          // a verbatim copy that allowed unlimited extra text in a guess, so
+          // "Shape of You Live At Wembley" answered "Shape of You".
+          if (!data.title && !data.artist) return;
+          const isMatch = isGuessCorrect(
+            data.title,
+            data.artist,
+            room.currentSong?.title,
+            room.currentSong?.artist
+          );
 
           if (isMatch) {
             // Dynamic Scoring Engine:
