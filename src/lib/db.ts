@@ -264,6 +264,22 @@ export async function initDb() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_song ON song_artists(song_id);`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_name ON song_artists(artist_name);`);
 
+  // Player sessions. The cookie carries a signed id; this table is what makes it
+  // revocable — a cookie alone cannot be withdrawn, and a leaked one would stay
+  // valid for as long as its signature checks out.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS player_sessions (
+      session_id TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      user_agent TEXT
+    );
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_player_sessions_user ON player_sessions(user_id);`
+  );
+
   // 2. Check if songs table is empty -> Auto-seed from songs.json
   const countRes = await db.execute("SELECT COUNT(*) as total FROM songs;");
   const count = Number(countRes.rows[0]?.total || 0);
@@ -644,6 +660,48 @@ export async function updateUserStats(
   });
 
   return getUserById(userId);
+}
+
+// -------------------------------------------------------------
+// PLAYER SESSIONS
+// -------------------------------------------------------------
+
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export async function createPlayerSession(
+  sessionId: string,
+  userId: string,
+  userAgent?: string
+): Promise<void> {
+  const expires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  await db.execute({
+    sql: `INSERT OR REPLACE INTO player_sessions (session_id, user_id, expires_at, user_agent)
+          VALUES (?, ?, ?, ?);`,
+    args: [sessionId, userId, expires, userAgent || null],
+  });
+  await prunePlayerSessions();
+}
+
+/** The user a session belongs to, or null when it is unknown or expired. */
+export async function resolvePlayerSession(sessionId: string): Promise<string | null> {
+  const res = await db.execute({
+    sql: `SELECT user_id FROM player_sessions
+          WHERE session_id = ? AND expires_at > ?;`,
+    args: [sessionId, new Date().toISOString()],
+  });
+  return res.rows.length ? String(res.rows[0].user_id) : null;
+}
+
+export async function deletePlayerSession(sessionId: string): Promise<void> {
+  await db.execute({ sql: "DELETE FROM player_sessions WHERE session_id = ?;", args: [sessionId] });
+}
+
+/** Drop expired rows. Without this the table grows without bound. */
+async function prunePlayerSessions(): Promise<void> {
+  await db.execute({
+    sql: "DELETE FROM player_sessions WHERE expires_at <= ?;",
+    args: [new Date().toISOString()],
+  });
 }
 
 // -------------------------------------------------------------

@@ -40,6 +40,7 @@ const checks = [
   ["check-guess-matcher.js", "node"],
   ["check-buzz-lives.js", "node"],
   ["check-song-artists.js", "node"],
+  ["check-session-guard.js", "node"],
 ];
 
 

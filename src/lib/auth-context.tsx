@@ -17,7 +17,6 @@ interface AuthContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   loginWithCredential: (credential: string) => Promise<boolean>;
-  loginManual: (userData: { email: string; name: string; avatar?: string }) => Promise<boolean>;
   logout: () => void;
   syncScore: (pointsGained: number, isWin?: boolean) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -28,7 +27,6 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   isLoading: true,
   loginWithCredential: async () => false,
-  loginManual: async () => false,
   logout: () => {},
   syncScore: async () => {},
   refreshProfile: async () => {},
@@ -49,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(parsed);
 
         // Fetch fresh stats from DB
-        fetch(`/api/auth/me?userId=${parsed.id}`)
+        fetch(`/api/auth/me`)
           .then((r) => r.json())
           .then((data) => {
             if (data.user) {
@@ -87,47 +85,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  // 3. Manual / Fallback Login
-  const loginManual = async (userData: { email: string; name: string; avatar?: string }): Promise<boolean> => {
-    try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userInfo: userData }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.user) {
-        setUser(data.user);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
-        return true;
-      }
-    } catch (e) {
-      console.error("Login manual error:", e);
-    }
-    return false;
-  };
-
-  // 4. Logout
+  // 3. Logout — the session row is deleted server-side too, otherwise a copied
+  //    cookie would still authenticate after "log out".
   const logout = () => {
     setUser(null);
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     } catch {}
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
   };
 
-  // 5. Sync Score to DB
+  // 4. Sync Score to DB
   const syncScore = async (pointsGained: number, isWin: boolean = false) => {
     if (!user) return;
     try {
       const res = await fetch("/api/auth/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          pointsGained,
-          isWin,
-        }),
+        body: JSON.stringify({ pointsGained, isWin }),
       });
       const data = await res.json();
       if (res.ok && data.user) {
@@ -139,11 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 6. Refresh Profile
+  // 5. Refresh Profile
   const refreshProfile = async () => {
     if (!user) return;
     try {
-      const res = await fetch(`/api/auth/me?userId=${user.id}`);
+      const res = await fetch(`/api/auth/me`);
       const data = await res.json();
       if (res.ok && data.user) {
         setUser(data.user);
@@ -159,7 +134,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoggedIn: !!user,
         isLoading,
         loginWithCredential,
-        loginManual,
         logout,
         syncScore,
         refreshProfile,

@@ -1,19 +1,35 @@
 import { NextResponse } from "next/server";
 import { initDb, getUserById, softDeleteUser } from "@/lib/db";
+import {
+  requireUser,
+  sessionUserId,
+  verifySessionToken,
+  SESSION_COOKIE,
+} from "@/lib/session-guard";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * The signed-in player's own profile.
+ *
+ * The userId query parameter is no longer trusted. It used to be the only input,
+ * so anyone could read anyone's profile, and the DELETE branch could soft-delete
+ * any account by guessing an id. The session is the only identity now; the
+ * parameter is accepted only when it matches, so a stale client that still sends
+ * it keeps working.
+ */
 export async function GET(request: Request) {
   try {
     await initDb();
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const requested = searchParams.get("userId");
 
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId parameter" }, { status: 400 });
-    }
+    const denied = await requireUser(request, requested);
+    if (denied) return denied;
 
-    const user = await getUserById(userId);
+    const userId = await sessionUserId(request);
+    const user = await getUserById(userId!);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -25,20 +41,25 @@ export async function GET(request: Request) {
   }
 }
 
+/** Withdraw the session. Only ever affects the caller's own account. */
 export async function DELETE(request: Request) {
   try {
     await initDb();
-    const body = await request.json().catch(() => ({}));
+
     const { searchParams } = new URL(request.url);
-    const userId = body.userId || searchParams.get("userId");
+    const body = await request.json().catch(() => ({}));
+    const requested = body.userId || searchParams.get("userId");
 
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId parameter" }, { status: 400 });
-    }
+    const denied = await requireUser(request, requested);
+    if (denied) return denied;
 
-    const success = await softDeleteUser(userId);
+    const userId = await sessionUserId(request);
+    const success = await softDeleteUser(userId!);
     if (!success) {
-      return NextResponse.json({ error: "User not found or already deleted" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found or already deleted" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { initDb, upsertGoogleUser } from "@/lib/db";
+import { initDb, upsertGoogleUser, createPlayerSession } from "@/lib/db";
+import { newSessionId, setSessionCookie } from "@/lib/session-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // The signature alone is not enough: an ID token minted by a different
+    // Google client is still a valid Google token. Without this check, a token
+    // obtained from any other app that uses Sign in with Google would be
+    // accepted here and create an account in this game.
+    const expectedAud = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (expectedAud && payload.aud !== expectedAud) {
+      return NextResponse.json(
+        { error: "Token Google ini dibuat untuk aplikasi lain." },
+        { status: 401 }
+      );
+    }
+
     const email = payload.email;
     const name = payload.name || payload.given_name || "Raja Musik";
     const avatar = payload.picture || "";
@@ -64,11 +77,19 @@ export async function POST(request: Request) {
       avatar,
     });
 
-    return NextResponse.json({
+    // Issue a session so the rest of the API can identify this player. The
+    // client previously trusted a userId in localStorage, which anyone could
+    // edit, so every authenticated route is now session-gated.
+    const sessionId = newSessionId();
+    await createPlayerSession(sessionId, user.id, request.headers.get("user-agent") || undefined);
+
+    const res = NextResponse.json({
       success: true,
       message: `Selamat datang, ${user.name}!`,
       user,
     });
+    setSessionCookie(res, sessionId);
+    return res;
   } catch (err: any) {
     console.error("Auth Google API error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
