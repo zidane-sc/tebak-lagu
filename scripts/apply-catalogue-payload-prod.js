@@ -73,12 +73,19 @@ async function db_exec() {
       });
     }
   }
+  // Count every junction row, not just is_active=1 songs. song_count is a
+  // catalogue statistic; filtering by is_active made artists whose songs are
+  // all disabled read as empty, and the prune below then deleted live rows.
   await db.execute(`
     UPDATE artists SET song_count = (
-      SELECT COUNT(*) FROM song_artists sa JOIN songs s ON s.id = sa.song_id
-      WHERE sa.artist_id = artists.id AND (s.is_active = 1 OR s.is_active IS NULL));
+      SELECT COUNT(*) FROM song_artists sa WHERE sa.artist_id = artists.id);
   `);
-  await db.execute("DELETE FROM artists WHERE song_count = 0;");
+  // Prune only artists with no junction rows at all, and only after the
+  // junction insert above has run — ordering that bug deleted 7 real artists.
+  await db.execute(`
+    DELETE FROM artists WHERE song_count = 0
+      AND NOT EXISTS (SELECT 1 FROM song_artists sa WHERE sa.artist_id = artists.id);
+  `);
   await db.execute("DELETE FROM song_artists WHERE NOT EXISTS (SELECT 1 FROM songs s WHERE s.id = song_artists.song_id);");
 
   // FTS rebuild — the shipped triggers are unreliable across the bulk paths

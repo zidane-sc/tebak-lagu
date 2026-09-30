@@ -23,6 +23,18 @@ primary_region = "sin"
   min_machines_running = 1
   processes = ["app"]
 
+  # Without this a hung node keeps serving 5xx forever: auto_stop_machines is
+  # off, so nothing would ever restart it. /api/health touches SQLite, so it
+  # also catches a lost volume mount.
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"
+    tls_skip_verify = false
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
