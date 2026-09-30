@@ -44,4 +44,6 @@ export const DIFFICULTIES = [
   { id: "all", label: "Campur (Semua) 🔀", desc: "Koleksi lengkap acak" },
 ] as const;
 
-export const SONGS_CATALOG: Song[] = rawSongs as Song[];
+// songs.json is the catalogue snapshot written by the restore path, so its keys
+// are the database column names rather than the older camelCase seed shape.
+export const SONGS_CATALOG: Song[] = rawSongs as unknown as Song[];

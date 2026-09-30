@@ -1,4 +1,5 @@
 const { createClient } = require("@libsql/client");
+const { restoreCatalogueIfEmpty } = require("./catalogue-restore.js");
 const path = require("path");
 const fs = require("fs");
 
@@ -252,49 +253,9 @@ async function initDb() {
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_song ON song_artists(song_id);`);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_song_artists_name ON song_artists(artist_name);`);
 
-  const countRes = await db.execute("SELECT COUNT(*) as total FROM songs;");
-  const count = Number(countRes.rows[0]?.total || 0);
-
-  if (count === 0) {
-    console.log("> Database is empty! Auto-seeding 4,600+ verified songs from songs.json...");
-    const jsonPath = path.join(process.cwd(), "src/data/songs.json");
-    if (fs.existsSync(jsonPath)) {
-      const raw = fs.readFileSync(jsonPath, "utf-8");
-      const songs = JSON.parse(raw);
-
-      const CHUNK_SIZE = 100;
-      for (let i = 0; i < songs.length; i += CHUNK_SIZE) {
-        const chunk = songs.slice(i, i + CHUNK_SIZE);
-        const stmts = chunk.map((s) => ({
-          sql: `
-            INSERT OR REPLACE INTO songs (
-              id, title, artist, year, category, difficulty, popularity,
-              deezer_rank, bpm, preview_url, album_cover, lyrics_clues,
-              humming_melody, search_query
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-          `,
-          args: [
-            s.id,
-            s.title || "Untitled",
-            s.artist || "Unknown",
-            s.year || 2020,
-            s.category || "Galau Hits",
-            s.difficulty || "easy",
-            s.popularity || 50,
-            s.deezerRank || 0,
-            s.bpm || 0,
-            s.previewUrl || s.previewResolved || "",
-            s.albumCover || "",
-            JSON.stringify(s.lyricsClues || []),
-            JSON.stringify(s.hummingMelody || []),
-            s.searchQuery || `${s.title} ${s.artist}`,
-          ],
-        }));
-        await db.batch(stmts);
-      }
-      console.log(`> Successfully seeded ${songs.length} songs into persistent database!`);
-    }
-  }
+  // Catalogue restore lives in catalogue-restore.js: this copy used to seed only
+  // 14 columns and silently dropped every YouTube id on a restore.
+  await restoreCatalogueIfEmpty(db);
 }
 
 // Query random song matching category, difficulty, artists, and mode

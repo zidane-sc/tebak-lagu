@@ -34,6 +34,8 @@ const checks = [
   ["check-yt-scoring.js", "node"],
   ["check-clue-phase.js", "node"],
   ["verify-clue-phase-parity.js", "node"],
+  ["check-catalogue-restore.js", "node"],
+  ["verify-recovery.js", "node"],
 ];
 
 
