@@ -107,6 +107,7 @@ export async function POST(request: Request) {
     const popularity = body.popularity || (difficulty === "easy" ? 90 : difficulty === "medium" ? 75 : 50);
     const startSecond = body.startSecond !== undefined ? Number(body.startSecond) : 0;
     const youtubeId = body.youtubeId?.trim() || null;
+    // 20s skips the instrumental intro on most tracks. Admin can override per song.
     const youtubeStartSecond = body.youtubeStartSecond !== undefined ? Number(body.youtubeStartSecond) : 20;
 
     await db.execute({

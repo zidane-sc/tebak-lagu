@@ -45,7 +45,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialPreview || null);
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [randomOffset, setRandomOffset] = useState<number>(0);
+  const [previewStart, setPreviewStart] = useState<number>(0);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,13 +86,17 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     };
   }, []);
 
-  // Use custom configured startSecond if > 0, otherwise random offset
+  // Where the Apple/Deezer 30s preview slice begins. An explicit admin
+  // override wins; otherwise 0.
+  //
+  // This used to fall back to a random 0-7s offset. Two problems: the same
+  // song behaved differently depending on whether YouTube was available (YT
+  // started at a fixed 20s), and a random offset re-rolled on every mount, so
+  // the same song could hand out a different slice each time. It also meant
+  // the admin's start_second field was the only way to get a fixed start.
   useEffect(() => {
-    const offset =
-      startSecond !== undefined && startSecond > 0
-        ? Number(startSecond)
-        : Math.floor(Math.random() * 8);
-    setRandomOffset(offset);
+    const override = Number(startSecond);
+    setPreviewStart(Number.isFinite(override) && override > 0 ? override : 0);
   }, [searchQuery, startSecond]);
 
   // Fetch Deezer preview only if YouTube is NOT available
@@ -126,7 +130,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
 
     // ── YouTube path ──────────────────────────────────────────
     if (useYouTube) {
-      const startSec = youtubeStartSecond ?? randomOffset;
+      const startSec = youtubeStartSecond ?? previewStart;
       onYoutubePlay!(startSec);
       // Auto-stop after allowed duration
       timerRef.current = setTimeout(() => {
@@ -142,7 +146,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
       return;
     }
 
-    audioRef.current.currentTime = randomOffset;
+    audioRef.current.currentTime = previewStart;
     audioRef.current
       .play()
       .then(() => {
