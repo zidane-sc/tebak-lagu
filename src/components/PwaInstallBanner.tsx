@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Download, X, Smartphone } from "lucide-react";
 
 /**
@@ -19,6 +20,7 @@ export const PwaInstallBanner: React.FC<{
   const [isIos, setIsIos] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showIosHelp, setShowIosHelp] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const isApp =
@@ -98,7 +100,7 @@ export const PwaInstallBanner: React.FC<{
     );
   }
 
-  if (!showBanner) return null;
+  if (!showBanner || pathname?.startsWith("/play")) return null;
 
   return (
     <aside

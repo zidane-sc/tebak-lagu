@@ -204,7 +204,7 @@ export default function ProfilePage() {
   // ==============================================================
   if (!isLoggedIn || !user) {
     return (
-      <div className="min-h-[100dvh] bg-[#0c0c0f] text-zinc-100 flex flex-col justify-between p-4 sm:p-6 md:p-8 max-w-2xl mx-auto">
+      <div className="min-h-[100dvh] bg-[#0c0c0f] text-zinc-100 flex flex-col justify-between p-4 sm:p-6 md:p-8 pb-28 sm:pb-32 max-w-2xl mx-auto">
         <header className="w-full flex items-center justify-between pb-6 border-b border-zinc-800/80">
           <Link
             href="/"

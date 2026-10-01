@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Timer, Play, Square, Loader2 } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import { VinylPlayer } from "@/components/VinylPlayer";
-import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 
 interface HeardleModePlayerProps {
   searchQuery: string;
@@ -19,20 +18,8 @@ interface HeardleModePlayerProps {
   ytEngineState?: string;
 }
 
-// Stepped unlocked durations in seconds (Fair, exciting progression starting at 3s)
 const DEFAULT_DURATIONS = [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
 
-/**
- * Time Slice plays through YouTube only.
- *
- * The Apple/Deezer 30s preview used to be the fallback whenever a track had no
- * YouTube id. It was a different game with the same label: a preview is 30
- * seconds no matter how long the tier asks for, so the 22s and 30s tiers ran
- * past the end of the clip and the last tier ended in silence. There is also no
- * way to pick a start offset on a preview, so the same song behaved differently
- * depending on which source won. The server no longer selects songs without a
- * YouTube id for this mode.
- */
 export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   searchQuery,
   unlockedLevel,
@@ -65,7 +52,6 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     setIsPlaying(false);
   };
 
-  // Stop when the game-over modal opens, when a tier is unlocked, and on unmount.
   useEffect(() => {
     if (isGameOver) stopPlayback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,79 +86,65 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col items-center gap-5 bg-surface border border-surfaceBorder rounded-2xl p-5 sm:p-6 shadow-sm relative">
-      {/* Top Header Row */}
-      <div className="w-full flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 font-mono text-[11px] text-mutedDark uppercase tracking-wider">
-          <Timer className="w-3.5 h-3.5 text-accent" />
-          <span>Time Slice Engine</span>
+    <div className="w-full max-w-md mx-auto flex flex-col items-center gap-2.5 bg-surface border border-surfaceBorder rounded-2xl p-3.5 sm:p-4 shadow-sm relative">
+      {/* Vinyl & Play Control Row */}
+      <div className="flex items-center justify-center gap-4 py-1">
+        <VinylPlayer
+          isPlaying={isPlaying}
+          label={`${maxAllowedDuration}s`}
+          size="sm"
+          hideTag
+        />
+
+        <div className="flex flex-col items-start gap-1.5">
+          <button
+            onClick={handlePlay}
+            disabled={!canPlay}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all transform active:scale-95 shadow-md ${
+              canPlay ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+            } ${
+              isPlaying
+                ? "bg-rose-500 hover:bg-rose-600 text-white ring-4 ring-rose-500/20"
+                : "bg-zinc-100 hover:bg-white text-zinc-950"
+            }`}
+            title={isPlaying ? "Hentikan" : `Putar ${maxAllowedDuration}s`}
+          >
+            {isPlaying ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span>Stop Audio</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>Putar ({maxAllowedDuration}s)</span>
+              </>
+            )}
+          </button>
+
+          <span className="text-[10px] font-mono text-muted">
+            {isPlaying ? "▶ Sedang berputar..." : `Mulai ${youtubeStartSecond ?? 0}s`}
+          </span>
         </div>
       </div>
 
-      {/* Main Play Deck with Vinyl */}
-      <div className="flex flex-col items-center gap-3 my-1">
-        <VinylPlayer
-          isPlaying={isPlaying}
-          label={`${maxAllowedDuration}s Track`}
-          size="md"
-        />
+      {ytEngineState === "unavailable" && (
+        <p className="text-[10px] text-rose-400 font-mono text-center">
+          Audio tidak bisa dimuat — video tidak tersedia.
+        </p>
+      )}
 
-        <button
-          onClick={handlePlay}
-          disabled={!canPlay}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-xs transition-all transform active:scale-95 shadow-md ${
-            canPlay ? "cursor-pointer" : "cursor-not-allowed opacity-50"
-          } ${
-            isPlaying
-              ? "bg-red-500 hover:bg-red-600 text-white ring-4 ring-red-500/20"
-              : "bg-zinc-100 hover:bg-white text-zinc-950"
-          }`}
-          title={
-            !canPlay
-              ? "Video belum siap — lagu ini tidak bisa dimuat"
-              : isPlaying
-              ? "Hentikan"
-              : `Putar ${maxAllowedDuration}s`
-          }
-        >
-          {isPlaying ? (
-            <>
-              <Square className="w-4 h-4 fill-current" />
-              <span>Hentikan Audio</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-current" />
-              <span>Putar Cuplikan ({maxAllowedDuration}s)</span>
-            </>
-          )}
-        </button>
-
-        <AudioWaveformVisualizer isPlaying={isPlaying} variant="emerald" barCount={26} height={32} />
-
-        {ytEngineState === "unavailable" && (
-          <p className="text-[11px] text-rose-400 font-mono text-center">
-            Audio tidak bisa dimuat — video ini tidak tersedia.
-          </p>
-        )}
-        {!canPlay && ytEngineState !== "unavailable" && (
-          <p className="text-[11px] text-mutedDark font-mono text-center">
-            Video untuk lagu ini belum siap. advancing ke lagu lain.
-          </p>
-        )}
-      </div>
-
-      {/* Hardware-Style Segmented Timeline Bar */}
-      <div className="w-full bg-surfaceRaised/60 border border-surfaceBorder rounded-xl p-4 flex flex-col gap-2.5">
-        <div className="flex justify-between items-center text-xs font-mono">
-          <span className="text-mutedDark">DURASI TERBUKA</span>
-          <span className="text-zinc-100 font-semibold">
+      {/* Segmented Timeline Bar */}
+      <div className="w-full bg-surfaceRaised/80 border border-surfaceBorder rounded-xl px-3 py-2 flex flex-col gap-1.5">
+        <div className="flex justify-between items-center text-[11px] font-mono">
+          <span className="text-mutedDark">DURASI</span>
+          <span className="text-zinc-200 font-bold">
             {maxAllowedDuration}s <span className="text-mutedDark">/ {maxDuration}s</span>
           </span>
         </div>
 
         <div
-          className="grid gap-1.5 h-2.5"
+          className="grid gap-1 h-2"
           style={{ gridTemplateColumns: `repeat(${durations.length}, minmax(0, 1fr))` }}
         >
           {durations.map((dur, index) => {
@@ -188,10 +160,6 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
             );
           })}
         </div>
-
-        <p className="text-[11px] text-mutedDark text-center mt-0.5">
-          Cuplikan selalu mulai dari vokal. Salah tebak membuka durasi lebih panjang.
-        </p>
       </div>
     </div>
   );

@@ -376,7 +376,7 @@ export default function PlayArenaPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col">
+    <div className="h-[100dvh] max-h-[100dvh] bg-background flex flex-col justify-between overflow-hidden select-none">
       {/* Top Header */}
       <ScoreHeader
         title={config.title}
@@ -384,23 +384,16 @@ export default function PlayArenaPage() {
         score={score}
       />
 
-      {/*
-        Compact arena. This was justify-center inside a min-h-screen, which on a
-        tall phone floated the whole stack into the middle of the screen with
-        empty space above and below, and pushed the guess box below the fold.
-        justify-start with a tighter gap keeps the deck, the tag row and the
-        guess field in one viewport, and the bottom padding leaves room for the
-        Android navigation bar.
-      */}
-      <main className="flex-1 w-full max-w-lg mx-auto flex flex-col justify-start items-center px-4 pt-3 pb-24 gap-3">
+      {/* Compact in-game arena designed to fit 100% within viewport without scrolling */}
+      <main className="flex-1 w-full max-w-md mx-auto flex flex-col justify-between items-center px-3.5 py-2.5 sm:py-3 overflow-hidden min-h-0">
         {/* Playlist & Difficulty Tags */}
-        <div className="flex items-center gap-1.5 flex-wrap justify-center">
-          <span className="bg-surfaceRaised border border-surfaceBorder px-2 py-0.5 rounded-full text-[10px] font-mono text-accent">
+        <div className="flex items-center gap-1.5 flex-wrap justify-center shrink-0">
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[10px] font-mono text-accent">
             🎯 {gameConfig.filterType === "artists" && gameConfig.selectedArtists?.length > 0
               ? `${gameConfig.selectedArtists.length} Artis Pilihan`
               : gameConfig.category}
           </span>
-          <span className="bg-surfaceRaised border border-surfaceBorder px-2 py-0.5 rounded-full text-[10px] font-mono text-zinc-300">
+          <span className="bg-surfaceRaised border border-surfaceBorder px-2.5 py-0.5 rounded-full text-[10px] font-mono text-zinc-300">
             {gameConfig.difficulty === "easy"
               ? "🟢 Mudah"
               : gameConfig.difficulty === "medium"
@@ -409,63 +402,62 @@ export default function PlayArenaPage() {
           </span>
         </div>
 
-        {/* Render Active Mode Component */}
-        {modeKey === "tts" && (
-          <TtsModePlayer
-            clues={song.lyricsClues}
-            activeClueCount={activeClueCount}
-            initialVoiceType={
-              gameConfig.audioProfile === "fast"
-                ? "fast"
-                : gameConfig.audioProfile === "bass"
-                ? "deep"
-                : "normal"
-            }
-            lang={song.lang || (song.category === "Western Hits" ? "en" : "id")}
-            isGameOver={isGameOver}
-          />
-        )}
-
-        {modeKey === "heardle" && (
-          <HeardleModePlayer
-            searchQuery={song.searchQuery}
-            unlockedLevel={unlockedHeardleLevel}
-            isGameOver={isGameOver}
-            customDurations={serverSettings?.heardleDurations}
-            youtubeId={(song as any).youtubeId}
-            youtubeStatus={(song as any).youtubeStatus}
-            youtubeStartSecond={(song as any).youtubeStartSecond ?? 20}
-            onYoutubePlay={(startSecond) => {
-              if (song && (song as any).youtubeId) {
-                ytEngine.play({
-                  youtubeId: (song as any).youtubeId,
-                  startSecond: startSecond,
-                  title: song.title,
-                  artist: song.artist,
-                });
-              } else {
-                ytEngine.unmuteAndPlay(startSecond);
+        {/* Render Active Mode Component (Centered Deck) */}
+        <div className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-0">
+          {modeKey === "tts" && (
+            <TtsModePlayer
+              clues={song.lyricsClues}
+              activeClueCount={activeClueCount}
+              initialVoiceType={
+                gameConfig.audioProfile === "fast"
+                  ? "fast"
+                  : gameConfig.audioProfile === "bass"
+                  ? "deep"
+                  : "normal"
               }
-            }}
-            onYoutubePause={() => ytEngine.pause()}
-            ytEngineState={ytEngine.state}
-          />
-        )}
+              lang={song.lang || (song.category === "Western Hits" ? "en" : "id")}
+              isGameOver={isGameOver}
+            />
+          )}
+
+          {modeKey === "heardle" && (
+            <HeardleModePlayer
+              searchQuery={song.searchQuery}
+              unlockedLevel={unlockedHeardleLevel}
+              isGameOver={isGameOver}
+              customDurations={serverSettings?.heardleDurations}
+              youtubeId={(song as any).youtubeId}
+              youtubeStatus={(song as any).youtubeStatus}
+              youtubeStartSecond={(song as any).youtubeStartSecond ?? 20}
+              onYoutubePlay={(startSecond) => {
+                if (song && (song as any).youtubeId) {
+                  ytEngine.play({
+                    youtubeId: (song as any).youtubeId,
+                    startSecond: startSecond,
+                    title: song.title,
+                    artist: song.artist,
+                  });
+                } else {
+                  ytEngine.unmuteAndPlay(startSecond);
+                }
+              }}
+              onYoutubePause={() => ytEngine.pause()}
+              ytEngineState={ytEngine.state}
+            />
+          )}
+        </div>
 
         {/* Guess Input & Autocomplete */}
-        <GuessInput
-          onGuess={handleGuess}
-          onSkip={handleSkip}
-          disabled={isGameOver}
-          guesses={guesses}
-          maxGuesses={config.maxGuesses}
-        />
+        <div className="w-full shrink-0 pt-1 pb-1">
+          <GuessInput
+            onGuess={handleGuess}
+            onSkip={handleSkip}
+            disabled={isGameOver}
+            guesses={guesses}
+            maxGuesses={config.maxGuesses}
+          />
+        </div>
       </main>
-
-      {/* Footer hint */}
-      <footer className="w-full text-center py-3 text-xs text-mutedDark font-mono">
-        Tebak Lagu · Ronde {roundNumber} dari {gameConfig.maxRounds}
-      </footer>
 
       {/* Round Over Modal (Per-Round) */}
       {isGameOver && !isMatchFinished && (

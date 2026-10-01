@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Send, SkipForward, X, Loader2, Music } from "lucide-react";
-import { Song, SONGS_CATALOG } from "@/data/songs";
+import { Song } from "@/data/songs";
 
 interface GuessInputProps {
   onGuess: (title: string, artist: string) => void;
@@ -82,18 +82,15 @@ export const GuessInput: React.FC<GuessInputProps> = ({
     setIsOpen(false);
   };
 
-  // Instant guess submission (0ms delay!)
   const submitDirectGuess = () => {
     const trimmed = query.trim();
     if (!trimmed || disabled) return;
 
-    // If an item is explicitly highlighted with arrow keys, select it
     if (selectedIndex >= 0 && suggestions[selectedIndex]) {
       handleSelect(suggestions[selectedIndex]);
       return;
     }
 
-    // Otherwise directly submit what the user typed without waiting!
     onGuess(trimmed, "");
     setQuery("");
     setSuggestions([]);
@@ -125,30 +122,32 @@ export const GuessInput: React.FC<GuessInputProps> = ({
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto flex flex-col gap-3">
-      {/* Past Guesses Pill Strip */}
-      <div className="flex flex-wrap gap-2 justify-center min-h-[32px]">
-        {guesses.map((g, i) => (
-          <span
-            key={i}
-            className={`text-xs px-3 py-1.5 rounded-full font-medium flex items-center gap-1.5 transition-all shadow-sm ${
-              g.isCorrect
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold"
-                : "bg-red-500/10 text-red-400 border border-red-500/20"
-            }`}
-          >
-            {g.isCorrect ? "✓" : "✕"} {g.text}
-          </span>
-        ))}
-      </div>
+    <div className="w-full max-w-md mx-auto flex flex-col gap-2">
+      {/* Past Guesses Pill Strip - only renders when guesses exist */}
+      {guesses.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 justify-center max-h-16 overflow-y-auto px-1">
+          {guesses.map((g, i) => (
+            <span
+              key={i}
+              className={`text-[11px] px-2.5 py-0.5 rounded-full font-medium flex items-center gap-1 transition-all shadow-sm ${
+                g.isCorrect
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-bold"
+                  : "bg-rose-500/10 text-rose-400 border border-rose-500/25"
+              }`}
+            >
+              {g.isCorrect ? "✓" : "✕"} {g.text}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Input Form with Autocomplete */}
       <div className="relative w-full">
-        <div className="flex items-center gap-2 bg-surfaceRaised border border-surfaceBorder rounded-2xl p-1 px-3 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 transition-all shadow-sm min-h-[50px]">
+        <div className="flex items-center gap-1.5 bg-surfaceRaised border border-surfaceBorder rounded-xl p-1 px-2.5 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 transition-all shadow-sm min-h-[44px]">
           {isSearching ? (
-            <Loader2 className="w-4 h-4 text-accent animate-spin shrink-0 ml-1" />
+            <Loader2 className="w-3.5 h-3.5 text-accent animate-spin shrink-0 ml-0.5" />
           ) : (
-            <Search className="w-4 h-4 text-mutedDark shrink-0 ml-1" />
+            <Search className="w-3.5 h-3.5 text-mutedDark shrink-0 ml-0.5" />
           )}
           <input
             ref={inputRef}
@@ -160,67 +159,67 @@ export const GuessInput: React.FC<GuessInputProps> = ({
             placeholder={
               disabled
                 ? "Ronde selesai..."
-                : `Ketik judul atau penyanyi... (${guesses.length}/${maxGuesses})`
+                : `Ketik judul atau artis... (${guesses.length}/${maxGuesses})`
             }
-            className="w-full bg-transparent text-white placeholder-zinc-500 text-base outline-none py-2.5 px-1"
+            className="w-full bg-transparent text-white placeholder-zinc-500 text-xs sm:text-sm outline-none py-2 px-1"
           />
 
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="p-1.5 hover:bg-zinc-800 rounded-full text-muted transition shrink-0"
+              className="p-1 hover:bg-zinc-800 rounded-full text-muted transition shrink-0"
               title="Hapus"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
 
           <button
             onClick={submitDirectGuess}
             disabled={disabled || !query.trim()}
-            className="bg-zinc-100 hover:bg-white disabled:opacity-40 text-zinc-950 font-semibold px-4 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 transition shadow shrink-0 active:scale-95 cursor-pointer"
+            className="bg-zinc-100 hover:bg-white disabled:opacity-40 text-zinc-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1 transition shadow shrink-0 active:scale-95 cursor-pointer"
           >
-            <Send className="w-3.5 h-3.5" />
+            <Send className="w-3 h-3" />
             <span>Tebak</span>
           </button>
         </div>
 
-        {/* Dropdown Suggestions (ZERO GENRE LEAK, CLEAN ARTWORK & TITLE) */}
+        {/* Dropdown Suggestions */}
         {isOpen && suggestions.length > 0 && (
           <div
             ref={dropdownRef}
-            className="absolute left-0 right-0 top-full mt-2 bg-surfaceRaised/95 backdrop-blur-md border border-surfaceBorder rounded-2xl overflow-hidden shadow-2xl z-50 divide-y divide-zinc-800/60 max-h-60 overflow-y-auto"
+            className="absolute left-0 right-0 top-full mt-1.5 bg-surfaceRaised/95 backdrop-blur-md border border-surfaceBorder rounded-xl overflow-hidden shadow-2xl z-50 divide-y divide-zinc-800/60 max-h-52 overflow-y-auto"
           >
             {suggestions.map((item, idx) => (
               <div
                 key={`${item.id || item.title}-${idx}`}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setSelectedIndex(idx)}
-                className={`p-2.5 px-3 cursor-pointer flex items-center justify-between text-xs sm:text-sm transition-colors active:bg-zinc-800 ${
+                className={`p-2 px-2.5 cursor-pointer flex items-center justify-between text-xs transition-colors active:bg-zinc-800 ${
                   idx === selectedIndex
                     ? "bg-zinc-800/90 text-white"
                     : "text-zinc-200 hover:bg-zinc-800/40"
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
                   {item.albumCover ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.albumCover}
                       alt={item.title}
-                      className="w-9 h-9 rounded-lg object-cover border border-surfaceBorder shrink-0"
+                      className="w-7 h-7 rounded object-cover border border-surfaceBorder shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-lg bg-surface border border-surfaceBorder flex items-center justify-center text-mutedDark shrink-0">
-                      <Music className="w-4 h-4" />
+                    <div className="w-7 h-7 rounded bg-surface border border-surfaceBorder flex items-center justify-center text-mutedDark shrink-0">
+                      <Music className="w-3.5 h-3.5" />
                     </div>
                   )}
                   <div className="min-w-0 flex flex-col">
-                    <p className="font-bold text-white truncate text-xs sm:text-sm">{item.title}</p>
-                    <p className="text-muted text-[11px] truncate mt-0.5">{item.artist}</p>
+                    <p className="font-bold text-white truncate text-xs">{item.title}</p>
+                    <p className="text-muted text-[10px] truncate">{item.artist}</p>
                   </div>
                 </div>
-                <span className="text-[11px] text-accent font-mono font-bold shrink-0 pl-1">
+                <span className="text-[10px] font-mono text-accent font-bold shrink-0">
                   Pilih ↵
                 </span>
               </div>
@@ -229,19 +228,19 @@ export const GuessInput: React.FC<GuessInputProps> = ({
         )}
       </div>
 
-      {/* Skip / Hint Button (Touch-Friendly Ergonomics) */}
+      {/* Helper Bar */}
       <div className="flex justify-between items-center px-1">
-        <span className="text-xs text-mutedDark font-mono">
-          Tersisa {maxGuesses - guesses.length} kesempatan
+        <span className="text-[10px] text-mutedDark font-mono">
+          Tersisa {maxGuesses - guesses.length} tebakan
         </span>
 
         <button
           onClick={onSkip}
           disabled={disabled || guesses.length >= maxGuesses}
-          className="text-xs text-muted hover:text-amber-400 flex items-center gap-1.5 py-1.5 px-3 rounded-lg hover:bg-surfaceRaised transition active:scale-95"
+          className="text-[11px] text-muted hover:text-amber-400 flex items-center gap-1 py-1 px-2.5 rounded-lg hover:bg-surfaceRaised transition active:scale-95 cursor-pointer"
         >
-          <SkipForward className="w-3.5 h-3.5" />
-          <span>Lewati / Clue Tambahan</span>
+          <SkipForward className="w-3 h-3" />
+          <span>Lewati (+1 Clue)</span>
         </button>
       </div>
     </div>
