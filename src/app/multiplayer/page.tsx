@@ -142,6 +142,11 @@ export default function MultiplayerPage() {
   // reads a stale value, and a phase that lands mid-countdown can be replayed.
   const kickoffActiveRef = useRef(false);
   const pendingPhaseRef = useRef<any>(null);
+  // Identifies the clue currently being played as "round:clueIndex", so a clue
+  // that is already sounding can never be started a second time by a late
+  // phase event, a reconnect sync, or a room_audio_sync tick. Without this the
+  // clip was stopped and replayed from its first second a beat after it began.
+  const startedClueKeyRef = useRef<string | null>(null);
   const [showPlayerSheet, setShowPlayerSheet] = useState(false);
   const [showStickerSheet, setShowStickerSheet] = useState(false);
   const [activeSfxAlert, setActiveSfxAlert] = useState<{ id: string; text: string } | null>(null);
@@ -163,6 +168,9 @@ export default function MultiplayerPage() {
 
   const playAudioRef = useRef<(customRoom?: any) => void>(() => {});
   const pauseAudioRef = useRef<() => void>(() => {});
+  // Same contract, plus an explicit force for genuine restarts (wrong-guess
+  // resume, host replay) that must be allowed to restart an already-heard clue.
+  const playAudioOnceRef = useRef<(customRoom?: any, force?: boolean) => void>(() => {});
 
   useEffect(() => {
     const timer = setInterval(() => setCooldownTick((t) => t + 1), 1000);
@@ -284,6 +292,32 @@ export default function MultiplayerPage() {
     setIsAudioBuffering(false);
   };
 
+  /** Stable identity of the clue that should be sounding, or null. */
+  const clueKeyOf = (r: any): string | null => {
+    if (!r) return null;
+    const idx = Number(r.clueIndex ?? r.clueStage ?? 0);
+    if (!Number.isFinite(idx) || idx <= 0) return null;
+    return `${r.currentRound ?? 0}:${idx}`;
+  };
+
+  /**
+   * Start the clue exactly once per round+index.
+   *
+   * The kickoff overlay, the server's first clue_phase event, a reconnect sync
+   * and a room_audio_sync tick can all ask for the same clue within a second.
+   * Whoever got there second used to stop and replay the clip from its first
+   * second — the audible "plays 1s, stops, starts over". The key makes the
+   * duplicate a no-op, and force:true is the explicit path for a genuine
+   * restart (wrong-guess resume, host replay).
+   */
+  const playAudioOnce = (customRoom?: any, force = false) => {
+    const r = customRoom || room;
+    const key = clueKeyOf(r);
+    if (!force && key !== null && startedClueKeyRef.current === key) return;
+    if (key !== null) startedClueKeyRef.current = key;
+    playAudioRef.current(r);
+  };
+
   const playAudioLocal = (customRoom?: any) => {
     const r = customRoom || room;
     if (!r?.currentSongClue) return;
@@ -383,6 +417,7 @@ export default function MultiplayerPage() {
   useEffect(() => {
     playAudioRef.current = playAudioLocal;
     pauseAudioRef.current = pauseAudioLocal;
+    playAudioOnceRef.current = playAudioOnce;
   });
 
   /** Start or cut the clue audio for a phase transition. */
@@ -393,7 +428,9 @@ export default function MultiplayerPage() {
         navigator.vibrate([40, 30, 60]);
       }
       pauseAudioRef.current();
-      setTimeout(() => playAudioRef.current(data.room), 120);
+      // Once, not unconditionally: a duplicate phase event for a clue that is
+      // already sounding would otherwise restart it from the top.
+      setTimeout(() => playAudioOnceRef.current(data.room), 120);
     } else {
       // Quiet stretch: kill the audio dead so players can think.
       pauseAudioRef.current();
@@ -412,7 +449,7 @@ export default function MultiplayerPage() {
     if (kickoffActiveRef.current) return;
     if (room.buzzState?.buzzedPlayerId) return;
     if (r.cluePhase === "playing") {
-      playAudioRef.current(r);
+      playAudioOnceRef.current(r);
     } else {
       // Silence phase (or unknown) — make sure nothing is left playing.
       pauseAudioRef.current();
@@ -579,7 +616,11 @@ export default function MultiplayerPage() {
             setView("game");
             setBuzzCountdown(0);
             setLastRoundWinner(null);
-            setRoundKickoff(3); // 3-second tension countdown!
+            // The server owns the kickoff length. Hardcoding 3 here made the
+            // overlay clear at 3.6s while the server's clue clock was still
+            // counting down 4, so the first real phase change arrived after the
+            // overlay was already gone and restarted the clip a beat late.
+            setRoundKickoff(typeof data.kickoffSeconds === "number" ? data.kickoffSeconds : 3);
 
             // Preload audio immediately in background so first click plays with 0ms lag!
             setTimeout(() => {
@@ -613,7 +654,10 @@ export default function MultiplayerPage() {
             }, 100);
           } else if (data.type === "room_audio_sync") {
             if (data.action === "play") {
-              playAudioRef.current(data.room || room);
+              // Forced: this is the host explicitly (re)starting the clue for
+              // everyone, so it must restart even if the same clue was already
+              // sounding on this client.
+              playAudioOnceRef.current(data.room || room, true);
             } else {
               pauseAudioRef.current();
             }
@@ -654,7 +698,9 @@ export default function MultiplayerPage() {
             setBuzzCountdown(0);
             if (buzzTimerRef.current) clearInterval(buzzTimerRef.current);
             if (data.resumeAudio) {
-              setTimeout(() => playAudioRef.current(data.room), 250);
+              // Forced: resuming the same clue after a buzz timeout is a real
+              // restart, not a duplicate start.
+              setTimeout(() => playAudioOnceRef.current(data.room, true), 250);
             }
           } else if (data.type === "guess_result") {
             setRoom(data.room);
@@ -693,7 +739,9 @@ export default function MultiplayerPage() {
               // the audio stacks on itself when a wrong guess reopens the buzzer.
               pauseAudioRef.current();
               if (data.resumeAudio) {
-                setTimeout(() => playAudioRef.current(data.room), 400);
+                // Forced: this is a genuine restart of the same clue after a
+                // wrong guess, not a duplicate start.
+                setTimeout(() => playAudioOnceRef.current(data.room, true), 400);
               }
             }
           } else if (data.type === "round_revealed") {
@@ -831,9 +879,9 @@ export default function MultiplayerPage() {
   }, []);
 
   // Round Kickoff Countdown Timer (3.. 2.. 1.. MULAI!)
-  // Purely visual. The audio is started exactly once, by the server's first
-  // clue_phase event — having this also play audio made the two sources race
-  // and restart the clip a beat after the overlay cleared.
+  // Purely visual. Its length comes from the server's kickoffSeconds, and the
+  // audio is started once the overlay clears — the once-guard keeps a late
+  // clue_phase event from restarting the clip underneath it.
   useEffect(() => {
     if (roundKickoff === null) {
       kickoffActiveRef.current = false;
@@ -853,10 +901,17 @@ export default function MultiplayerPage() {
       kickoffActiveRef.current = false;
       // Start the clue the server armed while the overlay was up. Falling back
       // to a bare play covers the case where the server had nothing buffered.
+      //
+      // Forced on the buffered path on purpose: this is the kickoff's own start,
+      // and the server's first real phase event arrives a tick later. Letting the
+      // once-guard claim the key here means that event becomes a no-op instead of
+      // stopping and replaying the clip a beat after it began — which is exactly
+      // the "plays 1 second, then starts over" symptom. The bare fallback still
+      // needs no key, since no clue index is known yet.
       const buffered = pendingPhaseRef.current;
       pendingPhaseRef.current = null;
       if (buffered?.phase === "playing") {
-        playAudioRef.current(buffered.room);
+        playAudioOnceRef.current(buffered.room, true);
       } else {
         playAudioRef.current();
       }
