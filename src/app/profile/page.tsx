@@ -49,7 +49,17 @@ interface Stats {
 const MODE_LABEL: Record<string, string> = {
   heardle: "Time Slice (Heardle)",
   tts: "Robot Speech (TTS)",
+  multiplayer: "Multiplayer Battle",
 };
+
+// Render whatever the stats API actually returned. It used to be hardcoded to
+// heardle + tts, so a multiplayer room — which is credited to the profile and
+// shown on the leaderboard — had no card here at all.
+const MODE_ORDER = ["heardle", "tts", "multiplayer"];
+
+function modeLabel(mode: string): string {
+  return MODE_LABEL[mode] ?? mode.charAt(0).toUpperCase() + mode.slice(1);
+}
 
 // Preset music avatar collection (DiceBear & cool styles)
 const AVATAR_PRESETS = [
@@ -407,21 +417,29 @@ export default function ProfilePage() {
           </h2>
 
           <div className="space-y-3">
-            {["heardle", "tts"].map((modeKey) => {
-              const m = stats?.byMode?.[modeKey] || { games: 0, best: 0, total: 0 };
-              return (
-                <div key={modeKey} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-3.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-white">{MODE_LABEL[modeKey]}</span>
-                    <span className="text-xs font-mono text-accent font-bold">{m.total} pts</span>
+            {Object.keys(stats?.byMode ?? {})
+              .sort((a, b) => {
+                // Known modes keep a stable order; anything new (a future mode
+                // the API learns about) falls to the end instead of vanishing.
+                const ia = MODE_ORDER.indexOf(a);
+                const ib = MODE_ORDER.indexOf(b);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+              })
+              .map((modeKey) => {
+                const m = stats?.byMode?.[modeKey] || { games: 0, best: 0, total: 0 };
+                return (
+                  <div key={modeKey} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-3.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-white">{modeLabel(modeKey)}</span>
+                      <span className="text-xs font-mono text-accent font-bold">{m.total} pts</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 mt-2 pt-2 border-t border-zinc-800/80">
+                      <span>{m.games} kali main</span>
+                      <span>Rekor: {m.best} pts</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 mt-2 pt-2 border-t border-zinc-800/80">
-                    <span>{m.games} kali main</span>
-                    <span>Rekor: {m.best} pts</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
 
@@ -440,7 +458,7 @@ export default function ProfilePage() {
                 {stats.bestEntry.score} <span className="text-sm font-normal text-zinc-400">poin</span>
               </p>
               <div className="flex items-center gap-2 text-xs font-mono text-zinc-300 mt-1">
-                <span>{MODE_LABEL[stats.bestEntry.mode] ?? stats.bestEntry.mode}</span>
+                <span>{modeLabel(stats.bestEntry.mode)}</span>
                 <span>•</span>
                 <span className="capitalize">{stats.bestEntry.difficulty}</span>
               </div>

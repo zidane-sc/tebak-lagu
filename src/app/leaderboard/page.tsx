@@ -144,6 +144,10 @@ export default function LeaderboardPage() {
               { id: "all", label: "Semua Mode" },
               { id: "heardle", label: "Time Slice ⏱️" },
               { id: "tts", label: "Robot TTS 🤖" },
+              // Multiplayer used to be submitted but had no filter tab, so those
+              // rows were only visible under "Semua Mode" — invisible to anyone
+              // filtering by mode.
+              { id: "multiplayer", label: "Multiplayer ⚔️" },
             ].map((m) => (
               <button
                 key={m.id}

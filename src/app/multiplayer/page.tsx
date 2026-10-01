@@ -177,7 +177,7 @@ export default function MultiplayerPage() {
     setShowExitConfirm(false);
   }, [view, room?.status]);
 
-  const { user } = useAuth();
+  const { user, syncScore } = useAuth();
 
   // ── Audio Unlock (mobile autoplay policy) ────────────────────────────────
   // Multiplay audio has to fire on its own — there is no per-player play
@@ -741,6 +741,18 @@ export default function MultiplayerPage() {
             try {
               const myP = data.room?.players?.find((p: any) => p.id === myPlayerId);
               if (myP && myP.score > 0) {
+                // A multiplayer round is competitive: the win goes to the top
+                // scorer, not to whoever guessed last. Ties are all winners.
+                const topScore = Math.max(
+                  ...data.room.players.map((p: any) => p.score || 0),
+                );
+                const wonRoom = (myP.score || 0) >= topScore;
+
+                // Credit the profile record too, or total_score on the profile
+                // would only ever reflect solo play while the leaderboard shows
+                // multiplayer rows as well.
+                if (user) syncScore(myP.score, wonRoom);
+
                 fetch("/api/leaderboard", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

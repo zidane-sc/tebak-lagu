@@ -243,9 +243,10 @@ export default function PlayArenaPage() {
       setScore(newScore);
       setCorrectCount((c) => c + 1);
 
-      if (user) {
-        syncScore(points, true);
-      }
+      // Stats are NOT credited here. syncScore credits games_played+wins in one
+      // UPDATE, so calling it per correct round made every game look like a win
+      // (win rate pinned at 100%) and counted rounds instead of matches. The
+      // match total is credited once, in handleNextRound.
 
       // Track correct guess analytics
       fetch("/api/analytics/track", {
@@ -334,6 +335,14 @@ export default function PlayArenaPage() {
         origin: { y: 0.6 },
         colors: ["#22c55e", "#eab308", "#38bdf8"],
       });
+
+      // Credit the signed-in player's record exactly once per finished match:
+      // the full run total plus a single win flag. A win means every round was
+      // guessed, not that the last round was guessed.
+      if (user) {
+        const wonMatch = correctCount >= gameConfig.maxRounds;
+        syncScore(finalScore, wonMatch);
+      }
 
       // Submit match score to Leaderboard API
       fetch("/api/leaderboard", {
