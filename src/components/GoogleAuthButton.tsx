@@ -33,13 +33,24 @@ export const GoogleAuthButton: React.FC = () => {
     setMounted(true);
   }, []);
 
-  // Lock body scroll when flying modal is open
+  // Lock body & documentElement scroll when flying modal is open
   useEffect(() => {
     if (showModal) {
-      const prev = document.body.style.overflow;
+      const prevBodyOverflow = document.body.style.overflow;
+      const prevBodyHeight = document.body.style.height;
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      const prevHtmlHeight = document.documentElement.style.height;
+
       document.body.style.overflow = "hidden";
+      document.body.style.height = "100vh";
+      document.documentElement.style.overflow = "hidden";
+      document.documentElement.style.height = "100vh";
+
       return () => {
-        document.body.style.overflow = prev;
+        document.body.style.overflow = prevBodyOverflow;
+        document.body.style.height = prevBodyHeight;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.documentElement.style.height = prevHtmlHeight;
       };
     }
   }, [showModal]);

@@ -100,7 +100,7 @@ export const PwaInstallBanner: React.FC<{
     );
   }
 
-  if (!showBanner || pathname?.startsWith("/play")) return null;
+  if (!showBanner || pathname !== "/") return null;
 
   return (
     <aside
