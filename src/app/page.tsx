@@ -511,7 +511,10 @@ export default function HomePage() {
       )}
 
       {/* Minimal Editorial Footer */}
-      <footer className="w-full pt-6 pb-4 border-t border-surfaceBorder/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-mutedDark font-mono z-10 text-center sm:text-left">
+      {/* Bottom padding clears the floating PWA banner (fixed bottom-3 + ~66px tall).
+          It only renders on "/", and it sits over whatever is at the bottom of
+          the viewport — with pb-4 the whole link row was unreachable. */}
+      <footer className="w-full pt-6 pb-20 sm:pb-24 border-t border-surfaceBorder/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-mutedDark font-mono z-10 text-center sm:text-left">
         <p>Tebak Lagu · Audio Trivia Engine</p>
         <div className="flex items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
           <Link href="/leaderboard" className="hover:text-amber-400 flex items-center gap-1 transition-colors text-zinc-400 py-1 px-1.5">

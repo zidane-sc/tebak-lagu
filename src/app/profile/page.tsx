@@ -218,7 +218,7 @@ export default function ProfilePage() {
         <header className="w-full flex items-center justify-between pb-6 border-b border-zinc-800/80">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs font-mono transition"
+            className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs font-mono transition -my-1.5 py-1.5"
           >
             <ChevronLeft className="w-4 h-4" /> Menu Utama
           </Link>
