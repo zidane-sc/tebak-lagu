@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { startSpoilerGuard, guardPlayback } from "@/lib/spoiler-guard";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type YTEngineState =
@@ -106,14 +107,8 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
 
           // Silence the Media Session so Android/desktop doesn't raise a
           // system notification showing the currently playing song (spoiler).
-          try {
-            if ("mediaSession" in navigator) {
-              navigator.mediaSession.metadata = null;
-              navigator.mediaSession.playbackState = "none";
-            }
-          } catch {
-            // Media Session unsupported — fine
-          }
+          // The shared guard owns this logic; call it rather than duplicating.
+          guardPlayback();
         },
         onStateChange: (e: any) => {
           const YT = (window as any).YT.PlayerState;
@@ -171,6 +166,8 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         playerRef.current?.unMute();
         playerRef.current?.setVolume(100);
         playerRef.current?.playVideo();
+        // Clear before the OS can read the metadata the start just published.
+        guardPlayback();
         setError(null);
         // Watchdog: browsers sometimes keep the player muted after a
         // programmatic load, so re-assert the volume.
@@ -231,47 +228,11 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
   }, []);
 
   useEffect(() => {
-    // The YouTube iframe lives on a cross-origin document, so it republishes its
-    // own Media Session metadata (artist + title) every time a video starts.
-    // Clearing it once at onReady is not enough — it gets re-set on each
-    // loadVideoById, which is what surfaced the answer in Android's "Media
-    // output" panel. Keep clearing it while the engine is alive.
-    const clearMediaSession = () => {
-      try {
-        if (!("mediaSession" in navigator)) return;
-        const ms = navigator.mediaSession;
-        if (ms.metadata) ms.metadata = null;
-        if (ms.playbackState !== "none") ms.playbackState = "none";
-        // Dropping the artwork handler stops Android from rendering a cover in
-        // the media panel, which was another leak of the current track.
-        if (typeof ms.setActionHandler === "function") {
-          const actions = [
-            "play",
-            "pause",
-            "seekbackward",
-            "seekforward",
-            "previoustrack",
-            "nexttrack",
-            "skipad",
-            "stop",
-          ] as MediaSessionAction[];
-          for (const a of actions) {
-            try {
-              ms.setActionHandler(a, null);
-            } catch {
-              // Action unsupported on this browser — ignore
-            }
-          }
-        }
-      } catch {
-        // Media Session unsupported — fine
-      }
-    };
-
-    clearMediaSession();
-    const id = setInterval(clearMediaSession, 700);
-
-    return () => clearInterval(id);
+    // A cross-origin document (the YouTube iframe) republishes its own Media
+    // Session metadata on its own schedule, so clearing once is not enough.
+    // startSpoilerGuard runs the sweep; guardPlayback() also fires synchronously
+    // at each play/seek below so the metadata never has a window to appear.
+    return startSpoilerGuard();
   }, []);
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -291,6 +252,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         playerRef.current.setVolume(100);
         playerRef.current.playVideo();
         updateState("playing");
+        guardPlayback();
         // Mobile can silently drop the unmute if the video was paused, so
         // re-assert volume shortly after as a watchdog.
         setTimeout(() => {
@@ -336,6 +298,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     playerRef.current.setVolume(100);
     playerRef.current.playVideo();
     isCued.current = false;
+    guardPlayback();
   }, [currentSong]);
 
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);

@@ -38,6 +38,7 @@ import { AudioWaveformVisualizer } from "@/components/AudioWaveformVisualizer";
 import { ArtistSelector } from "@/components/game/ArtistSelector";
 import { useAuth } from "@/lib/auth-context";
 import { sfx } from "@/lib/sound-fx";
+import { guardPlayback } from "@/lib/spoiler-guard";
 import confetti from "canvas-confetti";
 import { CATEGORIES } from "@/data/songs";
 
@@ -401,6 +402,9 @@ export default function MultiplayerPage() {
     else audioRef.current.playbackRate = 1.0;
 
     setIsAudioBuffering(true);
+    // This is the multiplayer clue element, and it is a plain <audio> with the
+    // song's preview or TTS URL. Clear the OS track label as playback starts.
+    guardPlayback();
     audioRef.current
       .play()
       .then(() => {

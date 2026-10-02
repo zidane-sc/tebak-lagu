@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Volume2, VolumeX, Loader2 } from "lucide-react";
+import { guardPlayback } from "@/lib/spoiler-guard";
 
 interface TtsModePlayerProps {
   clues?: string[];
@@ -69,6 +70,9 @@ export const TtsModePlayer: React.FC<TtsModePlayerProps> = ({
 
     setIsLoading(true);
     audioRef.current.currentTime = 0;
+    // The /api/tts response is a plain <audio> source with no title metadata of
+    // its own, but the OS can still derive a track label from the request URL.
+    guardPlayback();
 
     if (voiceType === "deep") {
       audioRef.current.playbackRate = 0.85;
