@@ -70,6 +70,39 @@ export default function PlayArenaPage() {
     onError: (msg) => console.warn("[YT Engine]", msg),
   });
 
+  // ── Audio Unlock (iOS autoplay policy) ───────────────────────────────────
+  // Multiplayer already burns a silent gesture to unlock the audio context, but
+  // solo never did. On iOS the page only becomes allowed to play unmuted audio
+  // after a real user gesture *inside that document*, and the YouTube iframe is
+  // a separate document that inherits nothing. So the first press of the Play
+  // button would silently no-op: the seek and unmute land, the video stays
+  // muted, and the round looks like "no audio at all".
+  //
+  // One zero-length silent buffer, on the same gesture that starts playback.
+  // Inaudible, gesture-scoped, and it primes the context for every later round.
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctor) return;
+        const ctx = new Ctor();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.01);
+        void ctx.resume();
+      } catch {}
+    };
+
+    const events = ["pointerdown", "touchstart", "keydown", "click"] as const;
+    for (const e of events) window.addEventListener(e, unlock, { once: true, passive: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, unlock);
+    };
+  }, []);
+
   // Gameplay States
   const [guesses, setGuesses] = useState<Array<{ text: string; isCorrect: boolean }>>([]);
   const [activeClueCount, setActiveClueCount] = useState(1);
@@ -130,6 +163,13 @@ export default function PlayArenaPage() {
   // audio path: Time Slice is YouTube-only now, but the game-over modal still
   // plays the song through so a player can hear what they missed.
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
+  const [previewStart, setPreviewStart] = useState<number>(0);
+  // Dedicated HTML5 element for the preview fallback. Kept out of the YouTube
+  // engine on purpose: the iframe cannot be muted/unmuted on iOS without a
+  // gesture, while a plain <audio> element obeys the same gesture that pressed
+  // Play. Refusing to render it at all (only mounting it in GameOverModal) is
+  // what left iOS rounds with no sound.
+  const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -177,6 +217,7 @@ export default function PlayArenaPage() {
           setSong(s);
                 setAlbumCover(s.albumCover);
           setPreviewUrl(s.previewResolved || s.previewUrl);
+          setPreviewStart(s.startSecond ?? 0);
           // Cue YouTube player (muted preload) if youtube_id exists
           if (s.youtubeId && s.youtubeStatus === "ready") {
             ytEngine.cue({ youtubeId: s.youtubeId, startSecond: s.youtubeStartSecond ?? 20, title: s.title, artist: s.artist });
@@ -447,11 +488,39 @@ export default function PlayArenaPage() {
                     artist: song.artist,
                   });
                 } else {
-                  ytEngine.unmuteAndPlay(startSecond);
+                  // Only seek/unmute what is ALREADY loaded. unmuteAndPlay()
+                  // assumes a cued video: on a fresh round there is nothing
+                  // loaded yet, so it was a no-op and the round came out
+                  // silent. Rely on play()'s load+seek+unmute path instead.
+                  if (ytEngine.currentSong) {
+                    ytEngine.unmuteAndPlay(startSecond);
+                  }
                 }
               }}
               onYoutubePause={() => ytEngine.pause()}
               ytEngineState={ytEngine.state}
+              fallbackPreviewUrl={previewUrl}
+              fallbackStartSecond={previewStart}
+              onFallbackPlay={(startSecond) => {
+                const el = fallbackAudioRef.current;
+                if (!el) return;
+                try {
+                  if (el.src !== previewUrl) el.src = previewUrl || "";
+                  // Preview clips are ~30s; clamp so a bad offset cannot read
+                  // past the end and produce silence again.
+                  el.currentTime = Math.max(0, Math.min(startSecond, 25));
+                  el.playbackRate = 1;
+                  const p = el.play();
+                  if (p && typeof p.catch === "function") p.catch(() => {});
+                } catch {}
+              }}
+              onFallbackPause={() => {
+                const el = fallbackAudioRef.current;
+                if (!el) return;
+                try {
+                  el.pause();
+                } catch {}
+              }}
             />
           )}
         </div>
@@ -467,6 +536,11 @@ export default function PlayArenaPage() {
           />
         </div>
       </main>
+
+      {/* Preview-clip element for the fallback source. Hidden but NOT removed
+          from the layout tree, so it is mounted and playable by the time the
+          Play button is pressed. */}
+      <audio ref={fallbackAudioRef} preload="auto" className="hidden" />
 
       {/* Round Over Modal (Per-Round) */}
       {isGameOver && !isMatchFinished && (
