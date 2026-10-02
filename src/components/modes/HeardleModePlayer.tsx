@@ -16,10 +16,6 @@ interface HeardleModePlayerProps {
   onYoutubePlay?: (startSecond: number) => void;
   onYoutubePause?: () => void;
   ytEngineState?: string;
-  fallbackPreviewUrl?: string;
-  fallbackStartSecond?: number;
-  onFallbackPlay?: (startSecond: number) => void;
-  onFallbackPause?: () => void;
 }
 
 const DEFAULT_DURATIONS = [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
@@ -35,20 +31,9 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   onYoutubePlay,
   onYoutubePause,
   ytEngineState,
-  // HTML5 fallback. Time Slice only selects songs that have a YouTube id, but
-  // an embed can still be refused at runtime (errors 101/150), and that leaves
-  // the round with no audio at all — the play button simply does nothing. A
-  // preview clip is better than silence, so the button falls back to it.
-  fallbackPreviewUrl,
-  fallbackStartSecond,
-  onFallbackPlay,
-  onFallbackPause,
 }) => {
-  const hasYoutube = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
-  const hasFallback = !!(fallbackPreviewUrl && onFallbackPlay);
-  const canPlay = hasYoutube || hasFallback;
+  const canPlay = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const durations =
@@ -63,18 +48,9 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    if (isPlaying) {
-      if (usingFallback) onFallbackPause?.();
-      else onYoutubePause?.();
-    }
+    if (isPlaying) onYoutubePause?.();
     setIsPlaying(false);
   };
-
-  useEffect(() => {
-    // A new song resets the source choice, so a round that can play normally is
-    // not stuck on the preview because the previous round needed the fallback.
-    setUsingFallback(false);
-  }, [searchQuery]);
 
   useEffect(() => {
     if (isGameOver) stopPlayback();
@@ -101,19 +77,11 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     }
     if (!canPlay) return;
 
-    // Prefer the YouTube source, which carries the exact vocal-start offset.
-    // The preview clip is the safety net for a refused embed.
-    const useFallback = !hasYoutube;
-    setUsingFallback(useFallback);
-
     setIsPlaying(true);
-    if (useFallback) {
-      onFallbackPlay!(fallbackStartSecond ?? 0);
-    } else {
-      onYoutubePlay!(youtubeStartSecond ?? 0);
-    }
+    onYoutubePlay!(youtubeStartSecond ?? 0);
     timerRef.current = setTimeout(() => {
-      stopPlayback();
+      onYoutubePause?.();
+      setIsPlaying(false);
     }, maxAllowedDuration * 1000);
   };
 
@@ -160,15 +128,9 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         </div>
       </div>
 
-      {ytEngineState === "unavailable" && !hasFallback && (
+      {ytEngineState === "unavailable" && (
         <p className="text-[10px] text-rose-400 font-mono text-center">
           Audio tidak bisa dimuat — video tidak tersedia.
-        </p>
-      )}
-
-      {usingFallback && (
-        <p className="text-[10px] text-amber-400 font-mono text-center">
-          Memutar pratinjau (video tidak bisa dimuat).
         </p>
       )}
 
