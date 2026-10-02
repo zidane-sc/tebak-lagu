@@ -356,10 +356,14 @@ export async function getRandomSong(
   }
   // "hard" and "all" add no constraint — hard is the full pool.
 
+  const youtubeGate =
+    " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";
+  const lyricsGate =
+    " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
   if (mode === "heardle") {
-    sql += " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL";
+    sql += youtubeGate;
   } else if (mode === "tts") {
-    sql += " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4";
+    sql += lyricsGate;
   }
 
   sql += " ORDER BY RANDOM() LIMIT 1;";
@@ -370,21 +374,35 @@ export async function getRandomSong(
     // their songs are YouTube-ready yet). Retry while dropping ONLY the mode
     // requirement, keeping playlist/difficulty/artist filters intact so the
     // player never silently gets a song from a different artist.
+    //
+    // For Time Slice the mode requirement IS the YouTube requirement, so it
+    // must not be relaxed away: a song with no embed yields a dead play button
+    // and the round is unwinnable. Drop only the lyrics gate, and only for TTS.
+    const relaxedSql =
+      mode === "heardle"
+        ? sql.replace(lyricsGate, "")
+        : sql.replace(lyricsGate, "").replace(youtubeGate, "");
     const relaxed = await db.execute({
-      sql: sql.replace(
-        " AND s.lyrics_clues IS NOT NULL AND json_array_length(s.lyrics_clues) >= 4",
-        ""
-      ).replace(
-        " AND s.youtube_status = 'ready' AND s.youtube_id IS NOT NULL",
-        ""
-      ),
+      sql: relaxedSql,
       args,
     });
     if (relaxed.rows.length > 0) {
       return rowToSong(relaxed.rows[0]);
     }
 
-    // Absolute last resort: any active song at all.
+    // Absolute last resort: any active song at all. Time Slice still needs a
+    // playable song here, so the fallback is constrained too — handing back an
+    // unplayable one is what made whole rounds silent.
+    if (mode === "heardle") {
+      const playable = await db.execute(
+        `SELECT * FROM songs
+         WHERE (is_active = 1 OR is_active IS NULL)
+           AND youtube_status = 'ready' AND youtube_id IS NOT NULL
+         ORDER BY RANDOM() LIMIT 1;`
+      );
+      if (playable.rows.length > 0) return rowToSong(playable.rows[0]);
+    }
+
     const fallback = await db.execute(
       "SELECT * FROM songs WHERE (is_active = 1 OR is_active IS NULL) ORDER BY RANDOM() LIMIT 1;"
     );
@@ -392,6 +410,24 @@ export async function getRandomSong(
   }
 
   return rowToSong(res.rows[0]);
+}
+
+/**
+ * True when the song can actually make sound in Time Slice.
+ *
+ * Time Slice has exactly one audio source — the YouTube embed — so a song with
+ * no ready video id is unplayable, not merely lower quality. Serving one anyway
+ * hands the player a dead play button, which is how 189 `not_found` rows leaked
+ * in through the relaxation above.
+ */
+export function isHeardlePlayable(song: {
+  youtube_id?: string | null;
+  youtube_status?: string | null;
+}): boolean {
+  return (
+    !!song.youtube_id &&
+    (song.youtube_status ?? "ready") === "ready"
+  );
 }
 
 // Pre-roll a queue of distinct songs for a match

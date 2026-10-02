@@ -35,6 +35,7 @@ const checks = [
   ["check-clue-phase.js", "node"],
   ["check-clue-audio-once.js", "node"],
   ["check-solo-audio-unlock.js", "node"],
+  ["check-heardle-playable-pool.js", "node"],
   ["verify-clue-phase-parity.js", "node"],
   ["check-catalogue-restore.js", "node"],
   ["verify-recovery.js", "node"],
