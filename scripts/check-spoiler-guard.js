@@ -36,11 +36,32 @@ const test = (name, fn) => {
 };
 
 // ── 1. Both leak channels are cleared ───────────────────────────────────────
-test("Media Session metadata and playbackState are both cleared", () => {
-  assert.ok(/ms\.metadata\s*=\s*null/.test(guard), "metadata must be nulled");
+test("Media Session metadata is overwritten, not nulled", () => {
+  // Nulling does not retract an already-shown notification on iOS, so the guard
+  // publishes a placeholder instead. See writeDecoyMetadata.
+  assert.ok(
+    /new MediaMetadata\(\{/.test(guard),
+    "a placeholder MediaMetadata must be published",
+  );
+  assert.ok(
+    !/ms\.metadata\s*=\s*null/.test(guard),
+    "metadata must never be assigned null — that is the iOS leak",
+  );
   assert.ok(
     /ms\.playbackState\s*=\s*"none"/.test(guard),
-    "playbackState must be reset to none",
+    "playbackState must be reset to none, which is what drops the panel",
+  );
+});
+
+test("the placeholder carries no track identity", () => {
+  // The player only ever receives a video id and an offset, so a placeholder
+  // built from constants cannot leak anything.
+  const start = guard.indexOf("function writeDecoyMetadata");
+  const body = guard.slice(start, guard.indexOf("} catch", start));
+  assert.ok(/title:\s*BASE_TITLE/.test(body), "title must be the constant");
+  assert.ok(
+    !/song\./.test(body),
+    "placeholder must not interpolate any song field",
   );
 });
 

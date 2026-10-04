@@ -24,13 +24,49 @@ const BASE_TITLE = "Tebak Lagu";
 
 let pollHandle: ReturnType<typeof setInterval> | null = null;
 
+/**
+ * Overwrite the media-session metadata with a neutral placeholder instead of
+ * clearing it.
+ *
+ * Why not `metadata = null`: null is not a delete. iOS routes Media Session
+ * through `MPNowPlayingInfoCenter`, which keeps the last value it was given —
+ * a null assignment is accepted by the API and ignored by the OS, so the song
+ * title stays on the lock screen. WebKit's handling is unspecified and varies by
+ * version, and the metadata semantics are still being argued in the spec
+ * (w3c/mediasession#343, tracked by WebKit #1921511), so "clear by nulling"
+ * cannot be relied on across devices.
+ *
+ * Last write wins. Publishing a harmless placeholder after the publisher writes
+ * the title guarantees the OS's most recent value is the placeholder, without
+ * depending on delete semantics at all. The player has no metadata of its own
+ * to leak — it only ever received the id and offset.
+ */
+function writeDecoyMetadata(): void {
+  try {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    if (ms.metadata) {
+      ms.metadata = new MediaMetadata({
+        title: BASE_TITLE,
+        artist: BASE_TITLE,
+        album: BASE_TITLE,
+      });
+    }
+  } catch {
+    // MediaMetadata unsupported or blocked — the sweep will try again.
+  }
+}
+
 /** Strip the answer out of anything the browser would surface. Idempotent. */
 export function clearSpoilers(): void {
   // 1. Media Session — metadata and artwork are what the OS notification shows.
   try {
     if ("mediaSession" in navigator) {
       const ms = navigator.mediaSession;
-      if (ms.metadata) ms.metadata = null;
+      // Overwrite rather than clear, and never null afterwards: the null
+      // assignment is the thing that does not retract an already-shown
+      // notification on iOS.
+      writeDecoyMetadata();
       if (ms.playbackState !== "none") ms.playbackState = "none";
       // Removing the action handlers also stops the system from rendering a
       // cover image in the media panel.
@@ -71,17 +107,39 @@ export function clearSpoilers(): void {
  * Run the guard continuously. Call once from the app shell.
  *
  * The poll is a backstop, not the primary defence: a cross-origin document can
- * republish Media Session metadata on its own schedule after we clear it, so a
- * slow sweep catches the stragglers without being the only line of defence.
+ * republish Media Session metadata on its own schedule after we clear it. In
+ * practice the YouTube iframe fires its metadata callback several times per
+ * video (see Mozilla bug 1904774 — three times on a plain YouTube page), so no
+ * interval can be strictly faster than the publisher. Synchronous clears at
+ * every play site are the real defence; this sweep is the net.
  */
 export function startSpoilerGuard(): () => void {
   clearSpoilers();
+
+  // Locking the phone or switching apps is exactly when the OS decides to show
+  // the media notification, so clear on the transition itself rather than
+  // waiting for the next sweep — it is the moment the title is most likely to
+  // be sampled.
+  const onVisibility = () => {
+    if (document.visibilityState === "hidden") {
+      clearSpoilers();
+    }
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  // iOS Safari raises `pagehide` when a PWA is backgrounded or closed; the
+  // last chance to drop the label before the snapshot is taken.
+  const onPageHide = () => clearSpoilers();
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("blur", onPageHide);
 
   if (pollHandle === null) {
     pollHandle = setInterval(clearSpoilers, 700);
   }
 
   return () => {
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("pagehide", onPageHide);
+    window.removeEventListener("blur", onPageHide);
     if (pollHandle !== null) {
       clearInterval(pollHandle);
       pollHandle = null;
