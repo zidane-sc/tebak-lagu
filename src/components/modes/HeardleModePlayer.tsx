@@ -79,11 +79,23 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
 
     setIsPlaying(true);
     onYoutubePlay!(youtubeStartSecond ?? 0);
+    // Safety fallback timer so it never hangs if network stalls
     timerRef.current = setTimeout(() => {
-      onYoutubePause?.();
-      setIsPlaying(false);
-    }, maxAllowedDuration * 1000);
+      stopPlayback();
+    }, (maxAllowedDuration + 15) * 1000);
   };
+
+  // Start the exact slice timer only once audio actually reports PLAYING.
+  // Prevents mobile/iOS network buffering from consuming the 3s window.
+  useEffect(() => {
+    if (isPlaying && ytEngineState === "playing") {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        stopPlayback();
+      }, maxAllowedDuration * 1000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, ytEngineState, maxAllowedDuration]);
 
   return (
     <div className="w-full max-w-md mx-auto flex flex-col items-center gap-2.5 bg-surface border border-surfaceBorder rounded-2xl p-3.5 sm:p-4 shadow-sm relative">

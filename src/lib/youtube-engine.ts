@@ -63,6 +63,7 @@ function loadYouTubeAPI(cb: () => void) {
 // ── Hook ─────────────────────────────────────────────────────────────────────
 export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}): YouTubeEngineHandle {
   const playerRef = useRef<any>(null);
+  const isReadyRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pendingSong = useRef<YTSong | null>(null);
   const pendingUnmute = useRef<number | null>(null);
@@ -96,13 +97,24 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
       },
       events: {
         onReady: () => {
+          isReadyRef.current = true;
           updateState("idle");
           onReady?.();
           // Load pending song if queued
           if (pendingSong.current) {
             const s = pendingSong.current;
             pendingSong.current = null;
-            loadSong(s, isCued.current);
+            if (isCued.current) {
+              setCurrentSong(s);
+              try {
+                playerRef.current?.mute();
+                if (typeof playerRef.current?.cueVideoById === "function") {
+                  playerRef.current.cueVideoById({ videoId: s.youtubeId, startSeconds: 0 });
+                }
+              } catch {}
+            } else {
+              loadSong(s, false);
+            }
           }
 
           // Silence the Media Session so Android/desktop doesn't raise a
@@ -112,7 +124,13 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
         },
         onStateChange: (e: any) => {
           const YT = (window as any).YT.PlayerState;
-          if (e.data === YT.PLAYING) updateState("playing");
+          if (e.data === YT.PLAYING) {
+            updateState("playing");
+            try {
+              playerRef.current?.unMute();
+              playerRef.current?.setVolume(100);
+            } catch {}
+          }
           else if (e.data === YT.PAUSED) updateState("paused");
           else if (e.data === YT.CUED) updateState("cued");
           else if (e.data === YT.BUFFERING) updateState("loading");
@@ -138,21 +156,30 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
 
   // Internal load helper
   const loadSong = useCallback((song: YTSong, muteOnly = false) => {
-    if (!playerRef.current) return;
+    if (!isReadyRef.current || !playerRef.current || typeof playerRef.current.loadVideoById !== "function") {
+      pendingSong.current = song;
+      isCued.current = muteOnly;
+      return;
+    }
     setError(null);
     setCurrentSong(song);
     updateState("loading");
 
-    playerRef.current.mute();
-    playerRef.current.loadVideoById({
-      videoId: song.youtubeId,
-      startSeconds: muteOnly ? 0 : (song.startSecond ?? 20),
-    });
+    try {
+      playerRef.current.mute();
+      playerRef.current.loadVideoById({
+        videoId: song.youtubeId,
+        startSeconds: muteOnly ? 0 : (song.startSecond ?? 20),
+      });
 
-    if (!muteOnly) {
-      // Unmute when the player actually reports PLAYING, not on a blind timer.
-      // A blind setTimeout races with loadVideoById and can unmute the wrong video.
-      pendingUnmute.current = song.startSecond ?? 20;
+      if (!muteOnly) {
+        // Unmute when the player actually reports PLAYING, not on a blind timer.
+        // A blind setTimeout races with loadVideoById and can unmute the wrong video.
+        pendingUnmute.current = song.startSecond ?? 20;
+      }
+    } catch {
+      pendingSong.current = song;
+      isCued.current = muteOnly;
     }
   }, [updateState]);
 
@@ -238,7 +265,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
   // ── Public API ─────────────────────────────────────────────────────────────
   const play = useCallback((song: YTSong) => {
     isCued.current = false;
-    if (!playerRef.current) {
+    if (!isReadyRef.current || !playerRef.current || typeof playerRef.current.playVideo !== "function") {
       pendingSong.current = song;
       return;
     }
@@ -276,17 +303,21 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     // playback, which leaks ~1s of audio before the 3-2-1 overlay clears and
     // then gets restarted by the real clue.
     isCued.current = true;
-    if (!playerRef.current) {
+    if (!isReadyRef.current || !playerRef.current || typeof playerRef.current.cueVideoById !== "function") {
       pendingSong.current = song;
       return;
     }
     setCurrentSong(song);
-    playerRef.current.mute();
-    if (typeof playerRef.current.cueVideoById === "function") {
-      playerRef.current.cueVideoById({ videoId: song.youtubeId, startSeconds: 0 });
-    } else {
-      playerRef.current.loadVideoById({ videoId: song.youtubeId, startSeconds: 0 });
-      playerRef.current.pauseVideo();
+    try {
+      playerRef.current.mute();
+      if (typeof playerRef.current.cueVideoById === "function") {
+        playerRef.current.cueVideoById({ videoId: song.youtubeId, startSeconds: 0 });
+      } else {
+        playerRef.current.loadVideoById({ videoId: song.youtubeId, startSeconds: 0 });
+        playerRef.current.pauseVideo();
+      }
+    } catch {
+      pendingSong.current = song;
     }
   }, []);
 

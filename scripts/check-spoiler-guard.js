@@ -48,6 +48,10 @@ test("Media Session metadata is overwritten, not nulled", () => {
     "metadata must never be assigned null — that is the iOS leak",
   );
   assert.ok(
+    !/if\s*\(\s*ms\.metadata\s*\)/.test(guard),
+    "metadata assignment must never be gated on ms.metadata existing (it starts null)",
+  );
+  assert.ok(
     /ms\.playbackState\s*=\s*"none"/.test(guard),
     "playbackState must be reset to none, which is what drops the panel",
   );
@@ -79,6 +83,19 @@ test("document.title is pinned back to the base title", () => {
       guard,
     ),
     "title must be reset when it drifts",
+  );
+});
+
+test("iframe title attributes are sanitized to prevent media controller leaks", () => {
+  assert.ok(
+    /iframe\.title\s*!==\s*BASE_TITLE[\s\S]{0,80}iframe\.title\s*=\s*BASE_TITLE/.test(
+      guard,
+    ),
+    "iframe title must be sanitized to the neutral placeholder",
+  );
+  assert.ok(
+    /new MutationObserver/.test(guard),
+    "a MutationObserver must be active to catch dynamic iframe title rewrites",
   );
 });
 

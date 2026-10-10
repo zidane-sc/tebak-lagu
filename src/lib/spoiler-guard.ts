@@ -45,13 +45,11 @@ function writeDecoyMetadata(): void {
   try {
     if (!("mediaSession" in navigator)) return;
     const ms = navigator.mediaSession;
-    if (ms.metadata) {
-      ms.metadata = new MediaMetadata({
-        title: BASE_TITLE,
-        artist: BASE_TITLE,
-        album: BASE_TITLE,
-      });
-    }
+    ms.metadata = new MediaMetadata({
+      title: BASE_TITLE,
+      artist: BASE_TITLE,
+      album: BASE_TITLE,
+    });
   } catch {
     // MediaMetadata unsupported or blocked — the sweep will try again.
   }
@@ -101,6 +99,21 @@ export function clearSpoilers(): void {
   } catch {
     // No document (SSR) — fine.
   }
+
+  // 3. Iframe title — the YouTube IFrame API sets the iframe element's title
+  //    attribute to the video title, which surfaces in accessibility tools,
+  //    browser media routers, and OS media controls.
+  try {
+    const iframes = document.querySelectorAll("iframe");
+    for (let i = 0; i < iframes.length; i++) {
+      const iframe = iframes[i];
+      if (iframe.title && iframe.title !== BASE_TITLE) {
+        iframe.title = BASE_TITLE;
+      }
+    }
+  } catch {
+    // No document (SSR) — fine.
+  }
 }
 
 /**
@@ -115,6 +128,20 @@ export function clearSpoilers(): void {
  */
 export function startSpoilerGuard(): () => void {
   clearSpoilers();
+
+  let observer: MutationObserver | null = null;
+  try {
+    if (typeof MutationObserver !== "undefined") {
+      observer = new MutationObserver(() => {
+        clearSpoilers();
+      });
+      observer.observe(document.documentElement, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["title"],
+      });
+    }
+  } catch {}
 
   // Locking the phone or switching apps is exactly when the OS decides to show
   // the media notification, so clear on the transition itself rather than
@@ -140,6 +167,10 @@ export function startSpoilerGuard(): () => void {
     document.removeEventListener("visibilitychange", onVisibility);
     window.removeEventListener("pagehide", onPageHide);
     window.removeEventListener("blur", onPageHide);
+    if (observer !== null) {
+      observer.disconnect();
+      observer = null;
+    }
     if (pollHandle !== null) {
       clearInterval(pollHandle);
       pollHandle = null;
