@@ -184,6 +184,21 @@ test("every component with a play() call also guards it", () => {
   }
 });
 
+test("top-frame media session anchor exists to override cross-origin iframe routing", () => {
+  assert.ok(
+    /export function anchorMediaSession/.test(guard),
+    "anchorMediaSession must be exported to claim media focus in top frame",
+  );
+  assert.ok(
+    /export function releaseMediaSession/.test(guard),
+    "releaseMediaSession must be exported to release media focus",
+  );
+  assert.ok(
+    /anchorMediaSession/.test(read("components", "modes", "HeardleModePlayer.tsx")),
+    "HeardleModePlayer must anchor media session on play",
+  );
+});
+
 // ── report ─────────────────────────────────────────────────────────────────
 let failed = 0;
 for (const c of checks) {

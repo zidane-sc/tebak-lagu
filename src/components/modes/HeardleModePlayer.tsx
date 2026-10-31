@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Play, Square } from "lucide-react";
 import { VinylPlayer } from "@/components/VinylPlayer";
+import { anchorMediaSession, releaseMediaSession } from "@/lib/spoiler-guard";
 
 interface HeardleModePlayerProps {
   searchQuery: string;
@@ -43,14 +44,23 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   const maxAllowedDuration = durations[Math.min(unlockedLevel, durations.length - 1)];
   const maxDuration = durations[durations.length - 1];
 
-  const stopPlayback = () => {
+  const stopPlayback = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
     if (isPlaying) onYoutubePause?.();
+    releaseMediaSession();
     setIsPlaying(false);
-  };
+  }, [isPlaying, onYoutubePause]);
+
+  useEffect(() => {
+    const handleRemotePause = () => stopPlayback();
+    window.addEventListener("tl:mediasession-pause", handleRemotePause);
+    return () => {
+      window.removeEventListener("tl:mediasession-pause", handleRemotePause);
+    };
+  }, [stopPlayback]);
 
   useEffect(() => {
     if (isGameOver) stopPlayback();
@@ -78,6 +88,7 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     if (!canPlay) return;
 
     setIsPlaying(true);
+    anchorMediaSession();
     onYoutubePlay!(youtubeStartSecond ?? 0);
     // Safety fallback timer so it never hangs if network stalls
     timerRef.current = setTimeout(() => {
