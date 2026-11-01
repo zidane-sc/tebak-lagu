@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
-import { startSpoilerGuard, guardPlayback } from "@/lib/spoiler-guard";
+import {
+  startSpoilerGuard,
+  guardPlayback,
+  anchorMediaSession,
+  releaseMediaSession,
+} from "@/lib/spoiler-guard";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export type YTEngineState =
@@ -126,15 +131,22 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
           const YT = (window as any).YT.PlayerState;
           if (e.data === YT.PLAYING) {
             updateState("playing");
+            anchorMediaSession();
             try {
               playerRef.current?.unMute();
               playerRef.current?.setVolume(100);
             } catch {}
           }
-          else if (e.data === YT.PAUSED) updateState("paused");
+          else if (e.data === YT.PAUSED) {
+            updateState("paused");
+            releaseMediaSession();
+          }
           else if (e.data === YT.CUED) updateState("cued");
           else if (e.data === YT.BUFFERING) updateState("loading");
-          else if (e.data === YT.ENDED) updateState("idle");
+          else if (e.data === YT.ENDED) {
+            updateState("idle");
+            releaseMediaSession();
+          }
         },
         onError: (e: any) => {
           // Error codes: 2=invalid, 5=html5, 100=not found, 101/150=embedding disabled
@@ -332,9 +344,29 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     guardPlayback();
   }, [currentSong]);
 
-  const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
-  const stop = useCallback(() => { playerRef.current?.stopVideo(); updateState("idle"); }, [updateState]);
+  const pause = useCallback(() => {
+    playerRef.current?.pauseVideo();
+    releaseMediaSession();
+  }, []);
+  const stop = useCallback(() => {
+    playerRef.current?.stopVideo();
+    releaseMediaSession();
+    updateState("idle");
+  }, [updateState]);
   const seek = useCallback((sec: number) => playerRef.current?.seekTo(sec, true), []);
+
+  useEffect(() => {
+    const handleRemotePause = () => {
+      try {
+        playerRef.current?.pauseVideo();
+      } catch {}
+      releaseMediaSession();
+    };
+    window.addEventListener("tl:mediasession-pause", handleRemotePause);
+    return () => {
+      window.removeEventListener("tl:mediasession-pause", handleRemotePause);
+    };
+  }, []);
 
   return { play, cue, unmuteAndPlay, pause, stop, seek, state, currentSong, error };
 }
