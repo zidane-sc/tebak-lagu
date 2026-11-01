@@ -6,7 +6,7 @@
  * and deleted/private videos (Error 100) using the official YouTube oEmbed API.
  *
  * Usage:
- *   node scripts/audit-youtube-embeds.js [--limit=50] [--offset=0] [--category="Pop"] [--fix] [--dry-run]
+ *   node scripts/audit-youtube-embeds.js [--all] [--limit=50] [--offset=0] [--concurrency=5] [--fix] [--dry-run]
  *
  * Status Codes:
  *   200 -> OK (Embedding allowed)
@@ -21,12 +21,14 @@ const path = require("path");
 
 const db = createClient({ url: `file:${path.resolve(__dirname, "../data/tebak_lagu.db")}` });
 
-const LIMIT = parseInt(process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] || "50");
+const IS_ALL = process.argv.includes("--all");
+const LIMIT = IS_ALL ? 10000 : parseInt(process.argv.find((a) => a.startsWith("--limit="))?.split("=")[1] || "50");
 const OFFSET = parseInt(process.argv.find((a) => a.startsWith("--offset="))?.split("=")[1] || "0");
+const CONCURRENCY = parseInt(process.argv.find((a) => a.startsWith("--concurrency="))?.split("=")[1] || "5");
 const CATEGORY_ARG = process.argv.find((a) => a.startsWith("--category="))?.split("=")[1];
 const FIX_FLAG = process.argv.includes("--fix");
 const DRY_RUN = process.argv.includes("--dry-run");
-const DELAY_MS = 250;
+const DELAY_MS = 60;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -126,7 +128,7 @@ async function findEmbeddableAlternative(artist, title, excludeId) {
 
   for (const cand of scored) {
     if (!isAcceptable(cand, artist, title)) continue;
-    // CRITICAL: verify candidate allows embedding via oEmbed
+    // Verify candidate allows embedding via oEmbed
     const status = await checkOembed(cand.videoId);
     if (status === 200) {
       return cand;
@@ -137,7 +139,7 @@ async function findEmbeddableAlternative(artist, title, excludeId) {
 
 async function main() {
   console.log(`\n🔍 YouTube Embed Auditor & Auto-Healer`);
-  console.log(`   Limit: ${LIMIT} | Offset: ${OFFSET} | Fix: ${FIX_FLAG} | Dry-run: ${DRY_RUN}\n`);
+  console.log(`   Scope: ${IS_ALL ? "ALL" : LIMIT} | Concurrency: ${CONCURRENCY} | Fix: ${FIX_FLAG} | Dry-run: ${DRY_RUN}\n`);
 
   let sql = `
     SELECT id, title, artist, category, youtube_id, youtube_status
@@ -145,77 +147,92 @@ async function main() {
     WHERE (is_active = 1 OR is_active IS NULL)
       AND youtube_status = 'ready'
       AND youtube_id IS NOT NULL
+      AND youtube_id != ''
   `;
   const args = [];
   if (CATEGORY_ARG) {
     sql += ` AND category LIKE ?`;
     args.push(`%${CATEGORY_ARG}%`);
   }
-  sql += ` ORDER BY id ASC LIMIT ? OFFSET ?`;
-  args.push(LIMIT, OFFSET);
+  sql += ` ORDER BY id ASC`;
+  if (!IS_ALL) {
+    sql += ` LIMIT ? OFFSET ?`;
+    args.push(LIMIT, OFFSET);
+  }
 
   const res = await db.execute({ sql, args });
   const songs = res.rows;
   console.log(`📋 Found ${songs.length} songs to audit.\n`);
 
+  let currentIndex = 0;
   let okCount = 0;
   let disabledCount = 0;
   let notFoundCount = 0;
   let fixedCount = 0;
 
-  for (let i = 0; i < songs.length; i++) {
-    const s = songs[i];
-    const status = await checkOembed(s.youtube_id);
-    await sleep(DELAY_MS);
+  async function worker(workerId) {
+    while (currentIndex < songs.length) {
+      const idx = currentIndex++;
+      const s = songs[idx];
+      const status = await checkOembed(s.youtube_id);
+      await sleep(DELAY_MS);
 
-    if (status === 200) {
-      okCount++;
-      process.stdout.write(`  [${i + 1}/${songs.length}] ✓ OK: ${s.artist} - ${s.title}\n`);
-      continue;
-    }
-
-    const is401 = status === 401;
-    const is404 = status === 404;
-    if (is401) disabledCount++;
-    else if (is404) notFoundCount++;
-
-    const reason = is401 ? "EMBED_DISABLED (401)" : is404 ? "NOT_FOUND (404)" : `HTTP_${status}`;
-    console.log(`\n  ⚠️  [${i + 1}/${songs.length}] ${reason}: ${s.artist} - ${s.title} (${s.youtube_id})`);
-
-    if (FIX_FLAG) {
-      process.stdout.write(`      Searching embeddable alternative... `);
-      const replacement = await findEmbeddableAlternative(s.artist, s.title, s.youtube_id);
-      if (replacement) {
-        fixedCount++;
-        console.log(`Found: ${replacement.videoId} (${replacement.title || "alternative"})`);
-        if (!DRY_RUN) {
-          await db.execute({
-            sql: `UPDATE songs SET youtube_id = ?, youtube_status = 'ready', youtube_checked_at = datetime('now') WHERE id = ?`,
-            args: [replacement.videoId, s.id],
-          });
-          console.log(`      ✓ Saved new youtube_id to database.`);
-        } else {
-          console.log(`      [dry-run] Would update youtube_id to ${replacement.videoId}`);
+      if (status === 200) {
+        okCount++;
+        if ((idx + 1) % 50 === 0 || idx + 1 === songs.length) {
+          console.log(`  [Progress ${idx + 1}/${songs.length}] OK: ${okCount} | 401: ${disabledCount} | 404: ${notFoundCount} | Fixed: ${fixedCount}`);
         }
-      } else {
-        console.log(`No embeddable replacement found.`);
-        if (!DRY_RUN) {
-          await db.execute({
-            sql: `UPDATE songs SET youtube_status = ?, youtube_checked_at = datetime('now') WHERE id = ?`,
-            args: [is401 ? "embed_disabled" : "not_found", s.id],
-          });
-          console.log(`      ✓ Marked status as ${is401 ? "embed_disabled" : "not_found"} in database.`);
-        }
+        continue;
       }
-    } else if (!DRY_RUN) {
-      await db.execute({
-        sql: `UPDATE songs SET youtube_status = ?, youtube_checked_at = datetime('now') WHERE id = ?`,
-        args: [is401 ? "embed_disabled" : "not_found", s.id],
-      });
-      console.log(`      ✓ Marked status as ${is401 ? "embed_disabled" : "not_found"}.`);
+
+      const is401 = status === 401;
+      const is404 = status === 404;
+      if (is401) disabledCount++;
+      else if (is404) notFoundCount++;
+
+      const reason = is401 ? "EMBED_DISABLED (401)" : is404 ? "NOT_FOUND (404)" : `HTTP_${status}`;
+      console.log(`\n  ⚠️  [${idx + 1}/${songs.length}] ${reason}: ${s.artist} - ${s.title} (${s.youtube_id})`);
+
+      if (FIX_FLAG) {
+        process.stdout.write(`      [W${workerId}] Searching embeddable alternative... `);
+        const replacement = await findEmbeddableAlternative(s.artist, s.title, s.youtube_id);
+        if (replacement) {
+          fixedCount++;
+          console.log(`Found: ${replacement.videoId} (${replacement.title || "alternative"})`);
+          if (!DRY_RUN) {
+            await db.execute({
+              sql: `UPDATE songs SET youtube_id = ?, youtube_status = 'ready', youtube_checked_at = datetime('now') WHERE id = ?`,
+              args: [replacement.videoId, s.id],
+            });
+            console.log(`      ✓ Saved new youtube_id to database.`);
+          } else {
+            console.log(`      [dry-run] Would update youtube_id to ${replacement.videoId}`);
+          }
+        } else {
+          console.log(`No embeddable replacement found.`);
+          if (!DRY_RUN) {
+            await db.execute({
+              sql: `UPDATE songs SET youtube_status = ?, youtube_checked_at = datetime('now') WHERE id = ?`,
+              args: [is401 ? "embed_disabled" : "not_found", s.id],
+            });
+            console.log(`      ✓ Marked status as ${is401 ? "embed_disabled" : "not_found"} in database.`);
+          }
+        }
+      } else if (!DRY_RUN) {
+        await db.execute({
+          sql: `UPDATE songs SET youtube_status = ?, youtube_checked_at = datetime('now') WHERE id = ?`,
+          args: [is401 ? "embed_disabled" : "not_found", s.id],
+        });
+        console.log(`      ✓ Marked status as ${is401 ? "embed_disabled" : "not_found"}.`);
+      }
     }
-    console.log();
   }
+
+  const workers = [];
+  for (let w = 0; w < CONCURRENCY; w++) {
+    workers.push(worker(w + 1));
+  }
+  await Promise.all(workers);
 
   console.log(`\n══════════════════════════════════════════════`);
   console.log(`📊 Audit Summary:`);
