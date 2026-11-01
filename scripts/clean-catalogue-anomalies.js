@@ -260,6 +260,30 @@ async function main() {
     }
   }
 
+  // 1b. Standardize artist name casing and punctuation inconsistencies
+  console.log("\n1b. Standardizing artist casing & punctuation...");
+  const ARTIST_STD = {
+    "Ada Band": "ADA Band",
+    "D'Masiv": "D’MASIV",
+    "ELVY SUKAESIH": "Elvy Sukaesih",
+    "GUYON WATON": "Guyon Waton",
+    "NDX AKA": "NDX A.K.A",
+    "NaFF": "Naff",
+  };
+  for (const [oldName, newName] of Object.entries(ARTIST_STD)) {
+    const sRes = await db.execute({
+      sql: "UPDATE songs SET artist = ?, search_query = title || ' ' || ? WHERE artist = ?;",
+      args: [newName, newName, oldName],
+    });
+    const aRes = await db.execute({
+      sql: "UPDATE song_artists SET artist_name = ? WHERE artist_name = ?;",
+      args: [newName, oldName],
+    });
+    if (sRes.rowsAffected > 0) {
+      console.log(`   ✓ Standardized artist "${oldName}" -> "${newName}" (${sRes.rowsAffected} songs)`);
+    }
+  }
+
   // 2. Lyrics and YouTube Backfill for Iconic Hits
   console.log("\n2. Backfilling lyrics and YouTube IDs for iconic hits...");
   for (const [id, data] of Object.entries(LYRICS_BACKFILL)) {
