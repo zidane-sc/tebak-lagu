@@ -1,7 +1,10 @@
 const { createClient } = require("@libsql/client");
 const path = require("path");
 
-const DB_PATH = process.env.DATABASE_URL || `file:${path.join(__dirname, "../../data/tebak_lagu.db")}`;
+const defaultDbPath = `file:${path.join(__dirname, "../../data/tebak_lagu.db")}`;
+const envUrl = process.env.DATABASE_URL;
+const isSupported = envUrl && (envUrl.startsWith("file:") || envUrl.startsWith("libsql:") || envUrl.startsWith("http:") || envUrl.startsWith("https:"));
+const DB_PATH = isSupported ? envUrl : defaultDbPath;
 const db = createClient({ url: DB_PATH });
 
 function sleep(ms) {

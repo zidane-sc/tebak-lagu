@@ -11,7 +11,9 @@ async function migrate() {
   }
 
   const dbPath = path.join(dataDir, "tebak_lagu.db");
-  const dbUrl = process.env.DATABASE_URL || `file:${dbPath}`;
+  const envUrl = process.env.DATABASE_URL;
+  const isSupported = envUrl && (envUrl.startsWith("file:") || envUrl.startsWith("libsql:") || envUrl.startsWith("http:") || envUrl.startsWith("https:"));
+  const dbUrl = isSupported ? envUrl : `file:${dbPath}`;
   console.log(`Connecting to database at: ${dbUrl}`);
 
   const db = createClient({

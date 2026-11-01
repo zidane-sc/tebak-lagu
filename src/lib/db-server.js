@@ -12,7 +12,9 @@ function getDbConfig() {
   }
 
   const defaultDbPath = `file:${path.join(dataDir, "tebak_lagu.db")}`;
-  const url = process.env.DATABASE_URL || defaultDbPath;
+  const envUrl = process.env.DATABASE_URL;
+  const isSupported = envUrl && (envUrl.startsWith("file:") || envUrl.startsWith("libsql:") || envUrl.startsWith("http:") || envUrl.startsWith("https:"));
+  const url = isSupported ? envUrl : defaultDbPath;
   const authToken = process.env.DATABASE_AUTH_TOKEN;
 
   return { url, authToken };

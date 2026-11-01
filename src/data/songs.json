@@ -6328,7 +6328,7 @@
   },
   {
     "id": "billie-eilish-what-was-i-made-for-from-the-motion-picture-barbie",
-    "title": "What Was I Made For? (From The Motion Picture \"Barbie\")",
+    "title": "What Was I Made For?",
     "artist": "Billie Eilish",
     "year": 2023,
     "category": "Western Hits",
@@ -6359,7 +6359,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "What Was I Made For? (From The Motion Picture \"Barbie\") Billie Eilish",
+    "search_query": "What Was I Made For? Billie Eilish",
     "start_second": 0,
     "youtube_id": "cW8VLC9nnTo",
     "youtube_start_second": 4,
@@ -8260,7 +8260,7 @@
   },
   {
     "id": "christina-aguilera-come-on-over-baby-all-i-want-is-you-radio-version",
-    "title": "Come on over Baby (All I Want Is You) [Radio Version]",
+    "title": "Come on over Baby (All I Want Is You)",
     "artist": "Christina Aguilera",
     "year": 1999,
     "category": "Western Hits",
@@ -8291,7 +8291,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Come on over Baby (All I Want Is You) [Radio Version] Christina Aguilera",
+    "search_query": "Come on over Baby (All I Want Is You) Christina Aguilera",
     "start_second": 0,
     "youtube_id": "0RQDIJ2CvbA",
     "youtube_start_second": 0,
@@ -9308,7 +9308,7 @@
   },
   {
     "id": "dadali-disaat-aku-pergi-dj-version",
-    "title": "Disaat Aku Pergi (DJ Version)",
+    "title": "Disaat Aku Pergi",
     "artist": "Dadali",
     "year": 2024,
     "category": "Nostalgia 2000s",
@@ -9339,7 +9339,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Disaat Aku Pergi (DJ Version) Dadali",
+    "search_query": "Disaat Aku Pergi Dadali",
     "start_second": 0,
     "youtube_id": "_U3aEoNk3rM",
     "youtube_start_second": 18,
@@ -13768,7 +13768,7 @@
   },
   {
     "id": "efek-rumah-kaca-seperti-rahim-ibu-from-mata-najwa",
-    "title": "Seperti Rahim Ibu (From \"Mata Najwa\")",
+    "title": "Seperti Rahim Ibu",
     "artist": "Efek Rumah Kaca",
     "year": 2018,
     "category": "Anthem Tongkrongan",
@@ -13799,7 +13799,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Seperti Rahim Ibu (From \"Mata Najwa\") Efek Rumah Kaca",
+    "search_query": "Seperti Rahim Ibu Efek Rumah Kaca",
     "start_second": 0,
     "youtube_id": "_SAtqIEv6AA",
     "youtube_start_second": 33,
@@ -15328,7 +15328,7 @@
   },
   {
     "id": "fourtwnty-zona-nyaman-from-filosofi-kopi-2-ben-jody",
-    "title": "Zona Nyaman (From \"Filosofi Kopi 2: Ben & Jody\")",
+    "title": "Zona Nyaman",
     "artist": "Fourtwnty",
     "year": 2018,
     "category": "Anthem Tongkrongan",
@@ -15359,7 +15359,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Zona Nyaman (From \"Filosofi Kopi 2: Ben & Jody\") Fourtwnty",
+    "search_query": "Zona Nyaman Fourtwnty",
     "start_second": 0,
     "youtube_id": "tb_RhafSifw",
     "youtube_start_second": 16,
@@ -16528,7 +16528,7 @@
   },
   {
     "id": "guns-n-roses-you-could-be-mine-2022-remaster",
-    "title": "You Could Be Mine (2022 Remaster)",
+    "title": "You Could Be Mine",
     "artist": "Guns N' Roses",
     "year": 1991,
     "category": "Western Hits",
@@ -16559,7 +16559,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "You Could Be Mine (2022 Remaster) Guns N' Roses",
+    "search_query": "You Could Be Mine Guns N' Roses",
     "start_second": 0,
     "youtube_id": "6Sp1bLrBAuQ",
     "youtube_start_second": 45,
@@ -17852,7 +17852,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "ikke-nurjanah-fajar-1-syawal",
@@ -18336,7 +18336,7 @@
   },
   {
     "id": "imagine-dragons-jid-enemy-from-arcane-league-of-legends",
-    "title": "Enemy (From Arcane: League of Legends)",
+    "title": "Enemy",
     "artist": "Imagine Dragons & JID",
     "year": 2021,
     "category": "Western Hits",
@@ -18367,7 +18367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Enemy (From Arcane: League of Legends) Imagine Dragons JID",
+    "search_query": "Enemy Imagine Dragons & JID",
     "start_second": 0,
     "youtube_id": "D9G1VOjN_84",
     "youtube_start_second": 4,
@@ -19092,7 +19092,7 @@
     "youtube_id": "8p9XjvvMYwo",
     "youtube_start_second": 18,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1031416179",
@@ -20016,7 +20016,7 @@
   },
   {
     "id": "itunes-1079713336",
-    "title": "Kasih Jangan Kau Pergi (From \"I Am Hope\")",
+    "title": "Kasih Jangan Kau Pergi",
     "artist": "Yura Yunita",
     "year": 2016,
     "category": "Galau Hits",
@@ -20047,7 +20047,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kasih Jangan Kau Pergi (From \"I Am Hope\") Yura Yunita",
+    "search_query": "Kasih Jangan Kau Pergi Yura Yunita",
     "start_second": 0,
     "youtube_id": "StpbINn-6KQ",
     "youtube_start_second": 21,
@@ -20216,7 +20216,7 @@
   },
   {
     "id": "itunes-1099850926",
-    "title": "Drive (Bonus Track)",
+    "title": "Drive",
     "artist": "Deftones",
     "year": 2006,
     "category": "Western Hits",
@@ -20247,7 +20247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Drive (Bonus Track) Deftones",
+    "search_query": "Drive Deftones",
     "start_second": 0,
     "youtube_id": "zWfGYAgqLLI",
     "youtube_start_second": 39,
@@ -20256,7 +20256,7 @@
   },
   {
     "id": "itunes-1101931754",
-    "title": "Just Like Fire (From \"Alice Through the Looking Glass\")",
+    "title": "Just Like Fire",
     "artist": "P!nk",
     "year": 2016,
     "category": "Western Hits",
@@ -20287,7 +20287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Just Like Fire (From \"Alice Through the Looking Glass\") P!nk",
+    "search_query": "Just Like Fire P!nk",
     "start_second": 0,
     "youtube_id": "5Nrv5teMc9Y",
     "youtube_start_second": 5,
@@ -25456,7 +25456,7 @@
   },
   {
     "id": "itunes-1227437169",
-    "title": "Sekali Lagi (from \"Critical Eleven\")",
+    "title": "Sekali Lagi",
     "artist": "Isyana Sarasvati",
     "year": 2017,
     "category": "Galau Hits",
@@ -25487,7 +25487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Sekali Lagi (from \"Critical Eleven\") Isyana Sarasvati",
+    "search_query": "Sekali Lagi Isyana Sarasvati",
     "start_second": 0,
     "youtube_id": "y8JnipoOcU4",
     "youtube_start_second": 39,
@@ -26616,7 +26616,7 @@
   },
   {
     "id": "itunes-1336563124",
-    "title": "Dooset Daram (feat. Helena) [Radio Version]",
+    "title": "Dooset Daram (feat. Helena)",
     "artist": "Arash",
     "year": 2017,
     "category": "Western Hits",
@@ -26647,7 +26647,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Dooset Daram (feat. Helena) [Radio Version] Arash",
+    "search_query": "Dooset Daram (feat. Helena) Arash",
     "start_second": 0,
     "youtube_id": "rczNTBRqXWg",
     "youtube_start_second": 20,
@@ -26856,7 +26856,7 @@
   },
   {
     "id": "itunes-1356041792",
-    "title": "Menunggu Kamu (From \"Jelita Sejuba\")",
+    "title": "Menunggu Kamu",
     "artist": "Anji",
     "year": 2018,
     "category": "Galau Hits",
@@ -26887,7 +26887,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Menunggu Kamu (From \"Jelita Sejuba\") Anji",
+    "search_query": "Menunggu Kamu Anji",
     "start_second": 0,
     "youtube_id": "NpKD379eRy8",
     "youtube_start_second": 18,
@@ -27096,7 +27096,7 @@
   },
   {
     "id": "itunes-1382551732",
-    "title": "Hanya Kamu (From \"Dimsumartabak\")",
+    "title": "Hanya Kamu",
     "artist": "Ayu Ting Ting & Boy William",
     "year": 2018,
     "category": "Pop Jawa & Koplo",
@@ -27127,7 +27127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Hanya Kamu (From \"Dimsumartabak\") Ayu Ting Ting Boy William",
+    "search_query": "Hanya Kamu Ayu Ting Ting & Boy William",
     "start_second": 0,
     "youtube_id": "nSpJ2REm-nU",
     "youtube_start_second": 26,
@@ -27616,7 +27616,7 @@
   },
   {
     "id": "itunes-1413121652",
-    "title": "Baby Can I Hold You (Edit)",
+    "title": "Baby Can I Hold You",
     "artist": "Boyzone",
     "year": 1997,
     "category": "Western Hits",
@@ -27647,7 +27647,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Baby Can I Hold You (Edit) Boyzone",
+    "search_query": "Baby Can I Hold You Boyzone",
     "start_second": 0,
     "youtube_id": "Po-g5EW7bCQ",
     "youtube_start_second": 12,
@@ -27656,7 +27656,7 @@
   },
   {
     "id": "itunes-1413121654",
-    "title": "All That I Need (Edit)",
+    "title": "All That I Need",
     "artist": "Boyzone",
     "year": 1998,
     "category": "Western Hits",
@@ -27687,7 +27687,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "All That I Need (Edit) Boyzone",
+    "search_query": "All That I Need Boyzone",
     "start_second": 0,
     "youtube_id": "8mID8M6bpiM",
     "youtube_start_second": 11,
@@ -27936,7 +27936,7 @@
   },
   {
     "id": "itunes-1425338280",
-    "title": "Drive (feat. Delilah Montagu) [Edit]",
+    "title": "Drive (feat. Delilah Montagu)",
     "artist": "Black Coffee & David Guetta",
     "year": 2018,
     "category": "Western Hits",
@@ -27967,7 +27967,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Drive (feat. Delilah Montagu) [Edit] Black Coffee David Guetta",
+    "search_query": "Drive (feat. Delilah Montagu) Black Coffee & David Guetta",
     "start_second": 0,
     "youtube_id": "7_pFEKWHmrM",
     "youtube_start_second": 20,
@@ -29096,7 +29096,7 @@
   },
   {
     "id": "itunes-1439589634",
-    "title": "Kecuali Cahaya (From \"The Returning\")",
+    "title": "Kecuali Cahaya",
     "artist": "Danilla",
     "year": 2018,
     "category": "Galau Hits",
@@ -29127,7 +29127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kecuali Cahaya (From \"The Returning\") Danilla",
+    "search_query": "Kecuali Cahaya Danilla",
     "start_second": 0,
     "youtube_id": "ojiAP7CpvDU",
     "youtube_start_second": 20,
@@ -30696,7 +30696,7 @@
   },
   {
     "id": "itunes-1441515629",
-    "title": "Harta Berharga (From \"Keluarga Cemara\")",
+    "title": "Harta Berharga",
     "artist": "Bunga Citra Lestari",
     "year": 2018,
     "category": "Galau Hits",
@@ -30727,7 +30727,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Harta Berharga (From \"Keluarga Cemara\") Bunga Citra Lestari",
+    "search_query": "Harta Berharga Bunga Citra Lestari",
     "start_second": 0,
     "youtube_id": "L1b1NqCLcj4",
     "youtube_start_second": 18,
@@ -31332,7 +31332,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1443625486",
@@ -31372,7 +31372,7 @@
     "youtube_id": "zpKx5dbPcXU",
     "youtube_start_second": 21,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1443625487",
@@ -31412,7 +31412,7 @@
     "youtube_id": "5-JnVzRkOGU",
     "youtube_start_second": 2,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1443625489",
@@ -31452,7 +31452,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1443808399",
@@ -34416,7 +34416,7 @@
   },
   {
     "id": "itunes-1460175382",
-    "title": "Con Calma (feat. Snow) [Remix]",
+    "title": "Con Calma (feat. Snow)",
     "artist": "Daddy Yankee & Katy Perry",
     "year": 2019,
     "category": "Western Hits",
@@ -34447,7 +34447,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Con Calma (feat. Snow) [Remix] Daddy Yankee Katy Perry",
+    "search_query": "Con Calma (feat. Snow) Daddy Yankee & Katy Perry",
     "start_second": 0,
     "youtube_id": "lmCEZhb-z-Q",
     "youtube_start_second": 3,
@@ -38212,7 +38212,7 @@
     "youtube_id": "xDMoiVutccU",
     "youtube_start_second": 20,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1512860757",
@@ -40692,7 +40692,7 @@
     "youtube_id": "rynS_hokdD0",
     "youtube_start_second": 41,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1544176964",
@@ -40732,7 +40732,7 @@
     "youtube_id": "5vlhyEkiMJ8",
     "youtube_start_second": 28,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1544176967",
@@ -43372,7 +43372,7 @@
     "youtube_id": "Lyop8eOXP1Q",
     "youtube_start_second": 45,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1578770441",
@@ -43536,7 +43536,7 @@
   },
   {
     "id": "itunes-1581842198",
-    "title": "touch me (remix)",
+    "title": "touch me",
     "artist": "Afgan & Robin Thicke",
     "year": 2021,
     "category": "Galau Hits",
@@ -43567,7 +43567,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "touch me (remix) Afgan Robin Thicke",
+    "search_query": "touch me Afgan & Robin Thicke",
     "start_second": 0,
     "youtube_id": "UmP2uR11-EQ",
     "youtube_start_second": 2,
@@ -46572,7 +46572,7 @@
     "youtube_id": "VXICqrmV7FA",
     "youtube_start_second": 9,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1610337662",
@@ -47176,7 +47176,7 @@
   },
   {
     "id": "itunes-1621834259",
-    "title": "Ribuan Hati (From \"My Lecturer, My Husband 2\")",
+    "title": "Ribuan Hati",
     "artist": "Rizky Febian",
     "year": 2022,
     "category": "Galau Hits",
@@ -47207,7 +47207,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Ribuan Hati (From \"My Lecturer, My Husband 2\") Rizky Febian",
+    "search_query": "Ribuan Hati Rizky Febian",
     "start_second": 0,
     "youtube_id": "oUjeqFogsPg",
     "youtube_start_second": 11,
@@ -47336,7 +47336,7 @@
   },
   {
     "id": "itunes-1624632801",
-    "title": "Dirimu Satu (From \"My Lecturer My Husband 2\")",
+    "title": "Dirimu Satu",
     "artist": "Rizky Febian",
     "year": 2022,
     "category": "Galau Hits",
@@ -47367,7 +47367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Dirimu Satu (From \"My Lecturer My Husband 2\") Rizky Febian",
+    "search_query": "Dirimu Satu Rizky Febian",
     "start_second": 0,
     "youtube_id": "eITk_jltJdw",
     "youtube_start_second": 21,
@@ -48936,7 +48936,7 @@
   },
   {
     "id": "itunes-1641663972",
-    "title": "Andaikan Kau Datang (From \"Miracle in Cell No. 7\")",
+    "title": "Andaikan Kau Datang",
     "artist": "Andmesh",
     "year": 2022,
     "category": "Galau Hits",
@@ -48967,7 +48967,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Andaikan Kau Datang (From \"Miracle in Cell No. 7\") Andmesh",
+    "search_query": "Andaikan Kau Datang Andmesh",
     "start_second": 0,
     "youtube_id": "1Eo-Q1tIahA",
     "youtube_start_second": 15,
@@ -49896,7 +49896,7 @@
   },
   {
     "id": "itunes-1658243163",
-    "title": "Bukan Untuk Dimiliki (From \"Ayo Putus\")",
+    "title": "Bukan Untuk Dimiliki",
     "artist": "Mytha Lestari",
     "year": 2022,
     "category": "Galau Hits",
@@ -49927,7 +49927,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Bukan Untuk Dimiliki (From \"Ayo Putus\") Mytha Lestari",
+    "search_query": "Bukan Untuk Dimiliki Mytha Lestari",
     "start_second": 0,
     "youtube_id": "T20rTsVmmuA",
     "youtube_start_second": 18,
@@ -51616,7 +51616,7 @@
   },
   {
     "id": "itunes-1687254632",
-    "title": "Dalan Liyane (Koplo)",
+    "title": "Dalan Liyane",
     "artist": "Hendra Kumbara & Syalala Orkes Milenial",
     "year": 2021,
     "category": "Pop Jawa & Koplo",
@@ -51647,7 +51647,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Dalan Liyane (Koplo) Hendra Kumbara Syalala Orkes Milenial",
+    "search_query": "Dalan Liyane Hendra Kumbara & Syalala Orkes Milenial",
     "start_second": 0,
     "youtube_id": "Msj8WvqsHYY",
     "youtube_start_second": 29,
@@ -53456,7 +53456,7 @@
   },
   {
     "id": "itunes-1697473734",
-    "title": "Emosi Jiwa (From \"Catatan Si Boy\")",
+    "title": "Emosi Jiwa",
     "artist": "Fabio Asher, Prinsa Mandagie & Andi Rianto",
     "year": 2023,
     "category": "Galau Hits",
@@ -53487,7 +53487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Emosi Jiwa (From \"Catatan Si Boy\") Fabio Asher Prinsa Mandagie Andi Rianto",
+    "search_query": "Emosi Jiwa Fabio Asher, Prinsa Mandagie & Andi Rianto",
     "start_second": 0,
     "youtube_id": "hE9zvUGaI40",
     "youtube_start_second": 33,
@@ -54172,7 +54172,7 @@
     "youtube_id": "NMIxPfV4kyM",
     "youtube_start_second": 5,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1706811952",
@@ -54616,7 +54616,7 @@
   },
   {
     "id": "itunes-1709149786",
-    "title": "Better Place (From TROLLS Band Together)",
+    "title": "Better Place",
     "artist": "*NSYNC & Justin Timberlake",
     "year": 2023,
     "category": "Western Hits",
@@ -54647,7 +54647,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Better Place (From TROLLS Band Together) *NSYNC Justin Timberlake",
+    "search_query": "Better Place *NSYNC & Justin Timberlake",
     "start_second": 0,
     "youtube_id": "sxvJD17IVj8",
     "youtube_start_second": 9,
@@ -55136,7 +55136,7 @@
   },
   {
     "id": "itunes-1712551751",
-    "title": "I'm Not Alone (2019 Edit)",
+    "title": "I'm Not Alone",
     "artist": "Calvin Harris",
     "year": 2019,
     "category": "Western Hits",
@@ -55167,7 +55167,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "I'm Not Alone (2019 Edit) Calvin Harris",
+    "search_query": "I'm Not Alone Calvin Harris",
     "start_second": 0,
     "youtube_id": "w3qzlGCZXsg",
     "youtube_start_second": 45,
@@ -55216,7 +55216,7 @@
   },
   {
     "id": "itunes-1713469224",
-    "title": "Bounce (feat. Kelis) [Radio Edit]",
+    "title": "Bounce (feat. Kelis)",
     "artist": "Calvin Harris",
     "year": 2011,
     "category": "Western Hits",
@@ -55247,7 +55247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Bounce (feat. Kelis) [Radio Edit] Calvin Harris",
+    "search_query": "Bounce (feat. Kelis) Calvin Harris",
     "start_second": 0,
     "youtube_id": "ooZwmeUfuXg",
     "youtube_start_second": 15,
@@ -56496,7 +56496,7 @@
   },
   {
     "id": "itunes-1734807496",
-    "title": "Tak Pantas (From \"Ipar Adalah Maut\")",
+    "title": "Tak Pantas",
     "artist": "Mytha Lestari",
     "year": 2024,
     "category": "Galau Hits",
@@ -56527,7 +56527,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Tak Pantas (From \"Ipar Adalah Maut\") Mytha Lestari",
+    "search_query": "Tak Pantas Mytha Lestari",
     "start_second": 0,
     "youtube_id": "e2KfKsDk9wo",
     "youtube_start_second": 6,
@@ -58096,7 +58096,7 @@
   },
   {
     "id": "itunes-1743393241",
-    "title": "Vakansi (feat. Oele Pattiselanno) [Remastered 2023]",
+    "title": "Vakansi (feat. Oele Pattiselanno)",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -58127,7 +58127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Vakansi (feat. Oele Pattiselanno) [Remastered 2023] White Shoes & The Couples Company",
+    "search_query": "Vakansi (feat. Oele Pattiselanno) White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -60416,7 +60416,7 @@
   },
   {
     "id": "itunes-1769556914",
-    "title": "Setengah Mati (From \"Bila Esok Ibu Tiada\")",
+    "title": "Setengah Mati",
     "artist": "Ghea Indrawari",
     "year": 2024,
     "category": "Galau Hits",
@@ -60447,7 +60447,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Setengah Mati (From \"Bila Esok Ibu Tiada\") Ghea Indrawari",
+    "search_query": "Setengah Mati Ghea Indrawari",
     "start_second": 0,
     "youtube_id": "LjWSwVkdaio",
     "youtube_start_second": 21,
@@ -61452,7 +61452,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1787344675",
@@ -62656,7 +62656,7 @@
   },
   {
     "id": "itunes-1794051044",
-    "title": "Lewat Semesta (From \"TABAYYUN\")",
+    "title": "Lewat Semesta",
     "artist": "Anggis Devaki",
     "year": 2025,
     "category": "Galau Hits",
@@ -62687,7 +62687,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Lewat Semesta (From \"TABAYYUN\") Anggis Devaki",
+    "search_query": "Lewat Semesta Anggis Devaki",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -63256,7 +63256,7 @@
   },
   {
     "id": "itunes-1802575008",
-    "title": "Bernaung (From \"Setetes Embun Cinta Niyala\")",
+    "title": "Bernaung",
     "artist": "Feby Putri",
     "year": 2025,
     "category": "Galau Hits",
@@ -63287,7 +63287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Bernaung (From \"Setetes Embun Cinta Niyala\") Feby Putri",
+    "search_query": "Bernaung Feby Putri",
     "start_second": 0,
     "youtube_id": "7lrj5eSaf4g",
     "youtube_start_second": 8,
@@ -63932,7 +63932,7 @@
     "youtube_id": "RrP9YRInhGs",
     "youtube_start_second": 3,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1821598203",
@@ -67816,7 +67816,7 @@
   },
   {
     "id": "itunes-1867194749",
-    "title": "Salah Apa Aku (Koplo Version)",
+    "title": "Salah Apa Aku",
     "artist": "Via Vallen",
     "year": 2019,
     "category": "Pop Jawa & Koplo",
@@ -67847,7 +67847,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Salah Apa Aku (Koplo Version) Via Vallen",
+    "search_query": "Salah Apa Aku Via Vallen",
     "start_second": 0,
     "youtube_id": "YttnBzesR6I",
     "youtube_start_second": 13,
@@ -69256,7 +69256,7 @@
   },
   {
     "id": "itunes-1880322678",
-    "title": "Dia (Remix)",
+    "title": "Dia",
     "artist": "Cita Citata",
     "year": 2017,
     "category": "Pop Jawa & Koplo",
@@ -69287,7 +69287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Dia (Remix) Cita Citata",
+    "search_query": "Dia Cita Citata",
     "start_second": 0,
     "youtube_id": "5B2L_dxwmHM",
     "youtube_start_second": 15,
@@ -70776,7 +70776,7 @@
   },
   {
     "id": "itunes-1886831192",
-    "title": "kota ini tak sama tanpamu (Orchestra Version)",
+    "title": "kota ini tak sama tanpamu",
     "artist": "Nadhif Basalamah & Andi Rianto",
     "year": 2026,
     "category": "Galau Hits",
@@ -70807,7 +70807,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "kota ini tak sama tanpamu (Orchestra Version) Nadhif Basalamah Andi Rianto",
+    "search_query": "kota ini tak sama tanpamu Nadhif Basalamah & Andi Rianto",
     "start_second": 0,
     "youtube_id": "py_g9AznjbI",
     "youtube_start_second": 26,
@@ -74216,7 +74216,7 @@
   },
   {
     "id": "itunes-308611114",
-    "title": "Everybody (Backstreet's Back) [Extended Version]",
+    "title": "Everybody (Backstreet's Back)",
     "artist": "Backstreet Boys",
     "year": 1997,
     "category": "Western Hits",
@@ -74247,7 +74247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Everybody (Backstreet's Back) [Extended Version] Backstreet Boys",
+    "search_query": "Everybody (Backstreet's Back) Backstreet Boys",
     "start_second": 0,
     "youtube_id": "9B4yi51ju1g",
     "youtube_start_second": 45,
@@ -79056,7 +79056,7 @@
   },
   {
     "id": "itunes-534146732",
-    "title": "Let's Dance Together (feat. BBB) [Remix]",
+    "title": "Let's Dance Together (feat. BBB)",
     "artist": "Melly Goeslaw",
     "year": 2007,
     "category": "Nostalgia 2000s",
@@ -79087,7 +79087,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Let's Dance Together (feat. BBB) [Remix] Melly Goeslaw",
+    "search_query": "Let's Dance Together (feat. BBB) Melly Goeslaw",
     "start_second": 0,
     "youtube_id": "TmyLY_5VTT0",
     "youtube_start_second": 32,
@@ -80336,7 +80336,7 @@
   },
   {
     "id": "itunes-600419228",
-    "title": "Malaikat Juga Tahu (from Rectoverso)",
+    "title": "Malaikat Juga Tahu",
     "artist": "Glenn Fredly",
     "year": 2013,
     "category": "Galau Hits",
@@ -80367,7 +80367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Malaikat Juga Tahu (from Rectoverso) Glenn Fredly",
+    "search_query": "Malaikat Juga Tahu Glenn Fredly",
     "start_second": 0,
     "youtube_id": "kpibQ_IdSYM",
     "youtube_start_second": 14,
@@ -82656,7 +82656,7 @@
   },
   {
     "id": "itunes-6767773802",
-    "title": "Sambel Terasi (Remix)",
+    "title": "Sambel Terasi",
     "artist": "Happy Asmara",
     "year": 2025,
     "category": "Pop Jawa & Koplo",
@@ -82687,7 +82687,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Sambel Terasi (Remix) Happy Asmara",
+    "search_query": "Sambel Terasi Happy Asmara",
     "start_second": 0,
     "youtube_id": "vfonVtWsayA",
     "youtube_start_second": 45,
@@ -89295,6 +89295,33 @@
     "is_active": 1
   },
   {
+    "id": "iwan-fals-bento",
+    "title": "Bento",
+    "artist": "Iwan Fals",
+    "year": 1989,
+    "category": "Anthem Tongkrongan",
+    "difficulty": "easy",
+    "popularity": 95,
+    "deezer_rank": 0,
+    "bpm": 0,
+    "album": null,
+    "album_cover": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/05/cf/14/05cf14e7-c23f-2713-398b-7033100650d8/190295843469.jpg/600x600bb.jpg",
+    "preview_url": null,
+    "lyrics_clues": [
+      "Namaku Bento, rumah real estate\nMobilku banyak, harta melimpah",
+      "Orang memanggilku bos eksekutif\nTokoh papan atas, atas segalanya",
+      "Asik!\nWajahku ganteng, banyak simpanan",
+      "Sekali lirik, oke sajalah\nBisnisku menjegal, jagal apa saja"
+    ],
+    "humming_melody": [],
+    "search_query": "Bento Iwan Fals",
+    "start_second": 0,
+    "youtube_id": "JC7ycpTqcRo",
+    "youtube_start_second": 20,
+    "youtube_status": "ready",
+    "is_active": 1
+  },
+  {
     "id": "iwan-fals-surat-wakil-rakyat",
     "title": "Surat Buat Wakil Rakyat",
     "artist": "Iwan Fals",
@@ -94509,7 +94536,7 @@
   },
   {
     "id": "luis-fonsi-daddy-yankee-despacito-feat-justin-bieber-remix",
-    "title": "Despacito (feat. Justin Bieber) [Remix]",
+    "title": "Despacito (feat. Justin Bieber)",
     "artist": "Luis Fonsi & Daddy Yankee",
     "year": 2017,
     "category": "Western Hits",
@@ -94540,7 +94567,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Despacito (feat. Justin Bieber) [Remix] Luis Fonsi Daddy Yankee",
+    "search_query": "Despacito (feat. Justin Bieber) Luis Fonsi & Daddy Yankee",
     "start_second": 0,
     "youtube_id": "72UO0v5ESUo",
     "youtube_start_second": 9,
@@ -96429,7 +96456,7 @@
   },
   {
     "id": "melly-goeslaw-promise-from-promise",
-    "title": "Promise (From \"Promise\")",
+    "title": "Promise",
     "artist": "Melly Goeslaw",
     "year": 2016,
     "category": "Galau Hits",
@@ -96460,7 +96487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Promise (From \"Promise\") Melly Goeslaw",
+    "search_query": "Promise Melly Goeslaw",
     "start_second": 0,
     "youtube_id": "F5IE-2yVhFs",
     "youtube_start_second": 13,
@@ -97029,7 +97056,7 @@
   },
   {
     "id": "michael-learns-to-rock-breaking-my-heart-2002-remaster",
-    "title": "Breaking My Heart (2002 Remaster)",
+    "title": "Breaking My Heart",
     "artist": "Michael Learns to Rock",
     "year": 1997,
     "category": "Western Hits",
@@ -97060,7 +97087,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Breaking My Heart (2002 Remaster) Michael Learns to Rock",
+    "search_query": "Breaking My Heart Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "oPWryewqov4",
     "youtube_start_second": 19,
@@ -97069,7 +97096,7 @@
   },
   {
     "id": "michael-learns-to-rock-complicated-heart-2002-remaster",
-    "title": "Complicated Heart (2002 Remaster)",
+    "title": "Complicated Heart",
     "artist": "Michael Learns to Rock",
     "year": 1993,
     "category": "Western Hits",
@@ -97100,7 +97127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Complicated Heart (2002 Remaster) Michael Learns to Rock",
+    "search_query": "Complicated Heart Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "NpEq9RCecUg",
     "youtube_start_second": 13,
@@ -97189,7 +97216,7 @@
   },
   {
     "id": "michael-learns-to-rock-nothing-to-lose-2002-remaster",
-    "title": "Nothing To Lose (2002 Remaster)",
+    "title": "Nothing To Lose",
     "artist": "Michael Learns to Rock",
     "year": 1997,
     "category": "Western Hits",
@@ -97220,7 +97247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Nothing To Lose (2002 Remaster) Michael Learns to Rock",
+    "search_query": "Nothing To Lose Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "4VPo9e3EsEQ",
     "youtube_start_second": 14,
@@ -97229,7 +97256,7 @@
   },
   {
     "id": "michael-learns-to-rock-out-of-the-blue-2002-remaster",
-    "title": "Out of the Blue (2002 Remaster)",
+    "title": "Out of the Blue",
     "artist": "Michael Learns to Rock",
     "year": 1993,
     "category": "Western Hits",
@@ -97260,7 +97287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Out of the Blue (2002 Remaster) Michael Learns to Rock",
+    "search_query": "Out of the Blue Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "MfpOe4kK2vU",
     "youtube_start_second": 7,
@@ -97269,7 +97296,7 @@
   },
   {
     "id": "michael-learns-to-rock-paint-my-love-2002-remaster",
-    "title": "Paint My Love (2002 Remaster)",
+    "title": "Paint My Love",
     "artist": "Michael Learns to Rock",
     "year": 1996,
     "category": "Western Hits",
@@ -97300,7 +97327,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Paint My Love (2002 Remaster) Michael Learns to Rock",
+    "search_query": "Paint My Love Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "oNSpgFRWu0o",
     "youtube_start_second": 2,
@@ -97349,7 +97376,7 @@
   },
   {
     "id": "michael-learns-to-rock-the-actor-remix-99",
-    "title": "The Actor (Remix '99)",
+    "title": "The Actor",
     "artist": "Michael Learns to Rock",
     "year": 1999,
     "category": "Western Hits",
@@ -97380,7 +97407,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "The Actor (Remix '99) Michael Learns to Rock",
+    "search_query": "The Actor Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "pIUSjjlBwCI",
     "youtube_start_second": 10,
@@ -97429,7 +97456,7 @@
   },
   {
     "id": "michael-learns-to-rock-you-took-my-heart-away-2002-remaster",
-    "title": "You Took My Heart Away (2002 Remaster)",
+    "title": "You Took My Heart Away",
     "artist": "Michael Learns to Rock",
     "year": 2000,
     "category": "Western Hits",
@@ -97460,7 +97487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "You Took My Heart Away (2002 Remaster) Michael Learns to Rock",
+    "search_query": "You Took My Heart Away Michael Learns to Rock",
     "start_second": 0,
     "youtube_id": "3_AEvjkKNrg",
     "youtube_start_second": 4,
@@ -99713,7 +99740,7 @@
   },
   {
     "id": "ndarboy-genk-penting-yakin-from-cidro-asmoro",
-    "title": "Penting Yakin (From \"Cidro Asmoro\")",
+    "title": "Penting Yakin",
     "artist": "Ndarboy Genk",
     "year": 2022,
     "category": "Pop Jawa & Koplo",
@@ -99744,7 +99771,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Penting Yakin (From \"Cidro Asmoro\") Ndarboy Genk",
+    "search_query": "Penting Yakin Ndarboy Genk",
     "start_second": 0,
     "youtube_id": "I8WMFGkhT_k",
     "youtube_start_second": 33,
@@ -99793,7 +99820,7 @@
   },
   {
     "id": "ndarboy-genk-sinyal-tresna-from-collabonation",
-    "title": "Sinyal Tresna (From Collabonation)",
+    "title": "Sinyal Tresna",
     "artist": "Ndarboy Genk",
     "year": 2022,
     "category": "Pop Jawa & Koplo",
@@ -99824,7 +99851,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Sinyal Tresna (From Collabonation) Ndarboy Genk",
+    "search_query": "Sinyal Tresna Ndarboy Genk",
     "start_second": 0,
     "youtube_id": "-3xGc9cahHo",
     "youtube_start_second": 16,
@@ -100353,7 +100380,7 @@
   },
   {
     "id": "nella-kharisma-lagi-syantik-2",
-    "title": "Lagi Syantik 2 (-)",
+    "title": "Lagi Syantik 2",
     "artist": "Nella Kharisma",
     "year": 2022,
     "category": "Pop Jawa & Koplo",
@@ -100384,7 +100411,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Lagi Syantik 2 (-) Nella Kharisma",
+    "search_query": "Lagi Syantik 2 Nella Kharisma",
     "start_second": 0,
     "youtube_id": "2SwE5H7pJ2w",
     "youtube_start_second": 20,
@@ -102353,7 +102380,7 @@
   },
   {
     "id": "onerepublic-secrets-2026-remastered",
-    "title": "Secrets (2026 Remastered)",
+    "title": "Secrets",
     "artist": "OneRepublic",
     "year": 2009,
     "category": "Western Hits",
@@ -102384,7 +102411,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Secrets (2026 Remastered) OneRepublic",
+    "search_query": "Secrets OneRepublic",
     "start_second": 0,
     "youtube_id": "qHm9MG9xw1o",
     "youtube_start_second": 12,
@@ -105269,7 +105296,7 @@
     "youtube_id": "Bf01riuiJWA",
     "youtube_start_second": 22,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "radiohead-fake-plastic-trees",
@@ -106353,7 +106380,7 @@
   },
   {
     "id": "safira-inema-lagu-untuk-kamu-dj-kentrung",
-    "title": "Lagu Untuk Kamu (Dj Kentrung)",
+    "title": "Lagu Untuk Kamu",
     "artist": "Safira Inema",
     "year": 2020,
     "category": "Pop Jawa & Koplo",
@@ -106384,7 +106411,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Lagu Untuk Kamu (Dj Kentrung) Safira Inema",
+    "search_query": "Lagu Untuk Kamu Safira Inema",
     "start_second": 0,
     "youtube_id": "XTS7WR1c5vA",
     "youtube_start_second": 2,
@@ -106589,7 +106616,7 @@
     "youtube_id": "nZy0RWpmJxk",
     "youtube_start_second": 5,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "sam-feldt-post-malone-feat-rani-joe-stone-remix",
@@ -107073,7 +107100,7 @@
   },
   {
     "id": "sam-smith-to-die-for-bonus-track",
-    "title": "To Die For (Bonus Track)",
+    "title": "To Die For",
     "artist": "Sam Smith",
     "year": 2020,
     "category": "Western Hits",
@@ -107104,7 +107131,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "To Die For (Bonus Track) Sam Smith",
+    "search_query": "To Die For Sam Smith",
     "start_second": 0,
     "youtube_id": "POIK1H3L86k",
     "youtube_start_second": 3,
@@ -110464,7 +110491,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273tulus.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Perjalanan membawamu\nBertemu denganku ku bertemu kamu",
+      "Sepertinya sama dan sejalan\nKukira kita asam dan garam",
+      "Kukira kita akan bersama\nBegitu banyak yang sama",
+      "Hati-hati di jalan\nSemoga kau temukan yang kau cari"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110486,7 +110518,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273lyodra.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Telah kucoba merelakanmu\nNamun bayangmu slalu ada",
+      "Genggam tanganku untuk yang terakhir\nSebelum ku benar-benar pergi",
+      "Ku kan menghilang dari hidupmu\nMenghapus setiap jejak kenangan",
+      "Bila suatu saat nanti kau rindu\nIngatlah aku pernah mencintaimu"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110515,7 +110552,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "spotify-4a06534c2a57",
@@ -110530,7 +110567,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273mahalini.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Melihatmu bahagia, satu hal yang terindah\nAnugerah cinta abadi untuk selamanya",
+      "Tuhan yakinkan dia bahagia\nWalau ku tak bersamanya lagi",
+      "Mengapa ku masih menaruh rasa\nDi saat kau telah melupakanku",
+      "Kini hanya tersisa rasa sepi\nYang takkan pernah pudar di hati"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110559,7 +110601,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "spotify-6204f3f414e2",
@@ -110581,7 +110623,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "spotify-7566a684d54a",
@@ -110596,7 +110638,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273ndarboy.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Mendung tanpo udan\nKetemu lan kelangan",
+      "Kabeh kui sing diarani lelakon\nAwak dewe mung iso pasrah",
+      "Ngapuro aku wes gawe loro atimu\nAku durung iso dadi sing mbok karepke",
+      "Mugo koe nemu tresno liyane\nSing iso gawe bungah atimu"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110618,35 +110665,18 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273peterpan.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Masih ku merasa lelah\nKenyataan hidup tanpa cinta",
+      "Takkan pernah ada rasa sepi\nBila kau slalu di sampingku",
+      "Bagai bintang di surga\nMemberikan sinar terang",
+      "Menghapus duka lara\nMenyambut fajar cinta"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
     "youtube_id": "Yi-C9okDw3A",
     "youtube_start_second": 43,
     "youtube_status": "ready",
-    "is_active": 1
-  },
-  {
-    "id": "spotify-7d8dd0fc851f",
-    "title": "Bento",
-    "artist": "Iwan Fals",
-    "year": 1989,
-    "category": "Anthem Tongkrongan",
-    "difficulty": "medium",
-    "popularity": 85,
-    "deezer_rank": 0,
-    "bpm": 0,
-    "album": null,
-    "album_cover": "https://i.scdn.co/image/ab67616d0000b273iwanfals.jpg",
-    "preview_url": "",
-    "lyrics_clues": [],
-    "humming_melody": [],
-    "search_query": null,
-    "start_second": 0,
-    "youtube_id": null,
-    "youtube_start_second": 20,
-    "youtube_status": "not_found",
     "is_active": 1
   },
   {
@@ -110662,7 +110692,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273adele.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "I heard that you're settled down\nThat you found a girl and you're married now",
+      "I heard that your dreams came true\nGuess she gave you things I didn't give to you",
+      "Never mind I'll find someone like you\nI wish nothing but the best for you too",
+      "Don't forget me I beg I'll remember you said\nSometimes it lasts in love but sometimes it hurts instead"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110695,7 +110730,7 @@
   },
   {
     "id": "spotify-9f3ab2b23a74",
-    "title": "Hujan",
+    "title": "Hujan Turun",
     "artist": "Sheila On 7",
     "year": 2003,
     "category": "Anthem Tongkrongan",
@@ -110706,9 +110741,14 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273sheilaon7_2.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Kala hujan turun membasahi bumi\nKu terdiam menatap jendela",
+      "Mengingat saat indah bersamamu\nKisah lama yang takkan terlupa",
+      "Hujan turun basahi luka di hati\nMenghanyutkan semua kenangan ini",
+      "Kuingin kau kembali ke pelukanku\nMenemani sepi di malam dingin"
+    ],
     "humming_melody": [],
-    "search_query": "Hujan Sheila On 7",
+    "search_query": "Hujan Turun Sheila On 7",
     "start_second": 0,
     "youtube_id": "CE8-kocUJuc",
     "youtube_start_second": 20,
@@ -110735,7 +110775,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "spotify-b6b1cd5ea57d",
@@ -110757,7 +110797,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "spotify-cb14e0b4613d",
@@ -110772,7 +110812,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273theweeknd.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "I've been on my own for long enough\nMaybe you can show me how to love maybe",
+      "I'm going through withdrawals\nYou don't even have to do too much",
+      "I'm blinded by the lights\nNo I can't sleep until I feel your touch",
+      "I said ooh I'm drowning in the night\nOh when I'm like this you're the one I trust"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110816,7 +110861,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273dennycaknan.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Kok kebangeten men\nSambat blas raono syukure",
+      "Suwe-suwe sopo sing betah ngrasakke\nMung dadi pelampiasan katresnan",
+      "Kartonyono neng ngawi medot janjimu\nAmbruk cagak ku nuruti angen-angenmu",
+      "Sak kabehane wes tak turuti\nTapi koe malah milih liyane"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -110860,7 +110910,12 @@
     "album": null,
     "album_cover": "https://i.scdn.co/image/ab67616d0000b273endank.jpg",
     "preview_url": "",
-    "lyrics_clues": [],
+    "lyrics_clues": [
+      "Datang akan pergi\nLewat kan berlalu",
+      "Ada dan tiada\nBertemu akan berpisah",
+      "Meskipun ku belum siap untuk merindu\nKu belum siap tanpa dirimu",
+      "Sampai jumpa di lain hari\nUntuk kita bertemu lagi"
+    ],
     "humming_melody": [],
     "search_query": null,
     "start_second": 0,
@@ -112591,7 +112646,7 @@
   },
   {
     "id": "the-beatles-eleanor-rigby-2022-mix",
-    "title": "Eleanor Rigby (2022 Mix)",
+    "title": "Eleanor Rigby",
     "artist": "The Beatles",
     "year": 1966,
     "category": "Western Hits",
@@ -112622,7 +112677,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Eleanor Rigby (2022 Mix) The Beatles",
+    "search_query": "Eleanor Rigby The Beatles",
     "start_second": 0,
     "youtube_id": "HuS5NuXRb5Y",
     "youtube_start_second": 0,
@@ -112911,7 +112966,7 @@
   },
   {
     "id": "the-beatles-oh-darling-2019-mix",
-    "title": "Oh! Darling (2019 Mix)",
+    "title": "Oh! Darling",
     "artist": "The Beatles",
     "year": 2019,
     "category": "Western Hits",
@@ -112942,7 +112997,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Oh! Darling (2019 Mix) The Beatles",
+    "search_query": "Oh! Darling The Beatles",
     "start_second": 0,
     "youtube_id": "nUuFYhVq6ws",
     "youtube_start_second": 2,
@@ -113031,7 +113086,7 @@
   },
   {
     "id": "the-beatles-with-a-little-help-from-my-friends-2017-mix",
-    "title": "With A Little Help From My Friends (2017 Mix)",
+    "title": "With A Little Help From My Friends",
     "artist": "The Beatles",
     "year": 1967,
     "category": "Western Hits",
@@ -113062,7 +113117,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "With A Little Help From My Friends (2017 Mix) The Beatles",
+    "search_query": "With A Little Help From My Friends The Beatles",
     "start_second": 0,
     "youtube_id": "VRXRIJ5hFU4",
     "youtube_start_second": 8,
@@ -114871,7 +114926,7 @@
   },
   {
     "id": "the-weeknd-ariana-grande-die-for-you-remix",
-    "title": "Die For You (Remix)",
+    "title": "Die For You",
     "artist": "The Weeknd & Ariana Grande",
     "year": 2023,
     "category": "Western Hits",
@@ -114902,7 +114957,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Die For You (Remix) The Weeknd Ariana Grande",
+    "search_query": "Die For You The Weeknd & Ariana Grande",
     "start_second": 0,
     "youtube_id": "YQ-qToZUybM",
     "youtube_start_second": 14,
@@ -114911,7 +114966,7 @@
   },
   {
     "id": "the-weeknd-ariana-grande-save-your-tears-remix",
-    "title": "Save Your Tears (Remix)",
+    "title": "Save Your Tears",
     "artist": "The Weeknd & Ariana Grande",
     "year": 2021,
     "category": "Western Hits",
@@ -114942,7 +114997,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Save Your Tears (Remix) The Weeknd Ariana Grande",
+    "search_query": "Save Your Tears The Weeknd & Ariana Grande",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -116346,7 +116401,7 @@
     "preview_url": "",
     "lyrics_clues": [],
     "humming_melody": [],
-    "search_query": "FAITH (feat. SailorMoney) Tuan Tigabelas",
+    "search_query": "FAITH SailorMoney Tuan Tigabelas",
     "start_second": 0,
     "youtube_id": "mWqcKL98n2U",
     "youtube_start_second": 20,
@@ -116478,7 +116533,7 @@
     "preview_url": "",
     "lyrics_clues": [],
     "humming_melody": [],
-    "search_query": "Legacy (feat. Saykoji & Ras Muhamad) Tuan Tigabelas",
+    "search_query": "Legacy Saykoji Ras Muhamad Tuan Tigabelas",
     "start_second": 0,
     "youtube_id": "ESUi6BqKaLI",
     "youtube_start_second": 20,
@@ -116764,7 +116819,7 @@
     "preview_url": "",
     "lyrics_clues": [],
     "humming_melody": [],
-    "search_query": "King (Diton King Edition) Tuan Tigabelas",
+    "search_query": "King Diton King Edition Tuan Tigabelas",
     "start_second": 0,
     "youtube_id": "I_yIIuOteJs",
     "youtube_start_second": 20,
@@ -117573,7 +117628,7 @@
   },
   {
     "id": "vita-alvia-goyang-dayung-remix",
-    "title": "Goyang Dayung (Remix)",
+    "title": "Goyang Dayung",
     "artist": "Vita Alvia",
     "year": 2023,
     "category": "Pop Jawa & Koplo",
@@ -117604,7 +117659,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Goyang Dayung (Remix) Vita Alvia",
+    "search_query": "Goyang Dayung Vita Alvia",
     "start_second": 0,
     "youtube_id": "y-gFkpVmv8M",
     "youtube_start_second": 3,
@@ -118053,7 +118108,7 @@
   },
   {
     "id": "westlife-i-lay-my-love-on-you-remix",
-    "title": "I Lay My Love On You (Remix)",
+    "title": "I Lay My Love On You",
     "artist": "Westlife",
     "year": 2000,
     "category": "Western Hits",
@@ -118084,7 +118139,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "I Lay My Love On You (Remix) Westlife",
+    "search_query": "I Lay My Love On You Westlife",
     "start_second": 0,
     "youtube_id": "ZnOAK04tJhc",
     "youtube_start_second": 6,
