@@ -17,6 +17,8 @@ interface HeardleModePlayerProps {
   onYoutubePlay?: (startSecond: number) => void;
   onYoutubePause?: () => void;
   ytEngineState?: string;
+  isBrokenSong?: boolean;
+  onSkipBrokenSong?: () => void;
 }
 
 const DEFAULT_DURATIONS = [3.0, 5.0, 9.0, 15.0, 22.0, 30.0];
@@ -32,6 +34,8 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
   onYoutubePlay,
   onYoutubePause,
   ytEngineState,
+  isBrokenSong = false,
+  onSkipBrokenSong,
 }) => {
   const canPlay = !!(youtubeId && youtubeStatus === "ready" && onYoutubePlay);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -151,10 +155,19 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
         </div>
       </div>
 
-      {ytEngineState === "unavailable" && (
-        <p className="text-[10px] text-rose-400 font-mono text-center">
-          Audio tidak bisa dimuat — video tidak tersedia.
-        </p>
+      {(ytEngineState === "unavailable" || isBrokenSong) && (
+        <div className="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] font-mono animate-fade-in">
+          <span className="truncate">⚠️ Audio dibatasi hak cipta YouTube.</span>
+          {onSkipBrokenSong && (
+            <button
+              type="button"
+              onClick={onSkipBrokenSong}
+              className="px-2.5 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 font-bold shrink-0 transition active:scale-95 cursor-pointer"
+            >
+              Ganti Lagu ↻
+            </button>
+          )}
+        </div>
       )}
 
       {/* Segmented Timeline Bar */}

@@ -46,6 +46,7 @@ const checks = [
   ["check-song-artists.js", "node"],
   ["check-session-guard.js", "node"],
   ["check-profile-fields.js", "node"],
+  ["check-embed-self-healing.js", "node"],
 ];
 
 

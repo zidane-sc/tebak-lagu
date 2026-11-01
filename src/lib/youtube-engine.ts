@@ -39,7 +39,7 @@ export interface YouTubeEngineHandle {
 
 interface Props {
   onStateChange?: (state: YTEngineState) => void;
-  onError?: (msg: string) => void;
+  onError?: (msg: string, code?: number) => void;
   onReady?: () => void;
 }
 
@@ -160,7 +160,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
           const msg = msgs[e.data] || `YouTube error ${e.data}`;
           setError(msg);
           updateState("unavailable");
-          onError?.(msg);
+          onError?.(msg, e.data);
         },
       },
     });

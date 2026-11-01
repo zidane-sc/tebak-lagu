@@ -64,10 +64,29 @@ export default function PlayArenaPage() {
   const [roundNumber, setRoundNumber] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [albumCover, setAlbumCover] = useState<string | undefined>(undefined);
+  const [brokenSong, setBrokenSong] = useState(false);
+  const activeSongRef = useRef<Song | null>(null);
+  activeSongRef.current = song;
 
   // YouTube Audio Engine (persistent singleton)
   const ytEngine = useYouTubeEngine({
-    onError: (msg) => console.warn("[YT Engine]", msg),
+    onError: (msg, code) => {
+      console.warn("[YT Engine]", msg, code);
+      const current = activeSongRef.current;
+      if (current) {
+        setBrokenSong(true);
+        fetch("/api/songs/report-broken", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: current.id,
+            youtubeId: (current as any).youtubeId,
+            errorCode: code,
+            reason: msg,
+          }),
+        }).catch(() => {});
+      }
+    },
   });
 
   // ── Audio Unlock (iOS autoplay policy) ───────────────────────────────────
@@ -178,6 +197,7 @@ export default function PlayArenaPage() {
   // Fetch song from server database (with guaranteed LRCLIB lyrics & Apple preview)
   const loadNewSong = useCallback(() => {
     setIsLoading(true);
+    setBrokenSong(false);
     setIsGameOver(false);
     setIsWon(false);
     setGuesses([]);
@@ -227,6 +247,11 @@ export default function PlayArenaPage() {
   useEffect(() => {
     if (isConfigReady) loadNewSong();
   }, [loadNewSong, isConfigReady]);
+
+  const handleSkipBrokenSong = useCallback(() => {
+    setBrokenSong(false);
+    loadNewSong();
+  }, [loadNewSong]);
 
   // Track played song IDs to avoid repeats in the same session
   const playedSongIds = useRef<Set<string>>(new Set());
@@ -491,6 +516,8 @@ export default function PlayArenaPage() {
               }}
               onYoutubePause={() => ytEngine.pause()}
               ytEngineState={ytEngine.state}
+              isBrokenSong={brokenSong}
+              onSkipBrokenSong={handleSkipBrokenSong}
             />
           )}
         </div>
