@@ -4465,7 +4465,7 @@
     "youtube_id": "8-t268I1XWg",
     "youtube_start_second": 45,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "avicii-lonely-together-feat-rita-ora",
@@ -4509,7 +4509,7 @@
   },
   {
     "id": "avicii-silhouettes-radio-edit",
-    "title": "Silhouettes (Radio Edit)",
+    "title": "Silhouettes",
     "artist": "Avicii",
     "year": 2012,
     "category": "Western Hits",
@@ -4540,7 +4540,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Silhouettes (Radio Edit) Avicii",
+    "search_query": "Silhouettes Avicii",
     "start_second": 0,
     "youtube_id": "6VJBBUqr1wM",
     "youtube_start_second": 8,
@@ -6208,7 +6208,7 @@
   },
   {
     "id": "billie-eilish-l-amour-de-ma-vie",
-    "title": "L’AMOUR DE MA VIE",
+    "title": "L'AMOUR DE MA VIE",
     "artist": "Billie Eilish",
     "year": 2024,
     "category": "Western Hits",
@@ -6239,7 +6239,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "L’AMOUR DE MA VIE Billie Eilish",
+    "search_query": "L'AMOUR DE MA VIE Billie Eilish",
     "start_second": 0,
     "youtube_id": "am5FI9DkO80",
     "youtube_start_second": 0,
@@ -11228,7 +11228,7 @@
   },
   {
     "id": "didi-kempot-banyu-langgit-live",
-    "title": "Banyu Langgit (Live)",
+    "title": "Banyu Langgit",
     "artist": "Didi Kempot",
     "year": 2018,
     "category": "Pop Jawa & Koplo",
@@ -11259,7 +11259,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Banyu Langgit (Live) Didi Kempot",
+    "search_query": "Banyu Langgit Didi Kempot",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -11348,7 +11348,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "didi-kempot-cidro",
@@ -11428,11 +11428,11 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "didi-kempot-hello-sayang-live",
-    "title": "Hello Sayang (Live)",
+    "title": "Hello Sayang",
     "artist": "Didi Kempot",
     "year": 2018,
     "category": "Pop Jawa & Koplo",
@@ -11463,7 +11463,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Hello Sayang (Live) Didi Kempot",
+    "search_query": "Hello Sayang Didi Kempot",
     "start_second": 0,
     "youtube_id": "RjXiV5UAjPE",
     "youtube_start_second": 8,
@@ -11472,7 +11472,7 @@
   },
   {
     "id": "didi-kempot-kangen-nickerie-live",
-    "title": "Kangen Nickerie (Live)",
+    "title": "Kangen Nickerie",
     "artist": "Didi Kempot",
     "year": 2018,
     "category": "Pop Jawa & Koplo",
@@ -11503,7 +11503,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kangen Nickerie (Live) Didi Kempot",
+    "search_query": "Kangen Nickerie Didi Kempot",
     "start_second": 0,
     "youtube_id": "SMaLKBGR7Fk",
     "youtube_start_second": 6,
@@ -13444,7 +13444,7 @@
     "youtube_id": "YWcBv7u25Kk",
     "youtube_start_second": 7,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "efek-rumah-kaca-jalang",
@@ -17216,7 +17216,7 @@
   },
   {
     "id": "hivi-mata-ke-hati-acoustic-version",
-    "title": "Mata Ke Hati (Acoustic Version)",
+    "title": "Mata Ke Hati",
     "artist": "HIVI!",
     "year": 2017,
     "category": "Nostalgia 2000s",
@@ -17247,7 +17247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Mata Ke Hati (Acoustic Version) HIVI!",
+    "search_query": "Mata Ke Hati HIVI!",
     "start_second": 0,
     "youtube_id": "e2NbAsNX8c4",
     "youtube_start_second": 8,
@@ -17452,7 +17452,7 @@
     "youtube_id": "kX1O93X77d4",
     "youtube_start_second": 15,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "hoobastank-crawling-in-the-dark",
@@ -17732,7 +17732,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "hoobastank-same-direction",
@@ -18932,7 +18932,7 @@
     "youtube_id": "9D2WUDYwpp8",
     "youtube_start_second": 8,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1025007069",
@@ -19216,7 +19216,7 @@
   },
   {
     "id": "itunes-1031416185",
-    "title": "We Don’t Talk Anymore (feat. Selena Gomez)",
+    "title": "We Don't Talk Anymore (feat. Selena Gomez)",
     "artist": "Charlie Puth",
     "year": 2016,
     "category": "Western Hits",
@@ -19247,7 +19247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "We Don’t Talk Anymore (feat. Selena Gomez) Charlie Puth",
+    "search_query": "We Don't Talk Anymore (feat. Selena Gomez) Charlie Puth",
     "start_second": 0,
     "youtube_id": "3AtDnEC4zak",
     "youtube_start_second": 0,
@@ -19492,7 +19492,7 @@
     "youtube_id": "GNSTeu9hxxs",
     "youtube_start_second": 21,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1055074631",
@@ -19856,7 +19856,7 @@
   },
   {
     "id": "itunes-1059349921",
-    "title": "Entah (feat. D’MASIV)",
+    "title": "Entah (feat. D'MASIV)",
     "artist": "Iwan Fals",
     "year": 2015,
     "category": "Anthem Tongkrongan",
@@ -19887,7 +19887,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Entah (feat. D’MASIV) Iwan Fals",
+    "search_query": "Entah (feat. D'MASIV) Iwan Fals",
     "start_second": 0,
     "youtube_id": "M5zcG53pFd4",
     "youtube_start_second": 40,
@@ -23856,7 +23856,7 @@
   },
   {
     "id": "itunes-1206112479",
-    "title": "Masa Remadja (Remastered)",
+    "title": "Masa Remadja",
     "artist": "White Shoes & The Couples Company",
     "year": 2011,
     "category": "Nostalgia 2000s",
@@ -23887,7 +23887,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Masa Remadja (Remastered) White Shoes & The Couples Company",
+    "search_query": "Masa Remadja White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "3Wvu7rPBu1E",
     "youtube_start_second": 0,
@@ -26052,7 +26052,7 @@
     "youtube_id": "DPjQvK3QO8g",
     "youtube_start_second": 14,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1286862207",
@@ -27256,7 +27256,7 @@
   },
   {
     "id": "itunes-1394426464",
-    "title": "Dance Tonight (feat. JFlow) [Asian Games 2018 Official Song]",
+    "title": "Dance Tonight (feat. JFlow)",
     "artist": "Bunga Citra Lestari",
     "year": 2018,
     "category": "Galau Hits",
@@ -27287,7 +27287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Dance Tonight (feat. JFlow) [Asian Games 2018 Official Song] Bunga Citra Lestari",
+    "search_query": "Dance Tonight (feat. JFlow) Bunga Citra Lestari",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -28656,7 +28656,7 @@
   },
   {
     "id": "itunes-1435520814",
-    "title": "Used to Missin’ You",
+    "title": "Used to Missin' You",
     "artist": "Brett Young",
     "year": 2018,
     "category": "Western Hits",
@@ -28687,7 +28687,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Used to Missin’ You Brett Young",
+    "search_query": "Used to Missin' You Brett Young",
     "start_second": 0,
     "youtube_id": "qdQ3L5RmQGs",
     "youtube_start_second": 20,
@@ -28816,7 +28816,7 @@
   },
   {
     "id": "itunes-1435520829",
-    "title": "Don’t Wanna Write This Song",
+    "title": "Don't Wanna Write This Song",
     "artist": "Brett Young",
     "year": 2018,
     "category": "Western Hits",
@@ -28847,7 +28847,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Don’t Wanna Write This Song Brett Young",
+    "search_query": "Don't Wanna Write This Song Brett Young",
     "start_second": 0,
     "youtube_id": "5xWavaZAa5Q",
     "youtube_start_second": 19,
@@ -31456,7 +31456,7 @@
   },
   {
     "id": "itunes-1443808399",
-    "title": "Coming Home Now (Radio Edit)",
+    "title": "Coming Home Now",
     "artist": "Boyzone",
     "year": 1995,
     "category": "Western Hits",
@@ -31487,7 +31487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Coming Home Now (Radio Edit) Boyzone",
+    "search_query": "Coming Home Now Boyzone",
     "start_second": 0,
     "youtube_id": "29SpuxKtZf4",
     "youtube_start_second": 15,
@@ -31536,7 +31536,7 @@
   },
   {
     "id": "itunes-1443808760",
-    "title": "Key To My Life (Radio Edit)",
+    "title": "Key To My Life",
     "artist": "Boyzone",
     "year": 1995,
     "category": "Western Hits",
@@ -31567,7 +31567,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Key To My Life (Radio Edit) Boyzone",
+    "search_query": "Key To My Life Boyzone",
     "start_second": 0,
     "youtube_id": "ec_EltnJx3A",
     "youtube_start_second": 6,
@@ -34252,7 +34252,7 @@
     "youtube_id": "FcOctsNXyjk",
     "youtube_start_second": 17,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1459161209",
@@ -34652,7 +34652,7 @@
     "youtube_id": "HGTFmAVnK58",
     "youtube_start_second": 6,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1466213903",
@@ -39336,7 +39336,7 @@
   },
   {
     "id": "itunes-1525933490",
-    "title": "Wonderwall (Remastered)",
+    "title": "Wonderwall",
     "artist": "Oasis",
     "year": 1995,
     "category": "Western Hits",
@@ -39367,7 +39367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Wonderwall (Remastered) Oasis",
+    "search_query": "Wonderwall Oasis",
     "start_second": 0,
     "youtube_id": "vU05Eksc_iM",
     "youtube_start_second": 22,
@@ -43736,7 +43736,7 @@
   },
   {
     "id": "itunes-1583531468",
-    "title": "Merelakan (Ost. Kata)",
+    "title": "Merelakan",
     "artist": "Rizky Febian",
     "year": 2021,
     "category": "Galau Hits",
@@ -43767,7 +43767,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Merelakan (Ost. Kata) Rizky Febian",
+    "search_query": "Merelakan Rizky Febian",
     "start_second": 0,
     "youtube_id": "pD5l8fyZjRw",
     "youtube_start_second": 17,
@@ -49372,7 +49372,7 @@
     "youtube_id": "Yt7OQaoMwEs",
     "youtube_start_second": 17,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1649833417",
@@ -49496,7 +49496,7 @@
   },
   {
     "id": "itunes-1651857182",
-    "title": "I’m a Mess (with YUNGBLUD)",
+    "title": "I'm a Mess (with YUNGBLUD)",
     "artist": "Avril Lavigne",
     "year": 2022,
     "category": "Western Hits",
@@ -49527,7 +49527,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "I’m a Mess (with YUNGBLUD) Avril Lavigne",
+    "search_query": "I'm a Mess (with YUNGBLUD) Avril Lavigne",
     "start_second": 0,
     "youtube_id": "0zmpuehm3UA",
     "youtube_start_second": 10,
@@ -50576,7 +50576,7 @@
   },
   {
     "id": "itunes-1669227332",
-    "title": "Balikin (Remastered)",
+    "title": "Balikin",
     "artist": "Slank",
     "year": 1998,
     "category": "Anthem Tongkrongan",
@@ -50607,7 +50607,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Balikin (Remastered) Slank",
+    "search_query": "Balikin Slank",
     "start_second": 0,
     "youtube_id": "Lj1A3wO7ypc",
     "youtube_start_second": 2,
@@ -51096,7 +51096,7 @@
   },
   {
     "id": "itunes-1672167439",
-    "title": "Terpikat Senyummu (Live)",
+    "title": "Terpikat Senyummu",
     "artist": "Idgitaf",
     "year": 2023,
     "category": "Galau Hits",
@@ -51127,7 +51127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Terpikat Senyummu (Live) Idgitaf",
+    "search_query": "Terpikat Senyummu Idgitaf",
     "start_second": 0,
     "youtube_id": "QVExdRw6k78",
     "youtube_start_second": 16,
@@ -55256,7 +55256,7 @@
   },
   {
     "id": "itunes-1713469225",
-    "title": "Feel So Close (Radio Edit)",
+    "title": "Feel So Close",
     "artist": "Calvin Harris",
     "year": 2011,
     "category": "Western Hits",
@@ -55287,7 +55287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Feel So Close (Radio Edit) Calvin Harris",
+    "search_query": "Feel So Close Calvin Harris",
     "start_second": 0,
     "youtube_id": "dGghkjpNCQ8",
     "youtube_start_second": 1,
@@ -57776,7 +57776,7 @@
   },
   {
     "id": "itunes-1743393233",
-    "title": "Senandung Maaf (Remastered 2023)",
+    "title": "Senandung Maaf",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -57807,7 +57807,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Senandung Maaf (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Senandung Maaf White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "LLCTFdNYODA",
     "youtube_start_second": 17,
@@ -57852,7 +57852,7 @@
     "youtube_id": "9LOS5uUYoUg",
     "youtube_start_second": 20,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1743393235",
@@ -57892,11 +57892,11 @@
     "youtube_id": "jAXUg4Agw84",
     "youtube_start_second": 31,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1743393236",
-    "title": "Topstar (Remastered 2023)",
+    "title": "Topstar",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -57927,7 +57927,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Topstar (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Topstar White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "spssgqJfDIk",
     "youtube_start_second": 11,
@@ -57936,7 +57936,7 @@
   },
   {
     "id": "itunes-1743393237",
-    "title": "Super Reuni (Remastered 2023)",
+    "title": "Super Reuni",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -57967,7 +57967,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Super Reuni (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Super Reuni White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "p80TqzUQd-I",
     "youtube_start_second": 22,
@@ -57976,7 +57976,7 @@
   },
   {
     "id": "itunes-1743393238",
-    "title": "Roman Ketiga (Remastered 2023)",
+    "title": "Roman Ketiga",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -58007,7 +58007,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Roman Ketiga (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Roman Ketiga White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "GxrbFRKQxnY",
     "youtube_start_second": 33,
@@ -58016,7 +58016,7 @@
   },
   {
     "id": "itunes-1743393239",
-    "title": "Senja Menggila (Remastered 2023)",
+    "title": "Senja Menggila",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -58047,7 +58047,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Senja Menggila (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Senja Menggila White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "b_0fh_epKMQ",
     "youtube_start_second": 45,
@@ -58092,7 +58092,7 @@
     "youtube_id": "OWBDi5fu_nA",
     "youtube_start_second": 0,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1743393241",
@@ -58136,7 +58136,7 @@
   },
   {
     "id": "itunes-1743393242",
-    "title": "Kisah dari Selatan Jakarta (Remastered 2023)",
+    "title": "Kisah dari Selatan Jakarta",
     "artist": "White Shoes & The Couples Company",
     "year": 2011,
     "category": "Nostalgia 2000s",
@@ -58167,7 +58167,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kisah dari Selatan Jakarta (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Kisah dari Selatan Jakarta White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "Ljv5YGXvZ8g",
     "youtube_start_second": 45,
@@ -58176,7 +58176,7 @@
   },
   {
     "id": "itunes-1743393243",
-    "title": "Matahari (Remastered 2023)",
+    "title": "Matahari",
     "artist": "White Shoes & The Couples Company",
     "year": 2023,
     "category": "Nostalgia 2000s",
@@ -58207,7 +58207,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Matahari (Remastered 2023) White Shoes & The Couples Company",
+    "search_query": "Matahari White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": "dk7iuDDpgQs",
     "youtube_start_second": 31,
@@ -58456,7 +58456,7 @@
   },
   {
     "id": "itunes-1746736633",
-    "title": "Irama Cita (Radio Edit Version)",
+    "title": "Irama Cita",
     "artist": "White Shoes & The Couples Company",
     "year": 2020,
     "category": "Nostalgia 2000s",
@@ -58487,7 +58487,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Irama Cita (Radio Edit Version) White Shoes & The Couples Company",
+    "search_query": "Irama Cita White Shoes & The Couples Company",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -59696,7 +59696,7 @@
   },
   {
     "id": "itunes-1753068852",
-    "title": "Doa Sejuta Umat (Live)",
+    "title": "Doa Sejuta Umat",
     "artist": "Jason Ranti",
     "year": 2017,
     "category": "Anthem Tongkrongan",
@@ -59727,7 +59727,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Doa Sejuta Umat (Live) Jason Ranti",
+    "search_query": "Doa Sejuta Umat Jason Ranti",
     "start_second": 0,
     "youtube_id": "CpRY-N19ypQ",
     "youtube_start_second": 20,
@@ -59976,7 +59976,7 @@
   },
   {
     "id": "itunes-1759586045",
-    "title": "“S E N J A” Di Seberang Nusa",
+    "title": "\"S E N J A\" Di Seberang Nusa",
     "artist": "Danilla",
     "year": 2022,
     "category": "Galau Hits",
@@ -60007,7 +60007,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "“S E N J A” Di Seberang Nusa Danilla",
+    "search_query": "\"S E N J A\" Di Seberang Nusa Danilla",
     "start_second": 0,
     "youtube_id": "6m-F4Ciz220",
     "youtube_start_second": 0,
@@ -60336,7 +60336,7 @@
   },
   {
     "id": "itunes-1766943492",
-    "title": "Berakhir di Aku (Original Soundtrack From \"Home Sweet Loan\")",
+    "title": "Berakhir di Aku",
     "artist": "Idgitaf",
     "year": 2024,
     "category": "Galau Hits",
@@ -60367,7 +60367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Berakhir di Aku (Original Soundtrack From \"Home Sweet Loan\") Idgitaf",
+    "search_query": "Berakhir di Aku Idgitaf",
     "start_second": 0,
     "youtube_id": "sLEmV74IsN4",
     "youtube_start_second": 13,
@@ -60496,7 +60496,7 @@
   },
   {
     "id": "itunes-1770257386",
-    "title": "Lagi Syantik (Live at SRN Ini Dangdut S02)",
+    "title": "Lagi Syantik",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60527,7 +60527,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Lagi Syantik (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Lagi Syantik Siti Badriah",
     "start_second": 0,
     "youtube_id": "Tet6_BlStEM",
     "youtube_start_second": 11,
@@ -60536,7 +60536,7 @@
   },
   {
     "id": "itunes-1770257387",
-    "title": "Terong Dicabein (Live at SRN Ini Dangdut S02)",
+    "title": "Terong Dicabein",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60567,7 +60567,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Terong Dicabein (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Terong Dicabein Siti Badriah",
     "start_second": 0,
     "youtube_id": "gFW9sSq6vZE",
     "youtube_start_second": 28,
@@ -60576,7 +60576,7 @@
   },
   {
     "id": "itunes-1770257719",
-    "title": "Bara Bere (Live at SRN Ini Dangdut S02)",
+    "title": "Bara Bere",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60607,7 +60607,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Bara Bere (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Bara Bere Siti Badriah",
     "start_second": 0,
     "youtube_id": "o2rQkV5yjXQ",
     "youtube_start_second": 26,
@@ -60616,7 +60616,7 @@
   },
   {
     "id": "itunes-1770257720",
-    "title": "Undangan Mantan (Live at SRN Ini Dangdut S02)",
+    "title": "Undangan Mantan",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60647,7 +60647,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Undangan Mantan (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Undangan Mantan Siti Badriah",
     "start_second": 0,
     "youtube_id": "jyLgsp1BWuI",
     "youtube_start_second": 15,
@@ -60656,7 +60656,7 @@
   },
   {
     "id": "itunes-1770257725",
-    "title": "Brondong Tua (Live at SRN Ini Dangdut S02)",
+    "title": "Brondong Tua",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60687,7 +60687,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Brondong Tua (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Brondong Tua Siti Badriah",
     "start_second": 0,
     "youtube_id": "wBqyPFdcva0",
     "youtube_start_second": 30,
@@ -60696,7 +60696,7 @@
   },
   {
     "id": "itunes-1770257727",
-    "title": "Suamiku Kawin Lagi (Live at SRN Ini Dangdut S02)",
+    "title": "Suamiku Kawin Lagi",
     "artist": "Siti Badriah",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -60727,7 +60727,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Suamiku Kawin Lagi (Live at SRN Ini Dangdut S02) Siti Badriah",
+    "search_query": "Suamiku Kawin Lagi Siti Badriah",
     "start_second": 0,
     "youtube_id": "90lyaCrv-2s",
     "youtube_start_second": 14,
@@ -60772,7 +60772,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1772723545",
@@ -62132,7 +62132,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1789428597",
@@ -62652,7 +62652,7 @@
     "youtube_id": "09JuPfosBVk",
     "youtube_start_second": 10,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1794051044",
@@ -64172,7 +64172,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "itunes-1824412321",
@@ -68216,7 +68216,7 @@
   },
   {
     "id": "itunes-1870264778",
-    "title": "Tulus (Live)",
+    "title": "Tulus",
     "artist": "Radja",
     "year": 2022,
     "category": "Galau Hits",
@@ -68247,7 +68247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Tulus (Live) Radja",
+    "search_query": "Tulus Radja",
     "start_second": 0,
     "youtube_id": "lJOm8NSizhA",
     "youtube_start_second": 38,
@@ -69056,7 +69056,7 @@
   },
   {
     "id": "itunes-1878258912",
-    "title": "home atmosphere (Acoustic Version)",
+    "title": "home atmosphere",
     "artist": "Raim Laode",
     "year": 2022,
     "category": "Galau Hits",
@@ -69087,7 +69087,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "home atmosphere (Acoustic Version) Raim Laode",
+    "search_query": "home atmosphere Raim Laode",
     "start_second": 0,
     "youtube_id": "i2KgzbHh6hY",
     "youtube_start_second": 15,
@@ -69216,7 +69216,7 @@
   },
   {
     "id": "itunes-1879999278",
-    "title": "Komang (Live From MEGA MOVE IT FEST 2024) [Live]",
+    "title": "Komang",
     "artist": "Raim Laode",
     "year": 2024,
     "category": "Galau Hits",
@@ -69247,7 +69247,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Komang (Live From MEGA MOVE IT FEST 2024) [Live] Raim Laode",
+    "search_query": "Komang Raim Laode",
     "start_second": 0,
     "youtube_id": "GZQbR3JES3Y",
     "youtube_start_second": 20,
@@ -71376,7 +71376,7 @@
   },
   {
     "id": "itunes-251948047",
-    "title": "Me Against the Music (feat. Madonna) [Video Mix]",
+    "title": "Me Against the Music (feat. Madonna)",
     "artist": "Britney Spears",
     "year": 2003,
     "category": "Western Hits",
@@ -71407,7 +71407,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Me Against the Music (feat. Madonna) [Video Mix] Britney Spears",
+    "search_query": "Me Against the Music (feat. Madonna) Britney Spears",
     "start_second": 0,
     "youtube_id": "clwLKJ294u4",
     "youtube_start_second": 0,
@@ -73016,7 +73016,7 @@
   },
   {
     "id": "itunes-287028262",
-    "title": "Akhir Cerita Cinta (Ost. Cinta Silver - Re-arrange Version)",
+    "title": "Akhir Cerita Cinta",
     "artist": "Glenn Fredly",
     "year": 2005,
     "category": "Galau Hits",
@@ -73047,7 +73047,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Akhir Cerita Cinta (Ost. Cinta Silver - Re-arrange Version) Glenn Fredly",
+    "search_query": "Akhir Cerita Cinta Glenn Fredly",
     "start_second": 0,
     "youtube_id": "ONm7SXM2Zqo",
     "youtube_start_second": 1,
@@ -74096,7 +74096,7 @@
   },
   {
     "id": "itunes-308611072",
-    "title": "We've Got It Goin' On (Radio Edit)",
+    "title": "We've Got It Goin' On",
     "artist": "Backstreet Boys",
     "year": 1995,
     "category": "Western Hits",
@@ -74127,7 +74127,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "We've Got It Goin' On (Radio Edit) Backstreet Boys",
+    "search_query": "We've Got It Goin' On Backstreet Boys",
     "start_second": 0,
     "youtube_id": "kHBXPoJhnHQ",
     "youtube_start_second": 0,
@@ -77376,7 +77376,7 @@
   },
   {
     "id": "itunes-399891680",
-    "title": "Don't Let Me Get Me (Radio Edit)",
+    "title": "Don't Let Me Get Me",
     "artist": "P!nk",
     "year": 2001,
     "category": "Western Hits",
@@ -77407,7 +77407,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Don't Let Me Get Me (Radio Edit) P!nk",
+    "search_query": "Don't Let Me Get Me P!nk",
     "start_second": 0,
     "youtube_id": "asaCQOZpqUQ",
     "youtube_start_second": 5,
@@ -82536,7 +82536,7 @@
   },
   {
     "id": "itunes-6767683347",
-    "title": "Kau (feat. Marisha Chacha) [Live]",
+    "title": "Kau (feat. Marisha Chacha)",
     "artist": "T-Five",
     "year": 2025,
     "category": "Nostalgia 2000s",
@@ -82567,7 +82567,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kau (feat. Marisha Chacha) [Live] T-Five",
+    "search_query": "Kau (feat. Marisha Chacha) T-Five",
     "start_second": 0,
     "youtube_id": "P0KkfKjmdeM",
     "youtube_start_second": 20,
@@ -83256,7 +83256,7 @@
   },
   {
     "id": "itunes-6786572712",
-    "title": "Higher Ground (Remastered 2003)",
+    "title": "Higher Ground",
     "artist": "Red Hot Chili Peppers",
     "year": 1989,
     "category": "Western Hits",
@@ -83287,7 +83287,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Higher Ground (Remastered 2003) Red Hot Chili Peppers",
+    "search_query": "Higher Ground Red Hot Chili Peppers",
     "start_second": 0,
     "youtube_id": "X3mRasO5bvo",
     "youtube_start_second": 20,
@@ -83296,7 +83296,7 @@
   },
   {
     "id": "itunes-6786572716",
-    "title": "Subway to Venus (Remastered 2003)",
+    "title": "Subway to Venus",
     "artist": "Red Hot Chili Peppers",
     "year": 1989,
     "category": "Western Hits",
@@ -83327,7 +83327,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Subway to Venus (Remastered 2003) Red Hot Chili Peppers",
+    "search_query": "Subway to Venus Red Hot Chili Peppers",
     "start_second": 0,
     "youtube_id": "MJLNZHzn9zo",
     "youtube_start_second": 16,
@@ -83336,7 +83336,7 @@
   },
   {
     "id": "itunes-6790952332",
-    "title": "Pipi Mimi (Live)",
+    "title": "Pipi Mimi",
     "artist": "Siti Badriah",
     "year": 2023,
     "category": "Pop Jawa & Koplo",
@@ -83367,7 +83367,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Pipi Mimi (Live) Siti Badriah",
+    "search_query": "Pipi Mimi Siti Badriah",
     "start_second": 0,
     "youtube_id": "aSIYsHtwT4Y",
     "youtube_start_second": 45,
@@ -92341,7 +92341,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "keane-is-it-any-wonder",
@@ -92581,7 +92581,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "keane-sovereign-light-caf",
@@ -93829,7 +93829,7 @@
   },
   {
     "id": "linkin-park-casualty-unshatter-film-soundtrack-live-in-s-o-paulo",
-    "title": "Casualty - Unshatter Film Soundtrack (Live in São Paulo)",
+    "title": "Casualty",
     "artist": "LINKIN PARK",
     "year": 2026,
     "category": "Western Hits",
@@ -93860,7 +93860,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Casualty - Unshatter Film Soundtrack (Live in São Paulo) LINKIN PARK",
+    "search_query": "Casualty LINKIN PARK",
     "start_second": 0,
     "youtube_id": "moBfszFIlZU",
     "youtube_start_second": 20,
@@ -93945,11 +93945,11 @@
     "youtube_id": "EGIq02dD1_o",
     "youtube_start_second": 20,
     "youtube_status": "ready",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "linkin-park-lost-unshatter-film-soundtrack-live-in-s-o-paulo",
-    "title": "Lost - Unshatter Film Soundtrack (Live in São Paulo)",
+    "title": "Lost",
     "artist": "LINKIN PARK",
     "year": 2026,
     "category": "Western Hits",
@@ -93980,7 +93980,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Lost - Unshatter Film Soundtrack (Live in São Paulo) LINKIN PARK",
+    "search_query": "Lost LINKIN PARK",
     "start_second": 0,
     "youtube_id": "A5fjsYyBYeM",
     "youtube_start_second": 20,
@@ -93989,7 +93989,7 @@
   },
   {
     "id": "linkin-park-numb-unshatter-film-soundtrack-live-in-s-o-paulo",
-    "title": "Numb - Unshatter Film Soundtrack (Live in São Paulo)",
+    "title": "Numb",
     "artist": "LINKIN PARK",
     "year": 2026,
     "category": "Western Hits",
@@ -94020,7 +94020,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Numb - Unshatter Film Soundtrack (Live in São Paulo) LINKIN PARK",
+    "search_query": "Numb LINKIN PARK",
     "start_second": 0,
     "youtube_id": "tdkSl_8BMDM",
     "youtube_start_second": 20,
@@ -94029,7 +94029,7 @@
   },
   {
     "id": "linkin-park-papercut-unshatter-film-soundtrack-live-in-s-o-paulo",
-    "title": "Papercut - Unshatter Film Soundtrack (Live in São Paulo)",
+    "title": "Papercut",
     "artist": "LINKIN PARK",
     "year": 2026,
     "category": "Western Hits",
@@ -94060,7 +94060,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Papercut - Unshatter Film Soundtrack (Live in São Paulo) LINKIN PARK",
+    "search_query": "Papercut LINKIN PARK",
     "start_second": 0,
     "youtube_id": "9BfpQaUdIKA",
     "youtube_start_second": 20,
@@ -94069,7 +94069,7 @@
   },
   {
     "id": "linkin-park-the-catalyst-unshatter-film-soundtrack-live-in-s-o-paulo",
-    "title": "The Catalyst - Unshatter Film Soundtrack (Live in São Paulo)",
+    "title": "The Catalyst",
     "artist": "LINKIN PARK",
     "year": 2026,
     "category": "Western Hits",
@@ -94100,7 +94100,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "The Catalyst - Unshatter Film Soundtrack (Live in São Paulo) LINKIN PARK",
+    "search_query": "The Catalyst LINKIN PARK",
     "start_second": 0,
     "youtube_id": "vS959lEUED0",
     "youtube_start_second": 20,
@@ -94869,7 +94869,7 @@
   },
   {
     "id": "maliq-d-essentials-kumpul-bocah-original-soundtrack-from-jumbo",
-    "title": "Kumpul Bocah (Original Soundtrack From “JUMBO\")",
+    "title": "Kumpul Bocah",
     "artist": "MALIQ & D'Essentials",
     "year": 2025,
     "category": "Nostalgia 2000s",
@@ -94900,7 +94900,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kumpul Bocah (Original Soundtrack From “JUMBO\") MALIQ & D'Essentials",
+    "search_query": "Kumpul Bocah MALIQ & D'Essentials",
     "start_second": 0,
     "youtube_id": "cLefP2B0VWw",
     "youtube_start_second": 0,
@@ -100073,7 +100073,7 @@
   },
   {
     "id": "ndx-a-k-a-kimcil-kepolen-live-at-srn-ini-dangdut-s02",
-    "title": "Kimcil Kepolen (Live at SRN Ini Dangdut S02)",
+    "title": "Kimcil Kepolen",
     "artist": "NDX A.K.A",
     "year": 2024,
     "category": "Pop Jawa & Koplo",
@@ -100104,7 +100104,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kimcil Kepolen (Live at SRN Ini Dangdut S02) NDX A.K.A",
+    "search_query": "Kimcil Kepolen NDX A.K.A",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -102473,7 +102473,7 @@
   },
   {
     "id": "panic-at-the-disco-a-fever-you-can-t-sweat-out-medley-live",
-    "title": "A Fever You Can't Sweat Out Medley (Live)",
+    "title": "A Fever You Can't Sweat Out Medley",
     "artist": "Panic! At the Disco",
     "year": 2017,
     "category": "Western Hits",
@@ -102504,7 +102504,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "A Fever You Can't Sweat Out Medley (Live) Panic! At the Disco",
+    "search_query": "A Fever You Can't Sweat Out Medley Panic! At the Disco",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -106753,7 +106753,7 @@
   },
   {
     "id": "sam-smith-i-m-not-the-only-one-live-from-apple-music-studios",
-    "title": "I'm Not The Only One (Live from Apple Music Studios)",
+    "title": "I'm Not The Only One",
     "artist": "Sam Smith",
     "year": 2026,
     "category": "Western Hits",
@@ -106784,7 +106784,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "I'm Not The Only One (Live from Apple Music Studios) Sam Smith",
+    "search_query": "I'm Not The Only One Sam Smith",
     "start_second": 0,
     "youtube_id": "7NMhjmLGRak",
     "youtube_start_second": 24,
@@ -107033,7 +107033,7 @@
   },
   {
     "id": "sam-smith-stay-with-me-live-from-apple-music-studios",
-    "title": "Stay With Me (Live from Apple Music Studios)",
+    "title": "Stay With Me",
     "artist": "Sam Smith",
     "year": 2026,
     "category": "Western Hits",
@@ -107064,7 +107064,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Stay With Me (Live from Apple Music Studios) Sam Smith",
+    "search_query": "Stay With Me Sam Smith",
     "start_second": 0,
     "youtube_id": "Pl8UJcwZ_G0",
     "youtube_start_second": 10,
@@ -109189,7 +109189,7 @@
     "youtube_id": null,
     "youtube_start_second": 20,
     "youtube_status": "not_found",
-    "is_active": 1
+    "is_active": 0
   },
   {
     "id": "shawn-mendes-understand",
@@ -111231,7 +111231,7 @@
   },
   {
     "id": "steven-coconuttreez-kembali-acoustic-version",
-    "title": "Kembali (Acoustic Version)",
+    "title": "Kembali",
     "artist": "Steven & Coconuttreez",
     "year": 2019,
     "category": "Anthem Tongkrongan",
@@ -111262,7 +111262,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Kembali (Acoustic Version) Steven Coconuttreez",
+    "search_query": "Kembali Steven & Coconuttreez",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -114711,7 +114711,7 @@
   },
   {
     "id": "the-upstairs-disko-darurat-live",
-    "title": "Disko Darurat (Live)",
+    "title": "Disko Darurat",
     "artist": "The Upstairs",
     "year": 2018,
     "category": "Anthem Tongkrongan",
@@ -114742,7 +114742,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Disko Darurat (Live) The Upstairs",
+    "search_query": "Disko Darurat The Upstairs",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -114831,7 +114831,7 @@
   },
   {
     "id": "the-upstairs-terekam-tak-pernah-mati-live",
-    "title": "Terekam (Tak Pernah Mati) [Live]",
+    "title": "Terekam (Tak Pernah Mati)",
     "artist": "The Upstairs",
     "year": 2018,
     "category": "Anthem Tongkrongan",
@@ -114862,7 +114862,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Terekam (Tak Pernah Mati) [Live] The Upstairs",
+    "search_query": "Terekam (Tak Pernah Mati) The Upstairs",
     "start_second": 0,
     "youtube_id": null,
     "youtube_start_second": 20,
@@ -116443,7 +116443,7 @@
   },
   {
     "id": "tuan13-lebaran-sebentar-lagi-bro-s-studio-feat-various-artists",
-    "title": "Lebaran Sebentar Lagi – BRO's Studio feat. Various Artists",
+    "title": "Lebaran Sebentar Lagi",
     "artist": "Tuan Tigabelas",
     "year": 2024,
     "category": "Rap",
@@ -116456,7 +116456,7 @@
     "preview_url": "",
     "lyrics_clues": [],
     "humming_melody": [],
-    "search_query": "Lebaran Sebentar Lagi – BRO's Studio feat. Various Artists Tuan Tigabelas",
+    "search_query": "Lebaran Sebentar Lagi Tuan Tigabelas",
     "start_second": 0,
     "youtube_id": "moySExs-S4g",
     "youtube_start_second": 20,
@@ -116764,7 +116764,7 @@
     "preview_url": "",
     "lyrics_clues": [],
     "humming_melody": [],
-    "search_query": "King Tuan Tigabelas",
+    "search_query": "King (Diton King Edition) Tuan Tigabelas",
     "start_second": 0,
     "youtube_id": "I_yIIuOteJs",
     "youtube_start_second": 20,
@@ -117413,7 +117413,7 @@
   },
   {
     "id": "vidi-love-for-u-4u",
-    "title": "love for u (❤️4U)",
+    "title": "love for u (4U)",
     "artist": "VIDI",
     "year": 2023,
     "category": "Galau Hits",
@@ -117444,7 +117444,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "love for u (❤️4U) VIDI",
+    "search_query": "love for u (4U) VIDI",
     "start_second": 0,
     "youtube_id": "MwMZCS6pL44",
     "youtube_start_second": 1,
@@ -118173,7 +118173,7 @@
   },
   {
     "id": "westlife-if-i-let-you-go-radio-edit",
-    "title": "If I Let You Go (Radio Edit)",
+    "title": "If I Let You Go",
     "artist": "Westlife",
     "year": 1999,
     "category": "Western Hits",
@@ -118204,7 +118204,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "If I Let You Go (Radio Edit) Westlife",
+    "search_query": "If I Let You Go Westlife",
     "start_second": 0,
     "youtube_id": "7NrQei36fJk",
     "youtube_start_second": 5,
@@ -118213,7 +118213,7 @@
   },
   {
     "id": "westlife-queen-of-my-heart-radio-edit",
-    "title": "Queen of My Heart (Radio Edit)",
+    "title": "Queen of My Heart",
     "artist": "Westlife",
     "year": 2001,
     "category": "Western Hits",
@@ -118244,7 +118244,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Queen of My Heart (Radio Edit) Westlife",
+    "search_query": "Queen of My Heart Westlife",
     "start_second": 0,
     "youtube_id": "6c64kUiqknY",
     "youtube_start_second": 4,
@@ -118333,7 +118333,7 @@
   },
   {
     "id": "westlife-swear-it-again-radio-edit",
-    "title": "Swear It Again (Radio Edit)",
+    "title": "Swear It Again",
     "artist": "Westlife",
     "year": 1999,
     "category": "Western Hits",
@@ -118364,7 +118364,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Swear It Again (Radio Edit) Westlife",
+    "search_query": "Swear It Again Westlife",
     "start_second": 0,
     "youtube_id": "0UaMsIJ4bR0",
     "youtube_start_second": 7,
@@ -118613,7 +118613,7 @@
   },
   {
     "id": "yeni-inka-happy-asmara-denny-caknan-bojo-loro-live",
-    "title": "Bojo Loro (Live)",
+    "title": "Bojo Loro",
     "artist": "Yeni Inka, Happy Asmara & Denny Caknan",
     "year": 2022,
     "category": "Pop Jawa & Koplo",
@@ -118644,7 +118644,7 @@
         "duration": 0.5
       }
     ],
-    "search_query": "Bojo Loro (Live) Yeni Inka Happy Asmara Denny Caknan",
+    "search_query": "Bojo Loro Yeni Inka, Happy Asmara & Denny Caknan",
     "start_second": 0,
     "youtube_id": "jE5-7vze22o",
     "youtube_start_second": 13,

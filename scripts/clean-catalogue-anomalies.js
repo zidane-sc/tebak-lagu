@@ -151,6 +151,76 @@ async function main() {
   });
   console.log(`   ✓ Galau Hits deactivated: ${gRes.rowsAffected} songs`);
 
+  // 5b. Deactivate redundant duplicate variants and clean dirty suffixes (e.g. (Live), (Remastered), OST)
+  console.log("\n5b. Cleaning dirty title suffixes and deactivating redundant duplicate versions...");
+  const allActiveRes = await db.execute(`
+    SELECT id, title, artist, category, youtube_id, youtube_status, popularity, is_active
+    FROM songs 
+    WHERE is_active = 1 OR is_active IS NULL;
+  `);
+
+  function cleanTitle(title) {
+    let t = title.replace(/\s*[-–—]\s*(?:Unshatter Film Soundtrack|BRO's Studio).*$/i, "");
+    const pattern = /\s*(\((?:live|remastered?|ost\.?|original soundtrack|acoustic version|piano version|radio edit|video mix)[^)]*\)|\[[^\]]*(?:official|live|soundtrack|video)[^\]]*\])/gi;
+    t = t.replace(pattern, "");
+    t = t.replace(/❤️/g, "").replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+    return t.replace(/\s+/g, " ").trim();
+  }
+
+  const baseMap = new Map();
+  for (const row of allActiveRes.rows) {
+    const cl = cleanTitle(row.title);
+    const key = `${cl.toLowerCase()}:::${row.artist.trim().toLowerCase()}`;
+    if (!baseMap.has(key)) baseMap.set(key, []);
+    baseMap.get(key).push({ row, cl });
+  }
+
+  let dupesDeactivated = 0;
+  let titlesCleaned = 0;
+
+  for (const [, entries] of baseMap.entries()) {
+    if (entries.length > 1) {
+      // Score: prefer original clean title, prefer ready youtube, prefer popularity
+      const score = ({ row, cl }) => {
+        let sc = 0;
+        if (row.title === cl) sc += 1000;
+        if (row.youtube_id && row.youtube_status === "ready") sc += 500;
+        sc += row.popularity || 0;
+        return sc;
+      };
+      entries.sort((a, b) => score(b) - score(a));
+      const winner = entries[0];
+      const losers = entries.slice(1);
+
+      if (winner.row.title !== winner.cl) {
+        await db.execute({
+          sql: "UPDATE songs SET title = ?, search_query = ? || ' ' || artist WHERE id = ?;",
+          args: [winner.cl, winner.cl, winner.row.id],
+        });
+        titlesCleaned++;
+      }
+
+      for (const loser of losers) {
+        await db.execute({
+          sql: "UPDATE songs SET is_active = 0 WHERE id = ?;",
+          args: [loser.row.id],
+        });
+        dupesDeactivated++;
+      }
+    } else {
+      const { row, cl } = entries[0];
+      if (row.title !== cl) {
+        await db.execute({
+          sql: "UPDATE songs SET title = ?, search_query = ? || ' ' || artist WHERE id = ?;",
+          args: [cl, cl, row.id],
+        });
+        titlesCleaned++;
+      }
+    }
+  }
+  console.log(`   ✓ Redundant duplicate versions deactivated: ${dupesDeactivated}`);
+  console.log(`   ✓ Dirty song titles cleaned: ${titlesCleaned}`);
+
   // 6. Refresh artists table counts & active status
   console.log("\n6. Refreshing artists table...");
   await db.execute(`
