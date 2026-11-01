@@ -284,25 +284,61 @@ async function main() {
     }
   }
 
-  // 2. Lyrics and YouTube Backfill for Iconic Hits
-  console.log("\n2. Backfilling lyrics and YouTube IDs for iconic hits...");
+  // 2. Lyrics, Covers and YouTube Backfill for Iconic Hits
+  console.log("\n2. Backfilling lyrics, artwork covers and YouTube IDs for iconic hits...");
+  const SPOTIFY_COVERS = {
+    "spotify-75bbc8ada7e3": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2a/11/6c/2a116c07-59f8-5429-f67f-723ded752482/24UMGIM29484.rgb.jpg/600x600bb.jpg",
+    "spotify-4a06534c2a57": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/cb/a6/84/cba684fc-720b-485a-ebb0-96e9b79f6b5e/cover.jpg/600x600bb.jpg",
+    "spotify-2673a3c1e104": "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/5f/4f/68/5f4f6824-86e0-0efa-a2c9-9fbd104b0470/21UMGIM62551.rgb.jpg/600x600bb.jpg",
+    "spotify-25ad9ee2185b": "https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6f/18/10/6f1810e0-2d6a-a456-1362-de607c70408a/cover.jpg/600x600bb.jpg",
+    "spotify-e2abc3db3853": "https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/25/84/60/258460ea-3f79-2f43-6a5e-67e5560245e0/cover.jpg/600x600bb.jpg",
+    "spotify-9f3ab2b23a74": "https://is1-ssl.mzstatic.com/image/thumb/Music/ee/cc/70/mzi.hleqemxc.jpg/600x600bb.jpg",
+    "spotify-da115180b8b6": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2b/5d/5a/2b5d5adf-45ba-8f6a-e574-71f9c197cf99/196872493177.jpg/600x600bb.jpg",
+    "spotify-7566a684d54a": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c0/fa/4a/c0fa4a38-4882-7e67-5fdc-a9c98bcc17b7/cover.jpg/600x600bb.jpg",
+    "spotify-cb14e0b4613d": "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a5/39/86/a5398609-ad90-50d3-57ad-0f87a4df5ac4/14UMGIM28138.rgb.jpg/600x600bb.jpg",
+    "spotify-7f0412aba24b": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/f8/df/0a/f8df0ac9-ae76-9dae-86d3-4e913fc54fb1/634904152062.png/600x600bb.jpg",
+  };
+
   for (const [id, data] of Object.entries(LYRICS_BACKFILL)) {
     const jsonLyrics = JSON.stringify(data.lyrics);
-    if (data.youtube_id) {
+    const cover = SPOTIFY_COVERS[id];
+    if (cover) {
       await db.execute({
-        sql: `UPDATE songs 
-              SET lyrics_clues = ?, youtube_id = ?, youtube_status = ?, youtube_start_second = ?, is_active = 1
-              WHERE id = ?;`,
-        args: [jsonLyrics, data.youtube_id, data.youtube_status, data.youtube_start_second, id],
+        sql: "UPDATE songs SET lyrics_clues = ?, album_cover = ?, is_active = 1 WHERE id = ?;",
+        args: [jsonLyrics, cover, id],
       });
     } else {
       await db.execute({
-        sql: `UPDATE songs SET lyrics_clues = ?, is_active = 1 WHERE id = ?;`,
+        sql: "UPDATE songs SET lyrics_clues = ?, is_active = 1 WHERE id = ?;",
         args: [jsonLyrics, id],
       });
     }
-    console.log(`   ✓ Enriched ${id} with 4-stanza lyrics`);
+    console.log(`   ✓ Enriched ${id} with lyrics & official artwork`);
   }
+
+  // 2b. Backfill missing album covers for Rap playlist
+  console.log("\n2b. Backfilling missing album covers for Rap playlist...");
+  const RAP_ARTIST_COVERS = {
+    "Tuan Tigabelas": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/e5/6a/dd/e56addd5-c36c-1e78-bf85-e1499b654371/8994925126896_cover.jpg/600x600bb.jpg",
+    "K3BI": "https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/38/e8/b0/38e8b023-1b7c-f2f2-d216-79b9d43eeeab/cover.jpg/600x600bb.jpg",
+    "Muria": "https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/0b/4e/ae/0b4eae1d-8fb2-06a1-feea-7f2537994a34/cover.jpg/600x600bb.jpg",
+  };
+  for (const [artistName, coverUrl] of Object.entries(RAP_ARTIST_COVERS)) {
+    await db.execute({
+      sql: "UPDATE songs SET album_cover = ? WHERE artist = ? AND (album_cover IS NULL OR album_cover = '');",
+      args: [coverUrl, artistName],
+    });
+    await db.execute({
+      sql: "UPDATE artists SET image = ? WHERE name = ? AND (image IS NULL OR image = '');",
+      args: [coverUrl, artistName],
+    });
+  }
+  // Peterpan artist image & category fix
+  await db.execute({
+    sql: "UPDATE artists SET image = ?, category = 'Nostalgia 2000s' WHERE id = 'peterpan';",
+    args: ["https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/2a/11/6c/2a116c07-59f8-5429-f67f-723ded752482/24UMGIM29484.rgb.jpg/600x600bb.jpg"],
+  });
+  console.log("   ✓ Rap playlist and Peterpan artwork backfilled.");
 
   // 3. Deactivate Phantom / Fake Tracks
   console.log("\n3. Deactivating phantom tracks...");
