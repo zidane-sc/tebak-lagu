@@ -248,6 +248,7 @@ function getSanitizedRoom(room) {
       : null,
     currentSongClue: room.currentSong
       ? {
+          id: room.currentSong.id,
           category: room.currentSong.category,
           year: room.currentSong.year,
           lang: room.currentSong.lang || (room.currentSong.category === "Western Hits" ? "en" : "id"),

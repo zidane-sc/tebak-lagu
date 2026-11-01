@@ -162,9 +162,38 @@ export default function MultiplayerPage() {
   const buzzTimerRef = useRef<NodeJS.Timeout | null>(null);
   const sliceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const roomRef = useRef<any>(null);
+  roomRef.current = room;
+
   // YouTube Audio Engine — persistent singleton
   const ytEngine = useYouTubeEngine({
-    onError: (msg) => console.warn("[YT Multiplayer]", msg),
+    onError: (msg, code) => {
+      console.warn("[YT Multiplayer]", msg, code);
+      const clue = roomRef.current?.currentSongClue;
+      if (clue?.id) {
+        fetch("/api/songs/report-broken", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: clue.id,
+            youtubeId: clue.youtubeId,
+            errorCode: code,
+            reason: msg,
+          }),
+        }).catch(() => {});
+      }
+      // Instant fallback to preview audio clip so match never stays silent
+      if (audioRef.current && clue?.previewUrl) {
+        try {
+          if (audioRef.current.src !== clue.previewUrl) {
+            audioRef.current.src = clue.previewUrl;
+          }
+          const previewStart = Number(clue.startSecond) || 0;
+          audioRef.current.currentTime = Math.min(previewStart, 5);
+          audioRef.current.play().catch(() => {});
+        } catch {}
+      }
+    },
   });
 
   const playAudioRef = useRef<(customRoom?: any) => void>(() => {});
