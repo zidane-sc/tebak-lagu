@@ -139,12 +139,18 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
           }
           else if (e.data === YT.PAUSED) {
             updateState("paused");
+            try {
+              playerRef.current?.mute();
+            } catch {}
             releaseMediaSession();
           }
           else if (e.data === YT.CUED) updateState("cued");
           else if (e.data === YT.BUFFERING) updateState("loading");
           else if (e.data === YT.ENDED) {
             updateState("idle");
+            try {
+              playerRef.current?.mute();
+            } catch {}
             releaseMediaSession();
           }
         },
@@ -345,11 +351,17 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
   }, [currentSong]);
 
   const pause = useCallback(() => {
-    playerRef.current?.pauseVideo();
+    try {
+      playerRef.current?.pauseVideo();
+      playerRef.current?.mute();
+    } catch {}
     releaseMediaSession();
   }, []);
   const stop = useCallback(() => {
-    playerRef.current?.stopVideo();
+    try {
+      playerRef.current?.stopVideo();
+      playerRef.current?.mute();
+    } catch {}
     releaseMediaSession();
     updateState("idle");
   }, [updateState]);
@@ -359,6 +371,7 @@ export function useYouTubeEngine({ onStateChange, onError, onReady }: Props = {}
     const handleRemotePause = () => {
       try {
         playerRef.current?.pauseVideo();
+        playerRef.current?.mute();
       } catch {}
       releaseMediaSession();
     };

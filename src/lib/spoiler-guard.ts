@@ -43,6 +43,58 @@ function getSilentAudio(): HTMLAudioElement | null {
   return silentAudioElement;
 }
 
+function dropAllActionHandlers(): void {
+  try {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    if (typeof ms.setActionHandler === "function") {
+      const actions: MediaSessionAction[] = [
+        "play",
+        "pause",
+        "seekbackward",
+        "seekforward",
+        "previoustrack",
+        "nexttrack",
+        "skipad",
+        "stop",
+      ];
+      for (const a of actions) {
+        try {
+          ms.setActionHandler(a, null);
+        } catch {}
+      }
+    }
+  } catch {}
+}
+
+function setupActionHandlers(): void {
+  try {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    if (typeof ms.setActionHandler === "function") {
+      ms.setActionHandler("play", () => {
+        window.dispatchEvent(new CustomEvent("tl:mediasession-play"));
+      });
+      ms.setActionHandler("pause", () => {
+        window.dispatchEvent(new CustomEvent("tl:mediasession-pause"));
+      });
+      const unused: MediaSessionAction[] = [
+        "seekbackward",
+        "seekforward",
+        "previoustrack",
+        "nexttrack",
+        "skipad",
+        "stop",
+      ];
+      for (const a of unused) {
+        try {
+          ms.setActionHandler(a, null);
+        } catch {}
+      }
+    }
+  } catch {}
+}
+
 /**
  * Anchor the browser's Media Session routing to the top-level document.
  *
@@ -66,24 +118,25 @@ export function anchorMediaSession(): void {
   try {
     if ("mediaSession" in navigator) {
       navigator.mediaSession.playbackState = "playing";
-      if (typeof navigator.mediaSession.setActionHandler === "function") {
-        navigator.mediaSession.setActionHandler("pause", () => {
-          window.dispatchEvent(new CustomEvent("tl:mediasession-pause"));
-        });
-      }
+      setupActionHandlers();
     }
   } catch {}
 }
 
 export function releaseMediaSession(): void {
+  // CRITICAL: Do NOT pause silentAudioElement!
+  // If we pause the top-frame silent audio, Chromium removes it from normal_players_,
+  // which leaves YouTube iframe as the only active player. Chromium then re-routes
+  // MediaSession to the YouTube iframe, immediately flashing the real song title on Android!
+  // Keeping the top-frame silent audio playing (0.01 volume mono silence) keeps depth-0
+  // focus permanently locked on "Tebak Lagu", keeping the panel masked as "paused".
   try {
-    const audio = getSilentAudio();
-    if (audio && !audio.paused) {
-      audio.pause();
-      audio.currentTime = 0;
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "paused";
+      writeDecoyMetadata();
+      setupActionHandlers();
     }
   } catch {}
-  clearSpoilers();
 }
 
 /**
@@ -127,27 +180,11 @@ export function clearSpoilers(): void {
       // assignment is the thing that does not retract an already-shown
       // notification on iOS.
       writeDecoyMetadata();
-      if (ms.playbackState !== "none") ms.playbackState = "none";
-      // Removing the action handlers also stops the system from rendering a
-      // cover image in the media panel.
-      if (typeof ms.setActionHandler === "function") {
-        const actions: MediaSessionAction[] = [
-          "play",
-          "pause",
-          "seekbackward",
-          "seekforward",
-          "previoustrack",
-          "nexttrack",
-          "skipad",
-          "stop",
-        ];
-        for (const a of actions) {
-          try {
-            ms.setActionHandler(a, null);
-          } catch {
-            // Action unsupported on this browser — ignore.
-          }
-        }
+      if (!silentAudioElement || silentAudioElement.paused) {
+        if (ms.playbackState !== "none") ms.playbackState = "none";
+        dropAllActionHandlers();
+      } else {
+        setupActionHandlers();
       }
     }
   } catch {
@@ -237,6 +274,14 @@ export function startSpoilerGuard(): () => void {
       clearInterval(pollHandle);
       pollHandle = null;
     }
+    try {
+      if (silentAudioElement) {
+        silentAudioElement.pause();
+        silentAudioElement.currentTime = 0;
+        silentAudioElement = null;
+      }
+      dropAllActionHandlers();
+    } catch {}
   };
 }
 

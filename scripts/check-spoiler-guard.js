@@ -194,8 +194,16 @@ test("top-frame media session anchor exists to override cross-origin iframe rout
     "releaseMediaSession must be exported to release media focus",
   );
   assert.ok(
+    !/releaseMediaSession[\s\S]{0,100}audio\.pause\(\)/.test(guard),
+    "releaseMediaSession must NOT pause silent audio to avoid dropping Chromium audio routing to YouTube",
+  );
+  assert.ok(
     /anchorMediaSession/.test(read("components", "modes", "HeardleModePlayer.tsx")),
     "HeardleModePlayer must anchor media session on play",
+  );
+  assert.ok(
+    /playerRef\.current\?\.mute\(\)/.test(engine),
+    "YouTube engine must mute on pause/stop to prevent iframe from claiming audio focus",
   );
 });
 

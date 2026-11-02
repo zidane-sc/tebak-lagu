@@ -58,13 +58,32 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     setIsPlaying(false);
   }, [isPlaying, onYoutubePause]);
 
+  const handlePlay = useCallback(() => {
+    if (isPlaying) {
+      stopPlayback();
+      return;
+    }
+    if (!canPlay) return;
+
+    setIsPlaying(true);
+    anchorMediaSession();
+    onYoutubePlay!(youtubeStartSecond ?? 0);
+    // Safety fallback timer so it never hangs if network stalls
+    timerRef.current = setTimeout(() => {
+      stopPlayback();
+    }, (maxAllowedDuration + 15) * 1000);
+  }, [isPlaying, canPlay, onYoutubePlay, youtubeStartSecond, maxAllowedDuration, stopPlayback]);
+
   useEffect(() => {
     const handleRemotePause = () => stopPlayback();
+    const handleRemotePlay = () => handlePlay();
     window.addEventListener("tl:mediasession-pause", handleRemotePause);
+    window.addEventListener("tl:mediasession-play", handleRemotePlay);
     return () => {
       window.removeEventListener("tl:mediasession-pause", handleRemotePause);
+      window.removeEventListener("tl:mediasession-play", handleRemotePlay);
     };
-  }, [stopPlayback]);
+  }, [stopPlayback, handlePlay]);
 
   useEffect(() => {
     if (isGameOver) stopPlayback();
@@ -83,22 +102,6 @@ export const HeardleModePlayer: React.FC<HeardleModePlayerProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handlePlay = () => {
-    if (isPlaying) {
-      stopPlayback();
-      return;
-    }
-    if (!canPlay) return;
-
-    setIsPlaying(true);
-    anchorMediaSession();
-    onYoutubePlay!(youtubeStartSecond ?? 0);
-    // Safety fallback timer so it never hangs if network stalls
-    timerRef.current = setTimeout(() => {
-      stopPlayback();
-    }, (maxAllowedDuration + 15) * 1000);
-  };
 
   // Start the exact slice timer only once audio actually reports PLAYING.
   // Prevents mobile/iOS network buffering from consuming the 3s window.
