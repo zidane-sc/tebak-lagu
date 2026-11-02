@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Song } from "@/data/songs";
 import { SocialShareModal } from "@/components/SocialShareModal";
-import { startSpoilerGuard } from "@/lib/spoiler-guard";
+import { startSpoilerGuard, stopSilentAudio } from "@/lib/spoiler-guard";
 
 interface GameOverModalProps {
   isWon: boolean;
@@ -51,9 +51,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // This modal mounts after the round is already over, so the spoiler guard
-    // running elsewhere may not cover it — and its <audio autoPlay> is exactly
-    // the kind of element that makes the OS publish a track label.
+    // This modal mounts after the round is already over. Stop the in-game silent
+    // audio so the preview player has full priority on mobile iOS Safari.
+    stopSilentAudio();
     return startSpoilerGuard();
   }, []);
 

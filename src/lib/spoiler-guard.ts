@@ -139,6 +139,16 @@ export function releaseMediaSession(): void {
   } catch {}
 }
 
+/** Explicitly stop silent audio only when game completely finishes or unmounts */
+export function stopSilentAudio(): void {
+  try {
+    if (silentAudioElement && !silentAudioElement.paused) {
+      silentAudioElement.pause();
+      silentAudioElement.currentTime = 0;
+    }
+  } catch {}
+}
+
 /**
  * Overwrite the media-session metadata with a neutral placeholder instead of
  * clearing it.
